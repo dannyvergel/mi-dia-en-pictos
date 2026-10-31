@@ -140,3 +140,23 @@ details[open] summary::after { content: "－"; }
 
 footer { text-align: center; font-size: 12px; color: var(--gris); padding: 18px; }
 footer a { color: var(--gris); }
+
+/* Celular */
+@media (max-width: 520px) {
+  header { padding: 14px 16px 12px; }
+  header h1 { font-size: 30px; }
+  header .bajada { font-size: 16px; }
+  nav { gap: 4px; padding: 10px 8px 0; }
+  nav button { min-width: 0; padding: 9px 4px 8px; font-size: 14px; }
+  nav button.on { padding-top: 11px; }
+  main { padding: 0 8px 20px; }
+  .pagina { padding: 14px 10px 6px 24px; }
+  .pagina::before { left: 12px; }
+  .card { padding: 14px 12px; }
+  .tira { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .picto .t { font-size: 14px; }
+  .fila { flex-direction: column; gap: 0; }
+  .m { max-width: 92%; }
+  .sug button { padding: 8px 12px; }
+  .titular { font-size: 22px; }
+}
