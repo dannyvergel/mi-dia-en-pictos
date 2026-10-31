@@ -35,6 +35,19 @@
   .muted { color:#777; font-size:13px; }
   pre { white-space:pre-wrap; background:#f3f3f3; padding:10px; border-radius:8px; font-size:13px; }
   footer { text-align:center; font-size:11px; color:#888; padding:20px; }
+  .traza { font-family: ui-monospace, Menlo, monospace; font-size:13px; }
+  .paso { padding:8px 10px; border-left:3px solid var(--p); margin:6px 0; background:#f8f7ff; border-radius:6px; animation:entra .4s ease; }
+  .paso b { color:var(--p); } .paso .r { color:#555; word-break:break-word; }
+  @keyframes entra { from { opacity:0; transform:translateX(-8px); } to { opacity:1; transform:none; } }
+  .titular { font-size:20px; font-weight:700; line-height:1.3; }
+  .chip { display:inline-block; padding:2px 8px; border-radius:20px; font-size:12px; font-weight:700; color:#fff; background:#888; }
+  .chip.avanzando, .chip.logrado { background:var(--ok); } .chip.estancado, .chip.retroceso { background:var(--bad); } .chip.estable { background:var(--warn); }
+  .ppi { padding:8px 0; border-bottom:1px solid #eee; }
+  .estr { padding:10px; border:1px solid #e3e0ff; border-radius:10px; margin:8px 0; }
+  .estr a { font-size:12px; color:var(--p); }
+  .picto.apoyo { border-color:var(--p); border-style:dashed; background:#f3f1ff; }
+  .picto.apoyo::before { content:"✨ apoyo"; display:block; font-size:11px; color:var(--p); font-weight:700; }
+  .spin { display:inline-block; animation:gira 1s linear infinite; } @keyframes gira { to { transform:rotate(360deg); } }
   .cfg { font-size:12px; color:#fff; opacity:.85; cursor:pointer; }
 </style>
 </head>
@@ -44,6 +57,7 @@
   <button class="on" data-s="docente">👩‍🏫 Docente</button>
   <button data-s="alumno">🧒 Alumno</button>
   <button data-s="familia">👪 Familia</button>
+  <button data-s="progreso">🧠 Progreso</button>
 </nav>
 <main>
   <!-- DOCENTE -->
@@ -92,11 +106,39 @@
       <button class="big" id="btnWa">📲 Enviar por WhatsApp</button>
     </div>
   </section>
+  <!-- PROGRESO (Agente) -->
+  <section id="progreso">
+    <div class="card">
+      <h2 style="margin-top:0">🧠 Agente de Progreso</h2>
+      <p class="muted">Lee todos los días registrados del alumno, encuentra patrones, mide su PPI, busca estrategias con evidencia y arma la agenda del próximo día difícil.</p>
+      <label>Alumno</label>
+      <select id="alumnoP"></select>
+      <button class="big" id="btnAgente">🧠 Analizar progreso</button>
+      <button class="big alt" id="btnSeed" style="font-size:14px;padding:10px">Cargar 3 semanas de ejemplo (Juan, datos ficticios)</button>
+      <p class="muted" id="estadoP"></p>
+    </div>
+    <div class="card" id="trazaCard" style="display:none">
+      <b>Lo que está haciendo el agente</b> <span class="muted" id="modoP"></span>
+      <div class="traza" id="traza"></div>
+    </div>
+    <div id="resultadoP" style="display:none">
+      <div class="card"><div class="titular" id="titular"></div><div id="hallazgos"></div></div>
+      <div class="card"><b>Objetivos del PPI</b><div id="ppiP"></div></div>
+      <div class="card"><b>Estrategias sugeridas (con evidencia)</b><div id="estrP"></div></div>
+      <div class="card"><b id="agendaTit">Agenda visual propuesta</b>
+        <div class="tira" id="agendaP" style="margin-top:10px"></div>
+        <button class="big alt" id="btnUsarAgenda">Mostrar esta agenda al alumno</button>
+      </div>
+      <div class="card"><b>Mensaje para la familia</b><pre id="msgP"></pre><button class="big" id="btnWaP">📲 Enviar por WhatsApp</button></div>
+      <div class="card"><b>Nota para el legajo</b><p id="notaP"></p><p class="muted">El agente sugiere; la docente decide. Sin diagnósticos.</p></div>
+    </div>
+  </section>
 </main>
 <footer>
   Pictogramas: Sergio Palao. Origen: <a href="https://arasaac.org">ARASAAC</a>. Licencia CC BY-NC-SA. Propiedad: Gobierno de Aragón.
 </footer>
 
+<script src="seed.js"></script>
 <script>
 const ALUMNOS = ["Juan", "Sofía", "Mateo", "Valentina"];
 const EJEMPLO = "Llegó contento, desayunó bien. A las 9 hicimos música y le encantó tocar el tambor. A las 11 en el recreo se angustió por el ruido y lloró un rato, lo calmamos con los auriculares. Después almorzó poco. A la tarde pintó con témperas y saludó solito a sus compañeros al irse.";
@@ -141,7 +183,7 @@ $("btnEnviar").onclick = async () => {
   if (!texto) return alert("Contá cómo fue el día primero.");
   $("estado").textContent = "Generando…";
   try {
-    hoy = webhook() ? await viaN8n(alumno, texto) : await demo(alumno, texto);
+    hoy = webhook() ? await viaN8n(alumno, texto) : (await viaApi(alumno, texto)) || await demo(alumno, texto);
     guardar(hoy); pintar(hoy);
     $("estado").textContent = "Listo ✅ Mirá las pestañas Alumno y Familia.";
   } catch (e) { console.error(e); $("estado").textContent = "Error: " + e.message; }
@@ -153,8 +195,13 @@ async function viaN8n(alumno, texto) {
   return r.json();
 }
 
+async function viaApi(alumno, texto) {
+  try { const r = await fetch("api/dia", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ alumno, texto }) }); return r.ok ? r.json() : null; }
+  catch { return null; }
+}
+
 // Modo demo: sin IA, separa oraciones y busca pictos en ARASAAC
-const DICC = { desayun:"desayunar", music:"música", músic:"música", recreo:"recreo", almorz:"almorzar", comi:"comer", pint:"pintar", jug:"jugar", dorm:"dormir", lloró:"llorar", angusti:"triste", salud:"saludar", baño:"baño", lee:"leer", leí:"leer", cant:"cantar", plaza:"parque", educación física:"educación física", gimnasia:"gimnasia", llegó:"llegar", tambor:"tambor" };
+const DICC = { desayun:"desayunar", music:"música", músic:"música", recreo:"recreo", almorz:"almorzar", comi:"comer", pint:"pintar", jug:"jugar", dorm:"dormir", lloró:"llorar", angusti:"triste", salud:"saludar", baño:"baño", lee:"leer", leí:"leer", cant:"cantar", plaza:"parque", "educación física":"educación física", gimnasia:"gimnasia", llegó:"llegar", tambor:"tambor" };
 async function demo(alumno, texto) {
   const frases = texto.split(/[.;\n]+/).map(s => s.trim()).filter(Boolean);
   const actividades = [];
@@ -216,6 +263,81 @@ function hist() {
   $("historial").querySelectorAll("div").forEach(el => el.onclick = () => { hoy = h[el.dataset.i]; pintar(hoy); });
 }
 hist();
+
+// ---------- Agente de Progreso ----------
+ALUMNOS.forEach(a => $("alumnoP").add(new Option(a, a)));
+$("alumno").onchange = () => $("alumnoP").value = $("alumno").value;
+const HERR = { leer_historial: "📖 Leyendo el historial", analizar_patrones: "🔎 Buscando patrones", evaluar_ppi: "🎯 Midiendo objetivos del PPI", buscar_estrategias: "📚 Buscando estrategias con evidencia", armar_agenda: "🗓️ Armando la agenda visual" };
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+let agendaAgente = null;
+
+$("btnSeed").onclick = async () => {
+  $("estadoP").textContent = "Cargando 15 días de ejemplo y sus pictogramas…";
+  const regs = seedJuan(), cache = {};
+  for (const r of regs) for (const a of r.actividades) {
+    cache[a.palabra_clave] ||= await picto(a.palabra_clave);
+    Object.assign(a, cache[a.palabra_clave]);
+  }
+  const h = JSON.parse(localStorage.getItem("hist") || "[]").filter(d => !d.ejemplo);
+  localStorage.setItem("hist", JSON.stringify([...h, ...regs.reverse()].sort((a, b) => b.fecha.localeCompare(a.fecha))));
+  hist(); $("alumnoP").value = "Juan";
+  $("estadoP").textContent = "Listo: 15 días de Juan cargados. Tocá Analizar progreso.";
+};
+
+$("btnAgente").onclick = async () => {
+  const alumno = $("alumnoP").value;
+  const registros = JSON.parse(localStorage.getItem("hist") || "[]").filter(d => d.alumno === alumno);
+  if (registros.length < 3) return alert(`Necesito al menos 3 días de ${alumno}. Cargá los de ejemplo o registrá más días.`);
+  $("resultadoP").style.display = "none"; $("trazaCard").style.display = "block";
+  $("traza").innerHTML = `<div class="paso"><span class="spin">⏳</span> El agente está pensando con ${registros.length} días de ${esc(alumno)}…</div>`;
+  $("modoP").textContent = ""; $("estadoP").textContent = "";
+  try {
+    const r = await fetch("api/agente", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ alumno, registros, ppi: PPI[alumno] || PPI.Juan }) });
+    if (!r.ok) throw new Error("el agente respondió " + r.status);
+    const j = await r.json();
+    $("traza").innerHTML = "";
+    $("modoP").textContent = j.modo === "ia" ? `· IA (${j.modelo}) · ${(j.ms / 1000).toFixed(1)} s` : "· modo demo (plan fijo, sin IA)";
+    for (const p of j.traza) {
+      await sleep(550);
+      const el = document.createElement("div"); el.className = "paso";
+      const args = Object.keys(p.args || {}).length && p.herramienta !== "armar_agenda" ? ` <span class="muted">${esc(JSON.stringify(p.args))}</span>` : "";
+      el.innerHTML = `${p.pensamiento ? `<div class="muted">💭 ${esc(p.pensamiento)}</div>` : ""}<b>${HERR[p.herramienta] || p.herramienta}</b>${args}<div class="r">→ ${esc(p.resultado)}</div>`;
+      $("traza").appendChild(el);
+    }
+    await sleep(400);
+    pintarAgente(j);
+  } catch (e) { console.error(e); $("traza").innerHTML += `<div class="paso">❌ ${esc(e.message)}</div>`; }
+};
+
+function pintarAgente(j) {
+  const R = j.resultado || {};
+  $("titular").textContent = "💡 " + (R.titular || "");
+  $("hallazgos").innerHTML = (R.hallazgos || []).map(h => `<div class="alerta" style="background:#f8f7ff;border-color:var(--p)">${esc(h.texto)}<div class="muted">${esc(h.evidencia)}</div></div>`).join("");
+  const cls = e => /logrado|avanzando/.test(e) ? "avanzando" : /estancado/.test(e) ? "estancado" : /retroceso/.test(e) ? "retroceso" : /estable/.test(e) ? "estable" : "";
+  $("ppiP").innerHTML = (R.ppi || []).map(o => `<div class="ppi"><span class="chip ${cls(o.estado)}">${esc(o.estado)}</span> <b>${esc(o.objetivo)}</b><div class="muted">${esc(o.comentario)}</div></div>`).join("");
+  $("estrP").innerHTML = (R.estrategias || []).map(e => `<div class="estr"><b>${esc(e.nombre)}</b><div>${esc(e.como)}</div><div class="muted">Por qué: ${esc(e.por_que)}</div>${e.url ? `<a href="${esc(e.url)}" target="_blank" rel="noopener">📚 ${esc(e.fuente)}</a>` : `<span class="muted">${esc(e.fuente)}</span>`}</div>`).join("");
+  agendaAgente = j.agenda;
+  $("agendaTit").textContent = `Agenda visual propuesta${j.agenda?.dia ? " para el " + j.agenda.dia : ""}`;
+  $("agendaP").innerHTML = (j.agenda?.pasos || []).map(p => `<div class="picto ${p.es_apoyo ? "apoyo" : ""}">${p.picto_url ? `<img src="${p.picto_url}" alt="${esc(p.palabra_clave)}">` : `<div style="font-size:64px">⭐</div>`}<div class="t">${esc(p.palabra_clave)}</div><div class="h">${esc(p.hora || "")} ${esc(p.texto)}</div></div>`).join("");
+  $("msgP").textContent = R.mensaje_familia || "";
+  $("notaP").textContent = R.nota_docente || "";
+  $("resultadoP").style.display = "block";
+  $("resultadoP").scrollIntoView({ behavior: "smooth" });
+}
+$("btnWaP").onclick = () => window.open("https://wa.me/?text=" + encodeURIComponent($("msgP").textContent), "_blank");
+$("btnUsarAgenda").onclick = () => {
+  if (!agendaAgente) return;
+  $("tituloAlumno").textContent = `Mi ${agendaAgente.dia || "día"}`;
+  $("tira").innerHTML = "";
+  agendaAgente.pasos.forEach(p => {
+    const el = document.createElement("div"); el.className = "picto " + (p.es_apoyo ? "apoyo" : "");
+    el.innerHTML = `${p.picto_url ? `<img src="${p.picto_url}" alt="">` : `<div style="font-size:64px">⭐</div>`}<div class="t">${esc(p.palabra_clave)}</div><div class="h">${esc(p.hora || "")}</div>`;
+    el.onclick = () => hablar(p.texto);
+    $("tira").appendChild(el);
+  });
+  document.querySelector('nav button[data-s="alumno"]').click();
+};
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 </script>
 </body>

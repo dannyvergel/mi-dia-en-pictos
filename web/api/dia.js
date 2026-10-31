@@ -1,0 +1,34 @@
+// Estructura el relato del día con IA (alternativa a n8n). Sin key responde 503 y la app usa modo demo.
+const SISTEMA = "Sos un asistente para docentes de educación especial en Argentina.\nRecibís el relato informal del día de un alumno, dictado por su docente.\nDevolvé SOLO un JSON válido con esta forma:\n\n{\n  \"alumno\": \"nombre de pila\",\n  \"fecha\": \"YYYY-MM-DD\",\n  \"actividades\": [\n    {\"hora\": \"HH:MM o null\", \"actividad\": \"texto corto\", \"palabra_clave\": \"1 o 2 palabras simples para buscar pictograma\", \"estado\": \"bien|regular|dificil\"}\n  ],\n  \"animo_general\": \"contento|tranquilo|cansado|angustiado|irritable\",\n  \"logros\": [\"...\"],\n  \"alertas\": [{\"tipo\": \"conducta|salud|alimentacion|medicacion|otro\", \"detalle\": \"...\", \"nivel\": \"bajo|medio|alto\"}],\n  \"resumen_familia\": \"3 a 5 oraciones cálidas, claras y sin tecnicismos para la familia, en español rioplatense\",\n  \"registro_docente\": \"versión formal y objetiva para el legajo del alumno\"\n}\n\nReglas:\n- No inventes nada que no esté en el relato. Si falta un dato, usá null o lista vacía.\n- palabra_clave siempre en español, sustantivo o verbo simple (ej: \"desayunar\", \"música\", \"recreo\", \"pintar\").\n- Ordená las actividades cronológicamente.\n- No incluyas diagnósticos médicos.";
+const MODEL = process.env.OPENROUTER_MODEL || "deepseek/deepseek-v4-flash";
+async function picto(kw) {
+  try {
+    const j = await (await fetch("https://api.arasaac.org/api/pictograms/es/search/" + encodeURIComponent((kw || "").toLowerCase()))).json();
+    const id = Array.isArray(j) && j.length ? j[0]._id : null;
+    return { picto_id: id, picto_url: id ? `https://static.arasaac.org/pictograms/${id}/${id}_500.png` : null };
+  } catch { return { picto_id: null, picto_url: null }; }
+}
+module.exports = async (req, res) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  if (req.method === "OPTIONS") return res.status(204).end();
+  if (!process.env.OPENROUTER_API_KEY) return res.status(503).json({ error: "sin key" });
+  const b = typeof req.body === "string" ? JSON.parse(req.body) : (req.body || {});
+  const fecha = b.fecha || new Date().toISOString().slice(0, 10);
+  try {
+    const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + process.env.OPENROUTER_API_KEY, "Content-Type": "application/json" },
+      body: JSON.stringify({ model: MODEL, temperature: 0.2, response_format: { type: "json_object" }, messages: [
+        { role: "system", content: SISTEMA },
+        { role: "user", content: `Alumno: ${b.alumno}\nFecha: ${fecha}\nRelato: ${b.texto}` }] })
+    });
+    if (!r.ok) throw new Error("OpenRouter " + r.status);
+    const raw = (await r.json()).choices[0].message.content;
+    const d = JSON.parse(raw.match(/\{[\s\S]*\}/)[0]);
+    d.alumno = b.alumno || d.alumno; d.fecha = fecha;
+    for (const a of d.actividades || []) Object.assign(a, await picto(a.palabra_clave || a.actividad));
+    const al = (d.alertas || []).map(x => "⚠️ " + x.detalle).join("\n");
+    d.mensaje_familia = `Hola! Así fue el día de ${d.alumno} 🌈\n\n${d.resumen_familia}` + (al ? "\n\n" + al : "") + (d.logros?.length ? "\n\n⭐ Logros: " + d.logros.join(", ") : "");
+    res.status(200).json(d);
+  } catch (e) { res.status(502).json({ error: e.message }); }
+};

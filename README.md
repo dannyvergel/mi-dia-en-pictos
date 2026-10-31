@@ -16,9 +16,24 @@ App para escuelas de educación especial: niños con TEA, discapacidad intelectu
 4. **Familia** recibe un mensaje cálido listo para WhatsApp, con alertas destacadas.
 5. **Registro formal** para el legajo; a fin de mes, la IA arma el informe de progreso.
 
+## 🧠 Agente de Progreso (lo nuevo)
+Un agente con herramientas que trabaja sobre el historial de cada chico:
+1. `analizar_patrones` – cuenta momentos difíciles por día, actividad y hora; evolución del ánimo.
+2. `evaluar_ppi` – mide cada objetivo del PPI semana a semana.
+3. `buscar_estrategias` – base curada de prácticas basadas en evidencia (NCAEP 2020 / AFIRM), con fuente.
+4. `armar_agenda` – agenda visual ARASAAC del próximo día difícil, con apoyos de anticipación.
+5. Cierra con mensaje para la familia y nota para el legajo.
+
+El LLM decide qué herramienta usar (tool calling en OpenRouter); los números salen de código, no del modelo. La traza de pasos se ve en pantalla.
+Sin API key corre el mismo circuito con un plan fijo (modo demo), así la demo nunca se cae.
+
+**Activar IA:** en Vercel → Settings → Environment Variables → `OPENROUTER_API_KEY` (y opcional `OPENROUTER_MODEL`, por defecto `deepseek/deepseek-v4-flash`). Con eso también `/api/dia` estructura el día sin n8n.
+
 ## Estructura
 ```
-web/            PWA (HTML + JS puro): pestañas Docente, Alumno y Familia
+web/            PWA (HTML + JS puro): pestañas Docente, Alumno, Familia y Progreso
+web/api/        Funciones de Vercel: agente.js (Agente de Progreso) y dia.js (registro diario)
+web/seed.js     3 semanas de datos ficticios para la demo
 n8n/            Workflow importable: Webhook → LLM (JSON) → ARASAAC → respuesta
 prompts/        Prompt de registro diario e informe mensual
 data/           Relato de ejemplo para la demo
