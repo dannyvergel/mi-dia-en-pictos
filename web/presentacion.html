@@ -5,6 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Puente · cómo funciona</title>
 <meta name="theme-color" content="#2f4a3e">
+<meta name="description" content="La docente dicta cómo fue el día y Puente lo convierte en pictogramas para que el alumno se lo cuente a su familia. Proyecto gratuito y sin fines de lucro.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Puente">
+<meta property="og:locale" content="es_AR">
+<meta property="og:title" content="Puente — de la escuela a casa, en pictogramas">
+<meta property="og:description" content="La docente dicta cómo fue el día y Puente lo convierte en pictogramas para que el alumno se lo cuente a su familia. Proyecto gratuito y sin fines de lucro.">
+<meta property="og:url" content="https://puente-pictos.vercel.app/presentacion.html">
+<meta property="og:image" content="https://puente-pictos.vercel.app/og.png">
+<meta property="og:image:secure_url" content="https://puente-pictos.vercel.app/og.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Pizarrón con el nombre Puente, la frase “de la escuela a casa, en pictogramas” y una tira de pictogramas de ARASAAC">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Puente — de la escuela a casa, en pictogramas">
+<meta name="twitter:description" content="La docente dicta cómo fue el día y Puente lo convierte en pictogramas para que el alumno se lo cuente a su familia. Proyecto gratuito y sin fines de lucro.">
+<meta name="twitter:image" content="https://puente-pictos.vercel.app/og.png">
 <link rel="icon" href="icono.svg" type="image/svg+xml">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Patrick+Hand&display=swap">
 <style>
@@ -133,6 +150,21 @@ p.lead{font-size:26px;line-height:1.4;max-width:900px;margin:0}
 .qr{background:var(--tiza);padding:18px;border-radius:14px}
 .qr svg{width:100%;height:auto;display:block}
 
+/* modo impresión / PDF: ?print o Ctrl+P. Todas las diapos apiladas, una por página, en su estado final */
+@media print{@page{size:1280px 720px;margin:0}}
+html.print,html.print body{height:auto;overflow:visible;background:#1d2b25;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+html.print #escena{position:static;transform:none!important;width:1280px;height:auto}
+html.print .slide{position:relative;width:1280px;height:720px;opacity:1;visibility:visible;transition:none;border-radius:0;break-after:page;page-break-after:always}
+html.print .slide:last-child{break-after:auto;page-break-after:auto}
+html.print *,html.print *::before,html.print *::after{animation:none!important;transition:none!important}
+html.print .a,html.print .pop,html.print .tipeo span{opacity:1}
+html.print .sello,html.print .st{opacity:1;transform:rotate(-3deg)}
+html.print .escribe{width:auto}
+html.print .puentecito path{stroke-dashoffset:0}
+html.print .relato mark{border-color:var(--lapiz);background:#fdf3d1}
+html.print .cal .d.mal{background:#f6d9d1;border-color:var(--bad);color:var(--bad);font-weight:700}
+html.print .ondas i:nth-child(odd){height:40px}html.print .ondas i:nth-child(3n){height:24px}
+html.print #ui,html.print .pie{display:none}
 /* controles */
 #ui{position:fixed;left:0;right:0;bottom:0;display:flex;align-items:center;gap:12px;padding:10px 16px;color:#cfd9d3;font-size:14px;z-index:5}
 #ui button{background:#ffffff1a;color:#fff;border:0;border-radius:8px;padding:8px 14px;font:inherit;cursor:pointer}
@@ -331,6 +363,9 @@ p.lead{font-size:26px;line-height:1.4;max-width:900px;margin:0}
 <div id="ui"><button id="ant" aria-label="Anterior">‹</button><span id="num">1 / 10</span><div id="prog"><i></i></div><button id="auto">Reproducir</button><button id="sig" aria-label="Siguiente">›</button></div>
 <script>
 const S = [...document.querySelectorAll(".slide")], esc = document.getElementById("escena");
+if (new URLSearchParams(location.search).has("print")) document.documentElement.classList.add("print");
+addEventListener("beforeprint", () => document.documentElement.classList.add("print"));
+addEventListener("afterprint", () => { if (!new URLSearchParams(location.search).has("print")) document.documentElement.classList.remove("print"); });
 let i = 0, timer = null;
 // relato tipeado letra por letra
 const tp = document.getElementById("tipeo");
