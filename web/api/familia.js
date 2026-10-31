@@ -1,23 +1,24 @@
-const { exigirPin } = require("./_lib/pin");
-// Espacio de familias: cada alumno tiene un link privado (token largo al azar).
-// La docente publica; la familia lee y puede preguntarle a Puente sobre su hijo.
-const { put, get } = require("@vercel/blob");
+// Espacio de familias.
+// Modo demo (sin DATABASE_URL): cada alumno tiene un link privado (token largo al azar) y la docente publica con PIN.
+// Con base de datos: la familia entra con su email (código) y ve solo sus alumnos vinculados;
+// la docente publica con su sesión. Los días siguen guardados en Vercel Blob (uno por alumno).
 const crypto = require("crypto");
 const { crearHerramientas, diaSemana } = require("./_lib/tools");
+const { PRINCIPAL: MODEL, cuerpo: cuerpoLLM } = require("./_lib/modelos");
+const { exigirPin } = require("./_lib/pin");
+const { dbActiva, q, uno } = require("./_lib/db");
+const { leerSesion } = require("./_lib/seguridad");
+const { exigirDocente } = require("./_lib/auth");
+const { leerFamilia: leer, guardarFamilia } = require("./_lib/almacen");
+const { objetivosAPpi, apoyosAPerfil } = require("./_lib/fichas");
+const { cuerpo, consulta, exigirJson, manejarError, errorPublico } = require("./_lib/http");
 
-const { PRINCIPAL: MODEL, cuerpo } = require("./_lib/modelos");
-const ruta = t => `familias/${t}.json`;
 const tokenOk = t => typeof t === "string" && /^[a-f0-9]{32}$/.test(t);
-
-async function leer(t) {
-  const r = await get(ruta(t), { access: "private", useCache: false });
-  return r ? JSON.parse(await new Response(r.stream).text()) : null;
-}
 
 // Solo lo que la familia necesita ver (sin notas internas del legajo).
 function vistaFamilia(d) {
   const regs = (d.registros || []).slice().sort((a, b) => b.fecha.localeCompare(a.fecha));
-  const h = crearHerramientas({ alumno: d.alumno, registros: d.registros, ppi: d.ppi });
+  const h = crearHerramientas({ alumno: d.alumno, registros: d.registros || [], ppi: d.ppi || [] });
   const ppi = d.ppi?.length ? h.evaluar_ppi.run() : [];
   return {
     alumno: d.alumno, actualizado: d.actualizado, escuela: d.escuela || null,
@@ -57,54 +58,110 @@ ${contextoChat(d)}`;
 
 async function preguntar(d, pregunta, historial = []) {
   if (!process.env.OPENROUTER_API_KEY) return { respuesta: "Ahora no puedo responder preguntas. Mientras tanto, podés ver sus días acá arriba o escribirle a la docente.", modo: "demo" };
-  const messages = [{ role: "system", content: SISTEMA_CHAT(d) }, ...historial.slice(-6).map(m => ({ role: m.rol === "familia" ? "user" : "assistant", content: String(m.texto).slice(0, 800) })), { role: "user", content: pregunta.slice(0, 500) }];
+  const messages = [{ role: "system", content: SISTEMA_CHAT(d) }, ...(Array.isArray(historial) ? historial : []).slice(-6).map(m => ({ role: m.rol === "familia" ? "user" : "assistant", content: String(m.texto).slice(0, 800) })), { role: "user", content: String(pregunta).slice(0, 500) }];
   const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: "Bearer " + process.env.OPENROUTER_API_KEY, "Content-Type": "application/json", "HTTP-Referer": "https://puente-pictos.vercel.app", "X-Title": "Puente" },
-    body: JSON.stringify(cuerpo("chat", { temperature: 0.3, messages }))
+    body: JSON.stringify(cuerpoLLM("chat", { temperature: 0.3, messages }))
   });
   if (!r.ok) throw new Error("OpenRouter " + r.status);
   return { respuesta: (await r.json()).choices[0].message.content.trim(), modo: "ia" };
 }
 
-module.exports = async (req, res) => {
+function armarDatos(b, nombre, extra = {}) {
+  return {
+    alumno: nombre, actualizado: new Date().toISOString(),
+    registros: b.registros.filter(r => r && r.alumno === nombre).slice(0, 60).map(({ registro_docente, ...r }) => r),
+    ppi: b.ppi || [], perfil: { le_gusta: b.perfil?.le_gusta || "", lo_calma: b.perfil?.lo_calma || "" },
+    agenda: b.agenda || null, mensaje_docente: b.mensaje_docente || null, ...extra
+  };
+}
+
+// ---------- modo demo: PIN + token ----------
+async function modoDemo(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-Docente-Pin");
-  res.setHeader("Cache-Control", "no-store");
   if (req.method === "OPTIONS") return res.status(204).end();
-  try {
-    if (req.method === "GET") {
-      const t = req.query?.t || new URL(req.url, "http://x").searchParams.get("t");
-      if (!tokenOk(t)) return res.status(400).json({ error: "Link inválido" });
-      const d = await leer(t);
-      return d ? res.status(200).json(vistaFamilia(d)) : res.status(404).json({ error: "No encontramos este espacio" });
-    }
-    const b = typeof req.body === "string" ? JSON.parse(req.body) : (req.body || {});
-
-    if (b.accion === "verificar_pin") return exigirPin(req, res) && res.status(200).json({ ok: true });
-    if (b.accion === "publicar") {
-      if (!exigirPin(req, res)) return;
-      if (!b.alumno || !Array.isArray(b.registros)) return res.status(400).json({ error: "Faltan datos" });
-      const t = tokenOk(b.token) ? b.token : crypto.randomBytes(16).toString("hex");
-      const datos = {
-        alumno: b.alumno, actualizado: new Date().toISOString(),
-        registros: b.registros.filter(r => r.alumno === b.alumno).slice(0, 60).map(({ registro_docente, ...r }) => r),
-        ppi: b.ppi || [], perfil: { le_gusta: b.perfil?.le_gusta || "", lo_calma: b.perfil?.lo_calma || "" },
-        agenda: b.agenda || null, mensaje_docente: b.mensaje_docente || null
-      };
-      await put(ruta(t), JSON.stringify(datos), { access: "private", allowOverwrite: true, addRandomSuffix: false, contentType: "application/json" });
-      return res.status(200).json({ token: t, dias: datos.registros.length });
-    }
-
-    if (b.accion === "preguntar") {
-      if (!tokenOk(b.token) || !b.pregunta) return res.status(400).json({ error: "Faltan datos" });
-      const d = await leer(b.token);
-      if (!d) return res.status(404).json({ error: "No encontramos este espacio" });
-      return res.status(200).json(await preguntar(d, b.pregunta, b.historial));
-    }
-    res.status(400).json({ error: "Acción desconocida" });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: "Algo falló, probá de nuevo en un rato." });
+  if (req.method === "GET") {
+    const t = consulta(req, "t");
+    if (!tokenOk(t)) return res.status(400).json({ error: "Link inválido" });
+    const d = await leer(t);
+    return d ? res.status(200).json(vistaFamilia(d)) : res.status(404).json({ error: "No encontramos este espacio" });
   }
+  const b = cuerpo(req);
+  if (b.accion === "verificar_pin") return exigirPin(req, res) && res.status(200).json({ ok: true });
+  if (b.accion === "publicar") {
+    if (!exigirPin(req, res)) return;
+    if (!b.alumno || !Array.isArray(b.registros)) return res.status(400).json({ error: "Faltan datos" });
+    const t = tokenOk(b.token) ? b.token : crypto.randomBytes(16).toString("hex");
+    const datos = armarDatos(b, b.alumno);
+    await guardarFamilia(t, datos);
+    return res.status(200).json({ token: t, dias: datos.registros.length });
+  }
+  if (b.accion === "preguntar") {
+    if (!tokenOk(b.token) || !b.pregunta) return res.status(400).json({ error: "Faltan datos" });
+    const d = await leer(b.token);
+    if (!d) return res.status(404).json({ error: "No encontramos este espacio" });
+    return res.status(200).json(await preguntar(d, b.pregunta, b.historial));
+  }
+  res.status(400).json({ error: "Acción desconocida" });
+}
+
+// ---------- con base de datos: sesiones ----------
+// Una familia ve solo alumnos vinculados; una docente, los de su escuela.
+async function alumnoPermitido(s, id) {
+  id = Number(id) || 0;
+  if (s.tipo === "docente") return uno("SELECT a.id, a.nombre, a.blob_token, f.objetivos, f.apoyos FROM alumnos a LEFT JOIN fichas f ON f.alumno_id = a.id WHERE a.id = $1 AND a.escuela_id = $2", [id, s.usuario.escuela_id]);
+  return uno("SELECT a.id, a.nombre, a.blob_token FROM alumnos a JOIN familia_alumno fa ON fa.alumno_id = a.id WHERE a.id = $1 AND fa.familia_id = $2", [id, s.usuario.id]);
+}
+const vacia = a => ({ alumno: a.nombre, actualizado: null, dias: [], objetivos: [], agenda: null, mensaje_docente: null, sin_publicar: true });
+
+async function modoDb(req, res) {
+  if (!exigirJson(req, res)) return;
+  if (req.method === "GET") {
+    if (consulta(req, "t")) return res.status(410).json({ error: "Los links ya no se usan: ahora la familia entra con su email.", login: "/login.html?familia" });
+    const s = await leerSesion(req);
+    if (!s) return res.status(401).json({ error: "Iniciá sesión", login: "/login.html?familia" });
+    const a = await alumnoPermitido(s, consulta(req, "alumno"));
+    if (!a) throw errorPublico("No encontramos este espacio", 404);
+    const d = a.blob_token ? await leer(a.blob_token) : null;
+    return res.status(200).json({ id: Number(a.id), ...(d ? vistaFamilia({ ...d, alumno: a.nombre }) : vacia(a)) });
+  }
+  if (req.method !== "POST") return res.status(405).json({ error: "Método no permitido" });
+  const b = cuerpo(req);
+  if (b.accion === "publicar") {
+    const yo = await exigirDocente(req, res);
+    if (!yo) return;
+    if (!Array.isArray(b.registros)) throw errorPublico("Faltan datos");
+    let a = b.alumno_id ? await alumnoPermitido({ tipo: "docente", usuario: yo }, b.alumno_id)
+      : await uno("SELECT a.id, a.nombre, a.blob_token, f.objetivos, f.apoyos FROM alumnos a LEFT JOIN fichas f ON f.alumno_id = a.id WHERE a.escuela_id = $1 AND a.nombre = $2", [yo.escuela_id, String(b.alumno || "")]);
+    if (!a) throw errorPublico("Ese alumno no está en tu escuela. Crealo primero en Fichas.", 404);
+    let t = a.blob_token;
+    if (!t) { t = crypto.randomBytes(16).toString("hex"); await q("UPDATE alumnos SET blob_token = $1 WHERE id = $2", [t, a.id]); }
+    // La ficha manda: objetivos del PPI y perfil salen de la base, no del navegador.
+    const ppi = a.objetivos?.length ? objetivosAPpi(a.objetivos) : (b.ppi || []);
+    const perfil = a.apoyos ? apoyosAPerfil(a.apoyos) : b.perfil;
+    const datos = armarDatos({ ...b, registros: b.registros.map(r => ({ ...r, alumno: a.nombre })), ppi, perfil }, a.nombre);
+    await guardarFamilia(t, datos);
+    return res.status(200).json({ alumno_id: Number(a.id), dias: datos.registros.length });
+  }
+  if (b.accion === "preguntar") {
+    const s = await leerSesion(req);
+    if (!s) return res.status(401).json({ error: "Iniciá sesión", login: "/login.html?familia" });
+    if (!b.pregunta) throw errorPublico("Faltan datos");
+    const a = await alumnoPermitido(s, b.alumno_id);
+    if (!a) throw errorPublico("No encontramos este espacio", 404);
+    const d = a.blob_token ? await leer(a.blob_token) : null;
+    if (!d) return res.status(200).json({ respuesta: `Todavía no hay días de ${a.nombre} cargados. Apenas la escuela publique, vas a poder preguntarme.`, modo: "vacio" });
+    return res.status(200).json(await preguntar({ ...d, alumno: a.nombre }, b.pregunta, b.historial));
+  }
+  if (b.accion === "verificar_pin") return res.status(400).json({ error: "Con cuentas activas, la docente entra con email y contraseña.", login: "/login.html" });
+  res.status(400).json({ error: "Acción desconocida" });
+}
+
+module.exports = async (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  try {
+    return dbActiva() ? await modoDb(req, res) : await modoDemo(req, res);
+  } catch (e) { manejarError(res, e); }
 };

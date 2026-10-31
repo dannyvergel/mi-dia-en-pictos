@@ -1,1 +1,17 @@
-{"name":"puente","private":true,"dependencies":{"@vercel/analytics":"^2.0.1","@vercel/blob":"latest"}}
+{
+  "name": "puente",
+  "private": true,
+  "dependencies": {
+    "@neondatabase/serverless": "^1.2.0",
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/blob": "latest"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.3.16"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "local": "node scripts/dev.js",
+    "migrar": "node scripts/migrar.js"
+  }
+}
