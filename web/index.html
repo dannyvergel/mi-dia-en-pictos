@@ -10,6 +10,14 @@
 <link rel="stylesheet" href="estilo.css">
 </head>
 <body>
+<div id="pinGate" class="gate" hidden>
+  <div class="card cinta">
+    <span class="rotulo">Hola, seño</span>
+    <p class="muted">Ingresá el PIN de docente para usar Puente en este dispositivo. Las familias entran con su link privado, sin PIN.</p>
+    <form id="pinForm"><input id="pinIn" type="password" inputmode="numeric" autocomplete="current-password" placeholder="PIN" aria-label="PIN de docente"><button class="big">Entrar</button></form>
+    <p class="muted" id="pinErr"></p>
+  </div>
+</div>
 <header><h1>Puente</h1><div class="bajada">de la escuela a casa, en pictogramas</div><span class="tiza"></span></header>
 <nav>
   <button class="on" data-s="docente">Docente</button>
@@ -119,6 +127,22 @@
 
 <script src="seed.js"></script>
 <script>
+const H = () => ({ "Content-Type": "application/json", "X-Docente-Pin": localStorage.getItem("puente_pin") || "" });
+async function chequearPin(p) {
+  const r = await fetch("api/familia", { method: "POST", headers: { "Content-Type": "application/json", "X-Docente-Pin": p }, body: JSON.stringify({ accion: "verificar_pin" }) });
+  return r.ok;
+}
+(async () => {
+  const g = document.getElementById("pinGate"), guardado = localStorage.getItem("puente_pin");
+  if (guardado && await chequearPin(guardado).catch(() => true)) return;
+  g.hidden = false; document.getElementById("pinIn").focus();
+  document.getElementById("pinForm").onsubmit = async (e) => {
+    e.preventDefault(); const p = document.getElementById("pinIn").value.trim();
+    if (await chequearPin(p)) { localStorage.setItem("puente_pin", p); g.hidden = true; }
+    else document.getElementById("pinErr").textContent = "PIN incorrecto. Probá de nuevo.";
+  };
+})();
+
 const ALUMNOS = ["Juan", "Sofía", "Mateo", "Valentina"];
 const EJEMPLO = "Llegó contento, desayunó bien. A las 9 hicimos música y le encantó tocar el tambor. A las 11 en el recreo se angustió por el ruido y lloró un rato, lo calmamos con los auriculares. Después almorzó poco. A la tarde pintó con témperas y saludó solito a sus compañeros al irse.";
 const $ = id => document.getElementById(id);
@@ -164,7 +188,7 @@ $("btnEnviar").onclick = async () => {
 
 
 async function viaApi(alumno, texto) {
-  try { const r = await fetch("api/dia", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ alumno, texto }) }); return r.ok ? r.json() : null; }
+  try { const r = await fetch("api/dia", { method: "POST", headers: H(), body: JSON.stringify({ alumno, texto }) }); return r.ok ? r.json() : null; }
   catch { return null; }
 }
 
@@ -278,7 +302,7 @@ $("btnAgente").onclick = async () => {
   $("traza").innerHTML = `<div class="paso"><span class="spin"></span><span>El agente está trabajando con ${registros.length} días de ${esc(alumno)}…</span></div>`;
   $("modoP").textContent = ""; $("estadoP").textContent = "";
   try {
-    const r = await fetch("api/agente", { signal: AbortSignal.timeout(80000), method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ alumno, registros, ppi: PPI[alumno] || PPI.Juan, perfil: perfilDe(alumno) }) });
+    const r = await fetch("api/agente", { signal: AbortSignal.timeout(80000), method: "POST", headers: H(), body: JSON.stringify({ alumno, registros, ppi: PPI[alumno] || PPI.Juan, perfil: perfilDe(alumno) }) });
     if (!r.ok) throw new Error("el agente respondió " + r.status);
     const j = await r.json();
     $("traza").innerHTML = "";
@@ -345,7 +369,7 @@ async function publicarFamilia(alumno, soloSiExiste) {
   if (!registros.length) { $("estadoF").textContent = `Todavía no hay días de ${alumno}.`; return; }
   $("estadoF").textContent = "Publicando…";
   try {
-    const r = await fetch("api/familia", { method: "POST", headers: { "Content-Type": "application/json" },
+    const r = await fetch("api/familia", { method: "POST", headers: H(),
       body: JSON.stringify({ accion: "publicar", token: tk, alumno, registros, ppi: PPI[alumno] || [], perfil: perfilDe(alumno), ...(extrasFamilia[alumno] || {}) }) });
     const j = await r.json();
     if (!r.ok) throw new Error(j.error);

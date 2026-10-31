@@ -1,6 +1,7 @@
 // Agente de Progreso: el LLM recibe herramientas, decide qué investigar
 // y termina con un plan concreto. Sin API key corre un plan fijo (modo demo).
 const { crearHerramientas } = require("./_lib/tools");
+const { exigirPin } = require("./_lib/pin");
 
 const { PRINCIPAL: MODEL, cuerpo } = require("./_lib/modelos");
 const MAX_PASOS = 8;
@@ -111,9 +112,10 @@ const AGENDA_BASE = (critica) => [
 
 module.exports = async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-Docente-Pin");
   if (req.method === "OPTIONS") return res.status(204).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Usá POST" });
+  if (!exigirPin(req, res)) return;
   const body = typeof req.body === "string" ? JSON.parse(req.body) : (req.body || {});
   const ctx = { alumno: body.alumno, registros: body.registros || [], ppi: body.ppi || [], perfil: body.perfil || {}, hoy: new Date().toISOString().slice(0, 10) };
   if (!ctx.alumno || !ctx.registros.length) return res.status(400).json({ error: "Faltan alumno o registros" });

@@ -8,9 +8,12 @@ async function picto(kw) {
     return { picto_id: id, picto_url: id ? `https://static.arasaac.org/pictograms/${id}/${id}_500.png` : null };
   } catch { return { picto_id: null, picto_url: null }; }
 }
+const { exigirPin } = require("./_lib/pin");
 module.exports = async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-Docente-Pin");
   if (req.method === "OPTIONS") return res.status(204).end();
+  if (!exigirPin(req, res)) return;
   if (!process.env.OPENROUTER_API_KEY) return res.status(503).json({ error: "sin key" });
   const b = typeof req.body === "string" ? JSON.parse(req.body) : (req.body || {});
   const fecha = b.fecha || new Date().toISOString().slice(0, 10);

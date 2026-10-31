@@ -1,3 +1,4 @@
+const { exigirPin } = require("./_lib/pin");
 // Espacio de familias: cada alumno tiene un link privado (token largo al azar).
 // La docente publica; la familia lee y puede preguntarle a Puente sobre su hijo.
 const { put, get } = require("@vercel/blob");
@@ -68,7 +69,7 @@ async function preguntar(d, pregunta, historial = []) {
 
 module.exports = async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-Docente-Pin");
   res.setHeader("Cache-Control", "no-store");
   if (req.method === "OPTIONS") return res.status(204).end();
   try {
@@ -80,7 +81,9 @@ module.exports = async (req, res) => {
     }
     const b = typeof req.body === "string" ? JSON.parse(req.body) : (req.body || {});
 
+    if (b.accion === "verificar_pin") return exigirPin(req, res) && res.status(200).json({ ok: true });
     if (b.accion === "publicar") {
+      if (!exigirPin(req, res)) return;
       if (!b.alumno || !Array.isArray(b.registros)) return res.status(400).json({ error: "Faltan datos" });
       const t = tokenOk(b.token) ? b.token : crypto.randomBytes(16).toString("hex");
       const datos = {

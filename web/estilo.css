@@ -160,3 +160,9 @@ footer a { color: var(--gris); }
   .sug button { padding: 8px 12px; }
   .titular { font-size: 22px; }
 }
+
+/* Pantalla de PIN */
+.gate { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 20px; background: #2f4a3ef2; }
+.gate[hidden] { display: none; }
+.gate .card { width: 100%; max-width: 380px; }
+.gate form { display: flex; gap: 8px; } .gate form .big { width: auto; margin: 0; padding: 0 18px; }
