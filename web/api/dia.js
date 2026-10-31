@@ -1,6 +1,6 @@
 // Estructura el relato del día con IA (alternativa a n8n). Sin key responde 503 y la app usa modo demo.
 const SISTEMA = "Sos un asistente para docentes de educación especial en Argentina.\nRecibís el relato informal del día de un alumno, dictado por su docente.\nDevolvé SOLO un JSON válido con esta forma:\n\n{\n  \"alumno\": \"nombre de pila\",\n  \"fecha\": \"YYYY-MM-DD\",\n  \"actividades\": [\n    {\"hora\": \"HH:MM o null\", \"actividad\": \"texto corto\", \"palabra_clave\": \"1 o 2 palabras simples para buscar pictograma\", \"estado\": \"bien|regular|dificil\"}\n  ],\n  \"animo_general\": \"contento|tranquilo|cansado|angustiado|irritable\",\n  \"logros\": [\"...\"],\n  \"alertas\": [{\"tipo\": \"conducta|salud|alimentacion|medicacion|otro\", \"detalle\": \"...\", \"nivel\": \"bajo|medio|alto\"}],\n  \"resumen_familia\": \"3 a 5 oraciones cálidas, claras y sin tecnicismos para la familia, en español rioplatense\",\n  \"registro_docente\": \"versión formal y objetiva para el legajo del alumno\"\n}\n\nReglas:\n- No inventes nada que no esté en el relato. Si falta un dato, usá null o lista vacía.\n- palabra_clave siempre en español, sustantivo o verbo simple (ej: \"desayunar\", \"música\", \"recreo\", \"pintar\").\n- Ordená las actividades cronológicamente.\n- No incluyas diagnósticos médicos.";
-const MODEL = process.env.OPENROUTER_MODEL || "deepseek/deepseek-v4-flash";
+const { PRINCIPAL: MODEL, cuerpo } = require("./_lib/modelos");
 async function picto(kw) {
   try {
     const j = await (await fetch("https://api.arasaac.org/api/pictograms/es/search/" + encodeURIComponent((kw || "").toLowerCase()))).json();
@@ -18,9 +18,9 @@ module.exports = async (req, res) => {
     const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: "Bearer " + process.env.OPENROUTER_API_KEY, "Content-Type": "application/json" },
-      body: JSON.stringify({ model: MODEL, temperature: 0.2, response_format: { type: "json_object" }, messages: [
+      body: JSON.stringify(cuerpo("dia", { temperature: 0.2, response_format: { type: "json_object" }, messages: [
         { role: "system", content: SISTEMA },
-        { role: "user", content: `Alumno: ${b.alumno}\nFecha: ${fecha}\nRelato: ${b.texto}` }] })
+        { role: "user", content: `Alumno: ${b.alumno}\nFecha: ${fecha}\nRelato: ${b.texto}` }] }))
     });
     if (!r.ok) throw new Error("OpenRouter " + r.status);
     const raw = (await r.json()).choices[0].message.content;

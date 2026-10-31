@@ -2,7 +2,7 @@
 // y termina con un plan concreto. Sin API key corre un plan fijo (modo demo).
 const { crearHerramientas } = require("./_lib/tools");
 
-const MODEL = process.env.OPENROUTER_MODEL || "deepseek/deepseek-v4-flash";
+const { PRINCIPAL: MODEL, cuerpo } = require("./_lib/modelos");
 const MAX_PASOS = 8;
 
 const SISTEMA = `Sos el Agente de Progreso de "Puente", para docentes de educación especial en Argentina.
@@ -33,7 +33,7 @@ async function llm(messages, tools) {
   const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: "Bearer " + process.env.OPENROUTER_API_KEY, "Content-Type": "application/json", "HTTP-Referer": "https://puente-pictos.vercel.app", "X-Title": "Puente" },
-    body: JSON.stringify({ model: MODEL, temperature: 0.2, messages, ...(tools ? { tools, tool_choice: "auto" } : { response_format: { type: "json_object" } }) })
+    body: JSON.stringify(cuerpo("agente", { temperature: 0.2, messages, ...(tools ? { tools, tool_choice: "auto" } : { response_format: { type: "json_object" } }) }))
   });
   if (!r.ok) throw new Error("OpenRouter " + r.status + ": " + (await r.text()).slice(0, 200));
   return (await r.json()).choices[0].message;

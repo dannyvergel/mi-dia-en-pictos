@@ -4,7 +4,7 @@ const { put, get } = require("@vercel/blob");
 const crypto = require("crypto");
 const { crearHerramientas, diaSemana } = require("./_lib/tools");
 
-const MODEL = process.env.OPENROUTER_MODEL || "deepseek/deepseek-v4-flash";
+const { PRINCIPAL: MODEL, cuerpo } = require("./_lib/modelos");
 const ruta = t => `familias/${t}.json`;
 const tokenOk = t => typeof t === "string" && /^[a-f0-9]{32}$/.test(t);
 
@@ -60,7 +60,7 @@ async function preguntar(d, pregunta, historial = []) {
   const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: "Bearer " + process.env.OPENROUTER_API_KEY, "Content-Type": "application/json", "HTTP-Referer": "https://puente-pictos.vercel.app", "X-Title": "Puente" },
-    body: JSON.stringify({ model: MODEL, temperature: 0.3, messages })
+    body: JSON.stringify(cuerpo("chat", { temperature: 0.3, messages }))
   });
   if (!r.ok) throw new Error("OpenRouter " + r.status);
   return { respuesta: (await r.json()).choices[0].message.content.trim(), modo: "ia" };
