@@ -117,6 +117,17 @@
       <button class="big alt" id="btnSeed" style="font-size:14px;padding:10px">Cargar 3 semanas de ejemplo (Juan, datos ficticios)</button>
       <p class="muted" id="estadoP"></p>
     </div>
+    <div class="card">
+      <details id="perfilBox">
+        <summary><b>🧩 Perfil funcional de <span id="perfilNom">Juan</span></b> <span class="muted">(sin diagnósticos ni datos de salud)</span></summary>
+        <label>Cómo se comunica</label><textarea class="pf" data-k="comunicacion" style="min-height:50px"></textarea>
+        <label>Qué le molesta</label><textarea class="pf" data-k="sensibilidades" style="min-height:50px" placeholder="Ej: ruido fuerte, cambios sin aviso"></textarea>
+        <label>Qué lo calma</label><textarea class="pf" data-k="lo_calma" style="min-height:50px" placeholder="Ej: auriculares, rincón tranquilo"></textarea>
+        <label>Qué le gusta</label><textarea class="pf" data-k="le_gusta" style="min-height:50px"></textarea>
+        <label>Observaciones</label><textarea class="pf" data-k="observaciones" style="min-height:50px"></textarea>
+        <button class="big alt" id="btnPerfil" style="font-size:14px;padding:10px">Guardar perfil</button>
+      </details>
+    </div>
     <div class="card" id="trazaCard" style="display:none">
       <b>Lo que está haciendo el agente</b> <span class="muted" id="modoP"></span>
       <div class="traza" id="traza"></div>
@@ -266,8 +277,23 @@ hist();
 
 // ---------- Agente de Progreso ----------
 ALUMNOS.forEach(a => $("alumnoP").add(new Option(a, a)));
-$("alumno").onchange = () => $("alumnoP").value = $("alumno").value;
-const HERR = { leer_historial: "📖 Leyendo el historial", analizar_patrones: "🔎 Buscando patrones", evaluar_ppi: "🎯 Midiendo objetivos del PPI", buscar_estrategias: "📚 Buscando estrategias con evidencia", armar_agenda: "🗓️ Armando la agenda visual" };
+$("alumno").onchange = () => { $("alumnoP").value = $("alumno").value; pintarPerfil(); };
+const getPerfiles = () => JSON.parse(localStorage.getItem("perfiles") || "{}");
+function perfilDe(a) { return { ...PERFIL_VACIO, ...(getPerfiles()[a] || {}) }; }
+function pintarPerfil() {
+  const a = $("alumnoP").value, p = perfilDe(a);
+  $("perfilNom").textContent = a;
+  document.querySelectorAll(".pf").forEach(t => t.value = p[t.dataset.k] || "");
+}
+$("alumnoP").onchange = pintarPerfil;
+$("btnPerfil").onclick = () => {
+  const ps = getPerfiles(), p = {};
+  document.querySelectorAll(".pf").forEach(t => p[t.dataset.k] = t.value.trim());
+  ps[$("alumnoP").value] = p; localStorage.setItem("perfiles", JSON.stringify(ps));
+  $("estadoP").textContent = "Perfil guardado ✅";
+};
+pintarPerfil();
+const HERR = { leer_perfil: "🧩 Leyendo su perfil funcional", leer_historial: "📖 Leyendo el historial", analizar_patrones: "🔎 Buscando patrones", evaluar_ppi: "🎯 Midiendo objetivos del PPI", buscar_estrategias: "📚 Buscando estrategias con evidencia", armar_agenda: "🗓️ Armando la agenda visual" };
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 let agendaAgente = null;
@@ -281,7 +307,8 @@ $("btnSeed").onclick = async () => {
   }
   const h = JSON.parse(localStorage.getItem("hist") || "[]").filter(d => !d.ejemplo);
   localStorage.setItem("hist", JSON.stringify([...h, ...regs.reverse()].sort((a, b) => b.fecha.localeCompare(a.fecha))));
-  hist(); $("alumnoP").value = "Juan";
+  const ps = getPerfiles(); ps.Juan = ps.Juan && Object.values(ps.Juan).some(Boolean) ? ps.Juan : PERFILES_EJEMPLO.Juan; localStorage.setItem("perfiles", JSON.stringify(ps));
+  hist(); $("alumnoP").value = "Juan"; pintarPerfil(); $("perfilBox").open = true;
   $("estadoP").textContent = "Listo: 15 días de Juan cargados. Tocá Analizar progreso.";
 };
 
@@ -293,7 +320,7 @@ $("btnAgente").onclick = async () => {
   $("traza").innerHTML = `<div class="paso"><span class="spin">⏳</span> El agente está pensando con ${registros.length} días de ${esc(alumno)}…</div>`;
   $("modoP").textContent = ""; $("estadoP").textContent = "";
   try {
-    const r = await fetch("api/agente", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ alumno, registros, ppi: PPI[alumno] || PPI.Juan }) });
+    const r = await fetch("api/agente", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ alumno, registros, ppi: PPI[alumno] || PPI.Juan, perfil: perfilDe(alumno) }) });
     if (!r.ok) throw new Error("el agente respondió " + r.status);
     const j = await r.json();
     $("traza").innerHTML = "";

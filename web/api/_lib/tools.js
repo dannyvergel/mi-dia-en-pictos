@@ -81,10 +81,19 @@ const diaSemana = f => DIAS[new Date(f + "T12:00:00").getDay()];
 const textoDe = a => norm(`${a.actividad} ${a.palabra_clave}`);
 
 function crearHerramientas(ctx) {
-  const { alumno, registros = [], ppi = [] } = ctx;
+  const { alumno, registros = [], ppi = [], perfil = {} } = ctx;
   const delAlumno = registros.filter(r => r.alumno === alumno).sort((a, b) => a.fecha.localeCompare(b.fecha));
 
   return {
+    leer_perfil: {
+      descripcion: "Devuelve el perfil funcional del alumno: cómo se comunica, qué le molesta, qué lo calma y qué le gusta. No contiene diagnósticos. Usalo para personalizar las estrategias.",
+      parametros: { type: "object", properties: {}, required: [] },
+      run: () => {
+        const p = Object.fromEntries(Object.entries(perfil).filter(([, v]) => v && String(v).trim()));
+        return Object.keys(p).length ? { alumno, ...p } : { alumno, aviso: "Sin perfil cargado" };
+      }
+    },
+
     leer_historial: {
       descripcion: "Devuelve un resumen día por día de los registros del alumno (fecha, día de semana, ánimo, actividades difíciles, logros).",
       parametros: { type: "object", properties: {}, required: [] },

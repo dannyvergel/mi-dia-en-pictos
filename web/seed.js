@@ -50,3 +50,15 @@ function seedJuan() {
     };
   });
 }
+
+// Perfil FUNCIONAL (sin diagnósticos ni datos de salud): lo que ayuda a planificar.
+const PERFIL_VACIO = { comunicacion: "", sensibilidades: "", lo_calma: "", le_gusta: "", observaciones: "" };
+const PERFILES_EJEMPLO = {
+  Juan: {
+    comunicacion: "Usa pocas palabras; señala y toca pictogramas. Entiende consignas cortas.",
+    sensibilidades: "Ruido fuerte, patio lleno, cambios sin aviso",
+    lo_calma: "Auriculares, rincón tranquilo, música suave",
+    le_gusta: "Tocar el tambor, pintar con témperas, la arenera",
+    observaciones: "Anticiparle los cambios con pictos le sirve."
+  }
+};
