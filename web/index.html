@@ -52,7 +52,7 @@
 </style>
 </head>
 <body>
-<header><div><h1>🌉 Puente</h1><div style="font-size:12px;opacity:.85">de la escuela a casa, en pictogramas</div></div><span class="cfg" onclick="config()">⚙️ Config</span></header>
+<header><div><h1>🌉 Puente</h1><div style="font-size:12px;opacity:.85">de la escuela a casa, en pictogramas</div></div></header>
 <nav>
   <button class="on" data-s="docente">👩‍🏫 Docente</button>
   <button data-s="alumno">🧒 Alumno</button>
@@ -105,6 +105,18 @@
       <pre id="mensaje"></pre>
       <button class="big" id="btnWa">📲 Enviar por WhatsApp</button>
     </div>
+    <div class="card">
+      <b>🌉 Espacio de la familia</b>
+      <p class="muted">Un link privado por alumno. La familia ve sus días en pictos, sus avances y le puede preguntar a Puente cuando quiera. Se actualiza solo cada vez que cargás un día.</p>
+      <select id="alumnoF"></select>
+      <button class="big" id="btnLinkF">🔗 Crear o actualizar link</button>
+      <div id="linkF" style="display:none;margin-top:10px">
+        <input id="urlF" readonly onclick="this.select()">
+        <button class="big alt" id="btnAbrirF" style="font-size:14px;padding:10px">Abrir como familia</button>
+        <button class="big" id="btnWaF" style="font-size:14px;padding:10px">📲 Mandar link por WhatsApp</button>
+      </div>
+      <p class="muted" id="estadoF"></p>
+    </div>
   </section>
   <!-- PROGRESO (Agente) -->
   <section id="progreso">
@@ -156,12 +168,6 @@ const EJEMPLO = "Llegó contento, desayunó bien. A las 9 hicimos música y le e
 const $ = id => document.getElementById(id);
 let hoy = null;
 
-// ---------- config ----------
-function webhook() { return localStorage.getItem("webhook") || ""; }
-function config() {
-  const v = prompt("URL del webhook de n8n (vacío = modo demo sin IA):", webhook());
-  if (v !== null) localStorage.setItem("webhook", v.trim());
-}
 
 // ---------- navegación ----------
 document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
@@ -194,17 +200,12 @@ $("btnEnviar").onclick = async () => {
   if (!texto) return alert("Contá cómo fue el día primero.");
   $("estado").textContent = "Generando…";
   try {
-    hoy = webhook() ? await viaN8n(alumno, texto) : (await viaApi(alumno, texto)) || await demo(alumno, texto);
-    guardar(hoy); pintar(hoy);
+    hoy = (await viaApi(alumno, texto)) || await demo(alumno, texto);
+    guardar(hoy); pintar(hoy); publicarFamilia(alumno, true);
     $("estado").textContent = "Listo ✅ Mirá las pestañas Alumno y Familia.";
   } catch (e) { console.error(e); $("estado").textContent = "Error: " + e.message; }
 };
 
-async function viaN8n(alumno, texto) {
-  const r = await fetch(webhook(), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ alumno, texto }) });
-  if (!r.ok) throw new Error("n8n respondió " + r.status);
-  return r.json();
-}
 
 async function viaApi(alumno, texto) {
   try { const r = await fetch("api/dia", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ alumno, texto }) }); return r.ok ? r.json() : null; }
@@ -350,6 +351,9 @@ function pintarAgente(j) {
   $("msgP").textContent = R.mensaje_familia || "";
   $("notaP").textContent = R.nota_docente || "";
   $("resultadoP").style.display = "block";
+  const al = $("alumnoP").value;
+  extrasFamilia[al] = { agenda: j.agenda, mensaje_docente: R.mensaje_familia };
+  publicarFamilia(al, true);
   $("resultadoP").scrollIntoView({ behavior: "smooth" });
 }
 $("btnWaP").onclick = () => window.open("https://wa.me/?text=" + encodeURIComponent($("msgP").textContent), "_blank");
@@ -365,6 +369,38 @@ $("btnUsarAgenda").onclick = () => {
   });
   document.querySelector('nav button[data-s="alumno"]').click();
 };
+// ---------- Espacio de la familia ----------
+ALUMNOS.forEach(a => $("alumnoF").add(new Option(a, a)));
+const tokens = () => JSON.parse(localStorage.getItem("tokensFamilia") || "{}");
+const extrasFamilia = {};
+const urlFamilia = tk => `${location.origin}/familia.html?t=${tk}`;
+function mostrarLink() {
+  const tk = tokens()[$("alumnoF").value];
+  $("linkF").style.display = tk ? "block" : "none";
+  if (tk) $("urlF").value = urlFamilia(tk);
+}
+$("alumnoF").onchange = mostrarLink;
+async function publicarFamilia(alumno, soloSiExiste) {
+  const tk = tokens()[alumno];
+  if (soloSiExiste && !tk) return;
+  const registros = JSON.parse(localStorage.getItem("hist") || "[]").filter(d => d.alumno === alumno);
+  if (!registros.length) { $("estadoF").textContent = `Todavía no hay días de ${alumno}.`; return; }
+  $("estadoF").textContent = "Publicando…";
+  try {
+    const r = await fetch("api/familia", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ accion: "publicar", token: tk, alumno, registros, ppi: PPI[alumno] || [], perfil: perfilDe(alumno), ...(extrasFamilia[alumno] || {}) }) });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error);
+    const ts = tokens(); ts[alumno] = j.token; localStorage.setItem("tokensFamilia", JSON.stringify(ts));
+    $("alumnoF").value = alumno; mostrarLink();
+    $("estadoF").textContent = `Listo ✅ ${j.dias} días visibles para la familia de ${alumno}.`;
+  } catch (e) { $("estadoF").textContent = "No se pudo publicar: " + e.message; }
+}
+$("btnLinkF").onclick = () => publicarFamilia($("alumnoF").value, false);
+$("btnAbrirF").onclick = () => window.open($("urlF").value, "_blank");
+$("btnWaF").onclick = () => window.open("https://wa.me/?text=" + encodeURIComponent(`Hola! Este es el espacio de ${$("alumnoF").value} en Puente 🌉 Ahí van a poder ver cómo le va día a día y hacer preguntas cuando quieran:\n${$("urlF").value}`), "_blank");
+mostrarLink();
+
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 </script>
 </body>

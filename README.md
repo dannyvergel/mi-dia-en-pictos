@@ -29,14 +29,24 @@ Un agente con herramientas que trabaja sobre el historial de cada chico:
 El LLM decide qué herramienta usar (tool calling en OpenRouter); los números salen de código, no del modelo. La traza de pasos se ve en pantalla.
 Sin API key corre el mismo circuito con un plan fijo (modo demo), así la demo nunca se cae.
 
-**Activar IA:** en Vercel → Settings → Environment Variables → `OPENROUTER_API_KEY` (y opcional `OPENROUTER_MODEL`, por defecto `deepseek/deepseek-v4-flash`). Con eso también `/api/dia` estructura el día sin n8n.
+**Activar IA:** en Vercel → Settings → Environment Variables → `OPENROUTER_API_KEY` (y opcional `OPENROUTER_MODEL`, por defecto `deepseek/deepseek-v4-flash`). Con eso también `/api/dia` estructura el día con IA.
+
+## 🌉 Espacio de la familia
+Cada alumno tiene un link privado (`familia.html?t=…`, token de 128 bits). La familia ve a demanda:
+- sus últimos días con ánimo y pictogramas (toca y escucha),
+- la agenda del próximo día con los apoyos nuevos,
+- en qué objetivos se está trabajando, en lenguaje simple,
+- logros recientes,
+- **Preguntale a Puente**: chat que responde solo con los registros de la escuela, sin diagnósticos.
+
+Se actualiza solo cada vez que la docente carga un día o corre el agente. Datos en Vercel Blob (store privado `puente-datos`); no se publican las notas internas del legajo.
 
 ## Estructura
 ```
 web/            PWA (HTML + JS puro): pestañas Docente, Alumno, Familia y Progreso
-web/api/        Funciones de Vercel: agente.js (Agente de Progreso) y dia.js (registro diario)
+web/api/        Funciones de Vercel: agente.js (Agente de Progreso), dia.js (registro diario), familia.js (espacio de familias)
+web/familia.html Vista de la familia
 web/seed.js     3 semanas de datos ficticios para la demo
-n8n/            Workflow importable: Webhook → LLM (JSON) → ARASAAC → respuesta
 prompts/        Prompt de registro diario e informe mensual
 data/           Relato de ejemplo para la demo
 ```
@@ -50,19 +60,7 @@ cd web && python3 -m http.server 8080
 # abrir http://localhost:8080
 ```
 - Sin configurar nada funciona en **modo demo** (sin IA, busca pictos igual).
-- Para la versión con IA: ⚙️ Config → pegar la URL del webhook de n8n.
 
-## Configurar n8n
-1. Importar `n8n/mi-dia-en-pictos.json`.
-2. En el nodo **LLM - Estructurar día**, crear una credencial *Header Auth*: nombre `Authorization`, valor `Bearer TU_API_KEY_DE_OPENROUTER`.
-   - Modelo por defecto: `deepseek/deepseek-v4-flash` (US$0,09 / M tokens de entrada, US$0,18 / M de salida). Un registro diario cuesta una fracción de centavo.
-   - Para desarrollar gratis: `google/gemma-4-31b-it:free` (con límite de uso).
-   - Aún más barato: `qwen/qwen3.7-flash`.
-3. Activar el workflow y copiar la URL de producción del webhook (`/webhook/mi-dia`).
-4. Probar:
-```bash
-curl -X POST https://TU-N8N/webhook/mi-dia -H "Content-Type: application/json" -d @data/ejemplo.json
-```
 
 ## Guion de la demo (3 min)
 1. Problema (30 s).
@@ -75,7 +73,7 @@ curl -X POST https://TU-N8N/webhook/mi-dia -H "Content-Type: application/json" -
 - Agenda anticipada del día siguiente (rutina con pictos antes de llegar).
 - Perfil por alumno (vocabulario, sensibilidades, apoyos).
 - Informe mensual automático (prompt en `prompts/informe-mensual.md`).
-- Envío directo por WhatsApp Cloud API desde n8n.
+- Envío directo por WhatsApp Cloud API.
 - Multi-escuela con login y base de datos (Supabase).
 
 ## Privacidad

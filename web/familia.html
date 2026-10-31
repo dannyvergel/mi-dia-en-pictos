@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Puente · Familias</title>
+<meta name="theme-color" content="#5b4bdb">
+<meta name="robots" content="noindex">
+<style>
+  :root { --p:#5b4bdb; --bg:#f6f5ff; --ok:#2e9e5b; --warn:#e8a317; --bad:#d64545; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; background:var(--bg); color:#222; }
+  header { background:var(--p); color:#fff; padding:18px 16px; }
+  header h1 { margin:0; font-size:22px; } header .s { font-size:13px; opacity:.85; }
+  main { padding:16px; max-width:720px; margin:auto; }
+  .card { background:#fff; border-radius:14px; padding:16px; margin-bottom:14px; box-shadow:0 1px 4px #0001; }
+  h2 { font-size:17px; margin:0 0 10px; }
+  .semana { display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; }
+  .dia { flex:0 0 74px; text-align:center; padding:8px 4px; border-radius:12px; background:#f6f5ff; cursor:pointer; border:2px solid transparent; }
+  .dia.on { border-color:var(--p); background:#fff; }
+  .dia .e { font-size:30px; } .dia .d { font-size:12px; color:#666; text-transform:capitalize; }
+  .tira { display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:10px; margin-top:10px; }
+  .picto { background:#fff; border-radius:14px; padding:8px; text-align:center; border:4px solid #eee; cursor:pointer; }
+  .picto img { width:100%; aspect-ratio:1; object-fit:contain; }
+  .picto .t { font-size:14px; font-weight:700; text-transform:uppercase; }
+  .picto .h { font-size:12px; color:#777; }
+  .bien { border-color:var(--ok); } .regular { border-color:var(--warn); } .dificil { border-color:var(--bad); }
+  .apoyo { border-color:var(--p); border-style:dashed; background:#f3f1ff; }
+  .logro { background:#f0fff4; border-left:5px solid var(--ok); padding:10px; border-radius:8px; margin:6px 0; }
+  .alerta { background:#fff8ec; border-left:5px solid var(--warn); padding:10px; border-radius:8px; margin:6px 0; }
+  .obj { display:flex; gap:10px; align-items:center; padding:8px 0; border-bottom:1px solid #eee; }
+  .obj .i { font-size:24px; }
+  .chat { display:flex; flex-direction:column; gap:8px; max-height:420px; overflow-y:auto; margin-bottom:10px; }
+  .m { padding:10px 12px; border-radius:14px; max-width:85%; line-height:1.4; white-space:pre-wrap; }
+  .m.familia { align-self:flex-end; background:var(--p); color:#fff; border-bottom-right-radius:4px; }
+  .m.puente { align-self:flex-start; background:#f1f0fb; border-bottom-left-radius:4px; }
+  .sug { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+  .sug button { border:1px solid var(--p); color:var(--p); background:#fff; border-radius:20px; padding:6px 12px; font-size:13px; cursor:pointer; }
+  form { display:flex; gap:8px; }
+  input { flex:1; font-size:16px; padding:12px; border:1px solid #ccc; border-radius:12px; }
+  form button { border:0; background:var(--p); color:#fff; border-radius:12px; padding:0 18px; font-size:18px; cursor:pointer; }
+  .muted { color:#777; font-size:13px; }
+  footer { text-align:center; font-size:11px; color:#888; padding:20px; }
+</style>
+</head>
+<body>
+<header><h1 id="tit">🌉 Puente</h1><div class="s" id="sub">de la escuela a casa, en pictogramas</div></header>
+<main id="app"><div class="card">Cargando…</div></main>
+<footer>Este espacio es privado: solo lo ve quien tiene el link.<br>Pictogramas: Sergio Palao. Origen: <a href="https://arasaac.org">ARASAAC</a>. Licencia CC BY-NC-SA. Propiedad: Gobierno de Aragón.</footer>
+<script>
+const $ = id => document.getElementById(id);
+const t = new URLSearchParams(location.search).get("t") || location.hash.slice(1);
+const EMOJI = { contento:"😄", tranquilo:"🙂", cansado:"🥱", angustiado:"😢", irritable:"😠" };
+const PLANO = { "logrado o casi logrado": ["🌟", "¡Casi logrado!"], "avanzando": ["📈", "Avanzando"], "estable": ["➡️", "Sostenido"], "estancado": ["🧩", "Lo seguimos trabajando"], "en retroceso": ["🤝", "Necesita más apoyo"], "sin datos suficientes": ["⏳", "Todavía sin datos"] };
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
+const fechaLinda = f => new Date(f + "T12:00:00").toLocaleDateString("es-AR", { weekday:"long", day:"numeric", month:"long" });
+function hablar(x) { if ("speechSynthesis" in window) { const u = new SpeechSynthesisUtterance(x); u.lang = "es-AR"; speechSynthesis.speak(u); } }
+let D = null, chat = [];
+
+async function cargar() {
+  if (!t) return $("app").innerHTML = `<div class="card">Este link no es válido. Pedile a la docente el link de tu hijo o hija.</div>`;
+  const r = await fetch("api/familia?t=" + encodeURIComponent(t));
+  if (!r.ok) return $("app").innerHTML = `<div class="card">${r.status === 404 ? "No encontramos este espacio." : "No pudimos cargar el espacio."} Pedile el link a la docente.</div>`;
+  D = await r.json();
+  $("tit").textContent = `🌉 Puente · ${D.alumno}`;
+  $("sub").textContent = "Actualizado " + new Date(D.actualizado).toLocaleString("es-AR", { day:"numeric", month:"long", hour:"2-digit", minute:"2-digit" });
+  pintar();
+}
+
+function pintar() {
+  const dias = D.dias || [];
+  const logros = dias.flatMap(d => d.logros.map(l => ({ l, f: d.fecha })));
+  $("app").innerHTML = `
+    <div class="card"><h2>Sus últimos días</h2>
+      <div class="semana" id="semana">${dias.slice().reverse().map((d, i) => `<div class="dia" data-f="${d.fecha}"><div class="e">${EMOJI[d.animo] || "🙂"}</div><div class="d">${esc(d.dia).slice(0,3)} ${d.fecha.slice(8)}</div></div>`).join("")}</div>
+      <div id="detalle"></div>
+    </div>
+    ${D.mensaje_docente ? `<div class="card"><h2>✉️ Mensaje de la escuela</h2><p>${esc(D.mensaje_docente)}</p></div>` : ""}
+    ${D.agenda ? `<div class="card"><h2>🗓️ Así va a ser su ${esc(D.agenda.dia || "próximo día")}</h2><p class="muted">Contáselo la noche anterior mirando los pictos juntos. Los recuadros punteados son apoyos nuevos.</p>
+      <div class="tira">${D.agenda.pasos.map(p => `<div class="picto ${p.es_apoyo ? "apoyo" : ""}" data-h="${esc(p.texto)}">${p.picto_url ? `<img src="${p.picto_url}" alt="">` : `<div style="font-size:48px">⭐</div>`}<div class="t">${esc(p.palabra_clave)}</div><div class="h">${esc(p.hora || "")}</div></div>`).join("")}</div></div>` : ""}
+    ${D.objetivos?.length ? `<div class="card"><h2>🎯 En qué estamos trabajando</h2>${D.objetivos.map(o => { const [i, txt] = PLANO[o.estado] || ["•", o.estado]; return `<div class="obj"><span class="i">${i}</span><div><b>${esc(o.objetivo)}</b><div class="muted">${txt}</div></div></div>`; }).join("")}</div>` : ""}
+    ${logros.length ? `<div class="card"><h2>⭐ Logros recientes</h2>${logros.slice(0, 6).map(x => `<div class="logro">${esc(x.l)} <span class="muted">· ${esc(fechaLinda(x.f))}</span></div>`).join("")}</div>` : ""}
+    <div class="card"><h2>💬 Preguntale a Puente</h2>
+      <p class="muted">Responde con lo que la escuela registró de ${esc(D.alumno)}. Para temas de salud, hablá con la docente.</p>
+      <div class="chat" id="chat"></div>
+      <div class="sug" id="sug">${["¿Cómo estuvo esta semana?", "¿Cómo viene comiendo?", "¿Qué día le cuesta más?", "¿Qué puedo hacer en casa?"].map(s => `<button>${s}</button>`).join("")}</div>
+      <form id="f"><input id="q" placeholder="Escribí tu pregunta…" autocomplete="off"><button>➤</button></form>
+    </div>`;
+  document.querySelectorAll(".dia").forEach(el => el.onclick = () => verDia(el.dataset.f));
+  document.querySelectorAll(".picto[data-h]").forEach(el => el.onclick = () => hablar(el.dataset.h));
+  document.querySelectorAll("#sug button").forEach(b => b.onclick = () => enviar(b.textContent));
+  $("f").onsubmit = e => { e.preventDefault(); const v = $("q").value.trim(); if (v) { $("q").value = ""; enviar(v); } };
+  if (dias[0]) verDia(dias[0].fecha);
+  const s = $("semana"); s.scrollLeft = s.scrollWidth;
+}
+
+function verDia(f) {
+  const d = D.dias.find(x => x.fecha === f); if (!d) return;
+  document.querySelectorAll(".dia").forEach(el => el.classList.toggle("on", el.dataset.f === f));
+  $("detalle").innerHTML = `<p style="margin:12px 0 4px"><b style="text-transform:capitalize">${esc(fechaLinda(f))}</b> · ${EMOJI[d.animo] || ""} ${esc(d.animo || "")}</p>
+    ${d.resumen ? `<p>${esc(d.resumen)}</p>` : ""}
+    ${d.logros.map(l => `<div class="logro">⭐ ${esc(l)}</div>`).join("")}
+    ${d.alertas.map(a => `<div class="alerta">${esc(a)}</div>`).join("")}
+    <div class="tira">${d.actividades.map(a => `<div class="picto ${a.estado || ""}" data-h="${esc(a.actividad)}">${a.picto_url ? `<img src="${a.picto_url}" alt="">` : `<div style="font-size:48px">⭐</div>`}<div class="t">${esc(a.palabra_clave)}</div><div class="h">${esc(a.hora || "")}</div></div>`).join("")}</div>`;
+  $("detalle").querySelectorAll(".picto").forEach(el => el.onclick = () => hablar(el.dataset.h));
+}
+
+function burbuja(rol, texto) { const el = document.createElement("div"); el.className = "m " + rol; el.textContent = texto; $("chat").appendChild(el); $("chat").scrollTop = 1e6; return el; }
+async function enviar(p) {
+  $("sug").style.display = "none";
+  burbuja("familia", p);
+  const espera = burbuja("puente", "Puente está mirando los registros…");
+  try {
+    const r = await fetch("api/familia", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ accion:"preguntar", token:t, pregunta:p, historial:chat }) });
+    const j = await r.json();
+    espera.textContent = j.respuesta || j.error || "No pude responder.";
+    chat.push({ rol:"familia", texto:p }, { rol:"puente", texto:espera.textContent });
+  } catch { espera.textContent = "No pude conectarme. Probá de nuevo."; }
+}
+cargar();
+</script>
+</body>
+</html>

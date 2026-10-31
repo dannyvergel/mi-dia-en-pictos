@@ -1,0 +1,1 @@
+{ "name": "puente", "private": true, "dependencies": { "@vercel/blob": "latest" } }

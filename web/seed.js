@@ -29,7 +29,7 @@ function seedJuan() {
     a.push(dow === 5 ? act("09:00", "Educación física", "educación física", "bien") : act("09:00", "Música con instrumentos", "música", "bien"));
     a.push(lunes
       ? act("11:00", "Recreo largo: se angustió por el ruido del patio y lloró", "recreo", "dificil")
-      : act("11:00", "Recreo, jugó en la arenera", "recreo", i === 2 ? "regular" : "bien"));
+      : act("11:00", "Recreo, jugó en la arenera", "recreo", "bien"));
     const comida = sem === 0 ? (i % 2 ? act("12:00", "Almorzó poco, necesitó ayuda para comer", "almorzar", "dificil") : act("12:00", "Almorzó con ayuda", "almorzar", "regular"))
       : sem === 1 ? (i % 2 ? act("12:00", "Almorzó, usó la cuchara solo un rato", "almorzar", "bien") : act("12:00", "Almorzó con ayuda", "almorzar", "regular"))
       : act("12:00", "Almorzó y comió solo con la cuchara", "almorzar", "bien");
