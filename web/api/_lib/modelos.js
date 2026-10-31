@@ -10,7 +10,7 @@ const PRINCIPAL = PERMITIDOS.includes(process.env.OPENROUTER_MODEL) ? process.en
 // Si el principal falla, OpenRouter prueba estos (nunca uno caro).
 const RESPALDO = PERMITIDOS.filter(m => m !== PRINCIPAL).slice(0, 2);
 // Tope de tokens de salida por llamada.
-const TOPE = { agente: 1500, dia: 1200, chat: 400 };
+const TOPE = { agente: 2500, dia: 1200, chat: 400 };
 
 function cuerpo(uso, extra) {
   return { model: PRINCIPAL, models: [PRINCIPAL, ...RESPALDO], max_tokens: TOPE[uso], ...extra };

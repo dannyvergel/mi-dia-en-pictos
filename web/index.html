@@ -278,7 +278,7 @@ $("btnAgente").onclick = async () => {
   $("traza").innerHTML = `<div class="paso"><span class="spin"></span><span>El agente está trabajando con ${registros.length} días de ${esc(alumno)}…</span></div>`;
   $("modoP").textContent = ""; $("estadoP").textContent = "";
   try {
-    const r = await fetch("api/agente", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ alumno, registros, ppi: PPI[alumno] || PPI.Juan, perfil: perfilDe(alumno) }) });
+    const r = await fetch("api/agente", { signal: AbortSignal.timeout(80000), method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ alumno, registros, ppi: PPI[alumno] || PPI.Juan, perfil: perfilDe(alumno) }) });
     if (!r.ok) throw new Error("el agente respondió " + r.status);
     const j = await r.json();
     $("traza").innerHTML = "";

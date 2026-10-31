@@ -31,6 +31,17 @@
 <main><div class="pagina" id="app"><p class="vacio">Cargando…</p></div></main>
 <footer>Este espacio es privado: solo lo ve quien tiene el link.<br>Pictogramas: Sergio Palao. Origen: <a href="https://arasaac.org">ARASAAC</a>. Licencia CC BY-NC-SA. Propiedad: Gobierno de Aragón.</footer>
 <script>
+const PICTOS = {};
+async function buscarPicto(k) {
+  k = (k || "").toLowerCase();
+  if (!(k in PICTOS)) PICTOS[k] = fetch("https://api.arasaac.org/api/pictograms/es/search/" + encodeURIComponent(k)).then(r => r.ok ? r.json() : []).then(j => j[0] ? `https://static.arasaac.org/pictograms/${j[0]._id}/${j[0]._id}_300.png` : null).catch(() => null);
+  return PICTOS[k];
+}
+function completarPictos() {
+  document.querySelectorAll("img[data-k]:not([src])").forEach(async im => { const u = await buscarPicto(im.dataset.k); if (u) im.src = u; else im.replaceWith(Object.assign(document.createElement("div"), { className: "vacio", textContent: "?" })); });
+}
+new MutationObserver(completarPictos).observe(document.documentElement, { childList: true, subtree: true });
+
 const $ = id => document.getElementById(id);
 const t = new URLSearchParams(location.search).get("t") || location.hash.slice(1);
 const ANIMO = { contento: 35547, tranquilo: 31310, cansado: 35537, angustiado: 35545, irritable: 35539 };
@@ -61,7 +72,7 @@ function pintar() {
     </div>
     ${D.mensaje_docente ? `<div class="card cinta"><span class="rotulo">Mensaje de la escuela</span><p>${esc(D.mensaje_docente)}</p></div>` : ""}
     ${D.agenda ? `<div class="card"><span class="rotulo">Así va a ser su ${esc(D.agenda.dia || "próximo día")}</span><p class="muted">Contáselo la noche anterior mirando los pictos juntos. Los recuadros punteados son apoyos nuevos.</p>
-      <div class="tira">${D.agenda.pasos.map(p => `<div class="picto ${p.es_apoyo ? "apoyo" : ""}" data-h="${esc(p.texto)}">${p.picto_url ? `<img src="${p.picto_url}" alt="">` : `<div class="vacio">?</div>`}<div class="t">${esc(p.palabra_clave)}</div><div class="h">${esc(p.hora || "")}</div></div>`).join("")}</div></div>` : ""}
+      <div class="tira">${D.agenda.pasos.map(p => `<div class="picto ${p.es_apoyo ? "apoyo" : ""}" data-h="${esc(p.texto)}">${p.picto_url ? `<img src="${p.picto_url}" alt="">` : `<img data-k="${esc(p.palabra_clave)}" alt="">`}<div class="t">${esc(p.palabra_clave)}</div><div class="h">${esc(p.hora || "")}</div></div>`).join("")}</div></div>` : ""}
     ${D.objetivos?.length ? `<div class="card"><span class="rotulo">En qué estamos trabajando</span>${D.objetivos.map(o => { const [c, txt] = PLANO[o.estado] || ["", o.estado]; return `<div class="obj"><div style="flex:1"><b>${esc(o.objetivo)}</b></div><span class="sello ${c}">${txt}</span></div>`; }).join("")}</div>` : ""}
     ${logros.length ? `<div class="card"><span class="rotulo">Logros recientes</span>${logros.slice(0, 6).map(x => `<div class="logro">${esc(x.l)} <span class="muted">· ${esc(fechaLinda(x.f))}</span></div>`).join("")}</div>` : ""}
     <div class="card"><span class="rotulo">Preguntale a Puente</span>
@@ -85,7 +96,7 @@ function verDia(f) {
     ${d.resumen ? `<p>${esc(d.resumen)}</p>` : ""}
     ${d.logros.map(l => `<div class="logro">${esc(l)}</div>`).join("")}
     ${d.alertas.map(a => `<div class="alerta">${esc(a)}</div>`).join("")}
-    <div class="tira">${d.actividades.map(a => `<div class="picto ${a.estado || ""}" data-h="${esc(a.actividad)}">${a.picto_url ? `<img src="${a.picto_url}" alt="">` : `<div class="vacio">?</div>`}<div class="t">${esc(a.palabra_clave)}</div><div class="h">${esc(a.hora || "")}</div></div>`).join("")}</div>`;
+    <div class="tira">${d.actividades.map(a => `<div class="picto ${a.estado || ""}" data-h="${esc(a.actividad)}">${a.picto_url ? `<img src="${a.picto_url}" alt="">` : `<img data-k="${esc(a.palabra_clave)}" alt="">`}<div class="t">${esc(a.palabra_clave)}</div><div class="h">${esc(a.hora || "")}</div></div>`).join("")}</div>`;
   $("detalle").querySelectorAll(".picto").forEach(el => el.onclick = () => hablar(el.dataset.h));
 }
 

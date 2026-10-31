@@ -33,6 +33,7 @@ async function llm(messages, tools) {
   const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: "Bearer " + process.env.OPENROUTER_API_KEY, "Content-Type": "application/json", "HTTP-Referer": "https://puente-pictos.vercel.app", "X-Title": "Puente" },
+    signal: AbortSignal.timeout(28000),
     body: JSON.stringify(cuerpo("agente", { temperature: 0.2, messages, ...(tools ? { tools, tool_choice: "auto" } : { response_format: { type: "json_object" } }) }))
   });
   if (!r.ok) throw new Error("OpenRouter " + r.status + ": " + (await r.text()).slice(0, 200));
@@ -51,7 +52,8 @@ async function correrAgente(ctx, h, traza) {
     { role: "user", content: `Alumno: ${ctx.alumno}. Hoy es ${ctx.hoy}. Objetivos del PPI: ${ctx.ppi.map(o => o.objetivo).join(" | ")}. Analizá su progreso.` }
   ];
   const tools = aTools(h);
-  for (let i = 0; i < MAX_PASOS; i++) {
+  const limite = Date.now() + 30000; // si se estira, cerramos con lo que haya
+  for (let i = 0; i < MAX_PASOS && Date.now() < limite; i++) {
     const msg = await llm(messages, tools);
     messages.push(msg);
     if (!msg.tool_calls?.length) return parseJSON(msg.content);
