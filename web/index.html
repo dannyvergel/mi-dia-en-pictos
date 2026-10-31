@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mi Día en Pictos</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#5b4bdb">
+<style>
+  :root { --p:#5b4bdb; --bg:#f6f5ff; --ok:#2e9e5b; --warn:#e8a317; --bad:#d64545; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:var(--bg); color:#222; }
+  header { background:var(--p); color:#fff; padding:14px 16px; display:flex; justify-content:space-between; align-items:center; }
+  header h1 { font-size:20px; margin:0; }
+  nav { display:flex; background:#fff; border-bottom:1px solid #ddd; }
+  nav button { flex:1; padding:12px; border:0; background:none; font-size:15px; cursor:pointer; }
+  nav button.on { border-bottom:3px solid var(--p); font-weight:700; color:var(--p); }
+  main { padding:16px; max-width:760px; margin:auto; }
+  section { display:none; } section.on { display:block; }
+  .card { background:#fff; border-radius:14px; padding:16px; margin-bottom:14px; box-shadow:0 1px 4px #0001; }
+  select, textarea, input { width:100%; font-size:16px; padding:10px; border:1px solid #ccc; border-radius:10px; }
+  textarea { min-height:120px; }
+  .big { width:100%; padding:18px; font-size:18px; border:0; border-radius:14px; background:var(--p); color:#fff; margin-top:10px; cursor:pointer; }
+  .big.rec { background:var(--bad); animation:pulse 1s infinite; }
+  .big.alt { background:#fff; color:var(--p); border:2px solid var(--p); }
+  @keyframes pulse { 50% { opacity:.7; } }
+  .tira { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:12px; }
+  .picto { background:#fff; border-radius:16px; padding:10px; text-align:center; border:4px solid #eee; cursor:pointer; }
+  .picto img { width:100%; aspect-ratio:1; object-fit:contain; }
+  .picto .t { font-size:18px; font-weight:700; margin-top:6px; text-transform:uppercase; }
+  .picto .h { color:#777; font-size:13px; }
+  .bien { border-color:var(--ok); } .regular { border-color:var(--warn); } .dificil { border-color:var(--bad); }
+  .alerta { background:#fff3f3; border-left:5px solid var(--bad); padding:10px; border-radius:8px; margin:6px 0; }
+  .logro { background:#f0fff4; border-left:5px solid var(--ok); padding:10px; border-radius:8px; margin:6px 0; }
+  .muted { color:#777; font-size:13px; }
+  pre { white-space:pre-wrap; background:#f3f3f3; padding:10px; border-radius:8px; font-size:13px; }
+  footer { text-align:center; font-size:11px; color:#888; padding:20px; }
+  .cfg { font-size:12px; color:#fff; opacity:.85; cursor:pointer; }
+</style>
+</head>
+<body>
+<header><h1>🌈 Mi Día en Pictos</h1><span class="cfg" onclick="config()">⚙️ Config</span></header>
+<nav>
+  <button class="on" data-s="docente">👩‍🏫 Docente</button>
+  <button data-s="alumno">🧒 Alumno</button>
+  <button data-s="familia">👪 Familia</button>
+</nav>
+<main>
+  <!-- DOCENTE -->
+  <section id="docente" class="on">
+    <div class="card">
+      <label>Alumno</label>
+      <select id="alumno"></select>
+    </div>
+    <div class="card">
+      <label>¿Cómo fue el día? Dictalo o escribilo.</label>
+      <textarea id="texto" placeholder="Ej: Llegó contento, desayunó bien. A las 9 hicimos música..."></textarea>
+      <button class="big alt" id="btnMic">🎙️ Dictar</button>
+      <button class="big" id="btnEnviar">✨ Generar día</button>
+      <button class="big alt" id="btnEjemplo" style="font-size:14px;padding:10px">Cargar relato de ejemplo</button>
+      <p class="muted" id="estado"></p>
+    </div>
+    <div class="card" id="registroCard" style="display:none">
+      <b>Registro para el legajo</b>
+      <p id="registro"></p>
+      <p class="muted">Se guarda en el historial del alumno para el informe mensual.</p>
+    </div>
+    <div class="card">
+      <b>Historial</b>
+      <div id="historial" class="muted">Sin registros todavía.</div>
+    </div>
+  </section>
+
+  <!-- ALUMNO -->
+  <section id="alumnoS">
+    <h2 id="tituloAlumno">Mi día</h2>
+    <div class="tira" id="tira"><p class="muted">Todavía no hay un día cargado.</p></div>
+  </section>
+
+  <!-- FAMILIA -->
+  <section id="familia">
+    <div class="card">
+      <h2 id="tituloFamilia" style="margin-top:0">El día de hoy</h2>
+      <div id="animo"></div>
+      <p id="resumen" class="muted">Todavía no hay un día cargado.</p>
+      <div id="alertas"></div>
+      <div id="logros"></div>
+    </div>
+    <div class="card">
+      <b>Mensaje para enviar</b>
+      <pre id="mensaje"></pre>
+      <button class="big" id="btnWa">📲 Enviar por WhatsApp</button>
+    </div>
+  </section>
+</main>
+<footer>
+  Pictogramas: Sergio Palao. Origen: <a href="https://arasaac.org">ARASAAC</a>. Licencia CC BY-NC-SA. Propiedad: Gobierno de Aragón.
+</footer>
+
+<script>
+const ALUMNOS = ["Juan", "Sofía", "Mateo", "Valentina"];
+const EJEMPLO = "Llegó contento, desayunó bien. A las 9 hicimos música y le encantó tocar el tambor. A las 11 en el recreo se angustió por el ruido y lloró un rato, lo calmamos con los auriculares. Después almorzó poco. A la tarde pintó con témperas y saludó solito a sus compañeros al irse.";
+const $ = id => document.getElementById(id);
+let hoy = null;
+
+// ---------- config ----------
+function webhook() { return localStorage.getItem("webhook") || ""; }
+function config() {
+  const v = prompt("URL del webhook de n8n (vacío = modo demo sin IA):", webhook());
+  if (v !== null) localStorage.setItem("webhook", v.trim());
+}
+
+// ---------- navegación ----------
+document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("nav button").forEach(x => x.classList.remove("on"));
+  document.querySelectorAll("section").forEach(x => x.classList.remove("on"));
+  b.classList.add("on");
+  $(b.dataset.s === "alumno" ? "alumnoS" : b.dataset.s).classList.add("on");
+});
+
+ALUMNOS.forEach(a => $("alumno").add(new Option(a, a)));
+$("btnEjemplo").onclick = () => $("texto").value = EJEMPLO;
+
+// ---------- dictado (Web Speech API, es-AR) ----------
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null;
+$("btnMic").onclick = () => {
+  if (!SR) return alert("Tu navegador no soporta dictado. Probá con Chrome.");
+  if (rec) { rec.stop(); return; }
+  rec = new SR(); rec.lang = "es-AR"; rec.continuous = true; rec.interimResults = false;
+  const base = $("texto").value;
+  let acum = "";
+  rec.onresult = e => { for (let i = e.resultIndex; i < e.results.length; i++) acum += e.results[i][0].transcript + " "; $("texto").value = (base + " " + acum).trim(); };
+  rec.onend = () => { rec = null; $("btnMic").classList.remove("rec"); $("btnMic").textContent = "🎙️ Dictar"; };
+  rec.start(); $("btnMic").classList.add("rec"); $("btnMic").textContent = "⏹️ Terminar dictado";
+};
+
+// ---------- generar ----------
+$("btnEnviar").onclick = async () => {
+  const texto = $("texto").value.trim(), alumno = $("alumno").value;
+  if (!texto) return alert("Contá cómo fue el día primero.");
+  $("estado").textContent = "Generando…";
+  try {
+    hoy = webhook() ? await viaN8n(alumno, texto) : await demo(alumno, texto);
+    guardar(hoy); pintar(hoy);
+    $("estado").textContent = "Listo ✅ Mirá las pestañas Alumno y Familia.";
+  } catch (e) { console.error(e); $("estado").textContent = "Error: " + e.message; }
+};
+
+async function viaN8n(alumno, texto) {
+  const r = await fetch(webhook(), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ alumno, texto }) });
+  if (!r.ok) throw new Error("n8n respondió " + r.status);
+  return r.json();
+}
+
+// Modo demo: sin IA, separa oraciones y busca pictos en ARASAAC
+const DICC = { desayun:"desayunar", music:"música", músic:"música", recreo:"recreo", almorz:"almorzar", comi:"comer", pint:"pintar", jug:"jugar", dorm:"dormir", lloró:"llorar", angusti:"triste", salud:"saludar", baño:"baño", lee:"leer", leí:"leer", cant:"cantar", plaza:"parque", educación física:"educación física", gimnasia:"gimnasia", llegó:"llegar", tambor:"tambor" };
+async function demo(alumno, texto) {
+  const frases = texto.split(/[.;\n]+/).map(s => s.trim()).filter(Boolean);
+  const actividades = [];
+  for (const f of frases) {
+    const low = f.toLowerCase();
+    const k = Object.keys(DICC).find(k => low.includes(k));
+    const hora = (low.match(/a las (\d{1,2})(?::(\d{2}))?/) || [])[1];
+    const estado = /llor|angust|enoj|crisis|poco|no quiso/.test(low) ? "dificil" : "bien";
+    actividades.push({ hora: hora ? hora.padStart(2, "0") + ":00" : null, actividad: f, palabra_clave: k ? DICC[k] : f.split(" ").slice(-1)[0], estado });
+  }
+  for (const a of actividades) Object.assign(a, await picto(a.palabra_clave));
+  const dificiles = actividades.filter(a => a.estado === "dificil");
+  return {
+    alumno, fecha: new Date().toISOString().slice(0, 10), actividades,
+    animo_general: dificiles.length ? "tranquilo" : "contento",
+    logros: [], alertas: dificiles.map(a => ({ tipo: "conducta", detalle: a.actividad, nivel: "medio" })),
+    resumen_familia: `Hoy ${alumno} tuvo un día con ${actividades.length} momentos. ${texto}`,
+    registro_docente: texto, mensaje_familia: `Hola! Así fue el día de ${alumno} 🌈\n\n${texto}`
+  };
+}
+async function picto(kw) {
+  try {
+    const r = await fetch("https://api.arasaac.org/api/pictograms/es/search/" + encodeURIComponent(kw.toLowerCase()));
+    const j = await r.json(); const id = j[0]?._id;
+    return { picto_id: id || null, picto_url: id ? `https://static.arasaac.org/pictograms/${id}/${id}_500.png` : null };
+  } catch { return { picto_id: null, picto_url: null }; }
+}
+
+// ---------- render ----------
+const EMOJI = { contento:"😄", tranquilo:"🙂", cansado:"🥱", angustiado:"😢", irritable:"😠" };
+function pintar(d) {
+  $("registroCard").style.display = "block"; $("registro").textContent = d.registro_docente || "";
+  $("tituloAlumno").textContent = `El día de ${d.alumno}`;
+  $("tira").innerHTML = "";
+  (d.actividades || []).forEach(a => {
+    const el = document.createElement("div");
+    el.className = "picto " + (a.estado || "");
+    el.innerHTML = `${a.picto_url ? `<img src="${a.picto_url}" alt="${a.palabra_clave}">` : `<div style="font-size:64px">⭐</div>`}
+      <div class="t">${a.palabra_clave || ""}</div><div class="h">${a.hora || ""}</div>`;
+    el.onclick = () => hablar(a.palabra_clave);
+    $("tira").appendChild(el);
+  });
+  $("tituloFamilia").textContent = `El día de ${d.alumno}`;
+  $("animo").innerHTML = `<span style="font-size:40px">${EMOJI[d.animo_general] || "🙂"}</span> <b>${d.animo_general || ""}</b>`;
+  $("resumen").textContent = d.resumen_familia || "";
+  $("alertas").innerHTML = (d.alertas || []).map(a => `<div class="alerta">⚠️ ${a.detalle}</div>`).join("");
+  $("logros").innerHTML = (d.logros || []).map(l => `<div class="logro">⭐ ${l}</div>`).join("");
+  $("mensaje").textContent = d.mensaje_familia || d.resumen_familia || "";
+}
+function hablar(t) { if ("speechSynthesis" in window) { const u = new SpeechSynthesisUtterance(t); u.lang = "es-AR"; speechSynthesis.speak(u); } }
+$("btnWa").onclick = () => window.open("https://wa.me/?text=" + encodeURIComponent($("mensaje").textContent), "_blank");
+
+// ---------- historial (localStorage) ----------
+function guardar(d) { const h = JSON.parse(localStorage.getItem("hist") || "[]"); h.unshift(d); localStorage.setItem("hist", JSON.stringify(h.slice(0, 200))); hist(); }
+function hist() {
+  const h = JSON.parse(localStorage.getItem("hist") || "[]");
+  if (!h.length) return;
+  $("historial").innerHTML = h.map((d, i) => `<div style="padding:6px 0;border-bottom:1px solid #eee;cursor:pointer" data-i="${i}">${d.fecha} · <b>${d.alumno}</b> · ${EMOJI[d.animo_general] || ""} ${(d.alertas || []).length ? "⚠️" : ""}</div>`).join("");
+  $("historial").querySelectorAll("div").forEach(el => el.onclick = () => { hoy = h[el.dataset.i]; pintar(hoy); });
+}
+hist();
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+</script>
+</body>
+</html>

@@ -1,0 +1,62 @@
+# 🌈 Mi Día en Pictos
+
+**La docente cuenta el día en 20 segundos. El chico lo ve en pictogramas. La familia recibe un resumen claro. Y el registro queda guardado solo.**
+
+App para escuelas de educación especial: niños con TEA, discapacidad intelectual o necesidades de comunicación.
+
+## El problema
+- Las familias muchas veces no saben cómo fue el día, y los chicos no siempre pueden contarlo.
+- Lo imprevisto genera ansiedad: anticipar la rutina con apoyos visuales es clave.
+- Las docentes pierden tiempo escribiendo cuadernos de comunicación, registros y el seguimiento del PPI.
+
+## La solución
+1. **Docente** dicta o escribe cómo fue el día (dictado en es-AR desde el navegador).
+2. **IA** lo estructura: actividades en orden, estado de ánimo, logros y alertas.
+3. **Pictogramas** de ARASAAC para cada actividad → agenda visual que el chico toca y escucha.
+4. **Familia** recibe un mensaje cálido listo para WhatsApp, con alertas destacadas.
+5. **Registro formal** para el legajo; a fin de mes, la IA arma el informe de progreso.
+
+## Estructura
+```
+web/            PWA (HTML + JS puro): pestañas Docente, Alumno y Familia
+n8n/            Workflow importable: Webhook → LLM (JSON) → ARASAAC → respuesta
+prompts/        Prompt de registro diario e informe mensual
+data/           Relato de ejemplo para la demo
+```
+
+## Correr la demo
+```bash
+cd web && python3 -m http.server 8080
+# abrir http://localhost:8080
+```
+- Sin configurar nada funciona en **modo demo** (sin IA, busca pictos igual).
+- Para la versión con IA: ⚙️ Config → pegar la URL del webhook de n8n.
+
+## Configurar n8n
+1. Importar `n8n/mi-dia-en-pictos.json`.
+2. En el nodo **LLM - Estructurar día**, asignar una credencial OpenAI (o cambiar la URL/modelo por cualquier API compatible con OpenAI).
+3. Activar el workflow y copiar la URL de producción del webhook (`/webhook/mi-dia`).
+4. Probar:
+```bash
+curl -X POST https://TU-N8N/webhook/mi-dia -H "Content-Type: application/json" -d @data/ejemplo.json
+```
+
+## Guion de la demo (3 min)
+1. Problema (30 s).
+2. Docente dicta el relato de ejemplo en vivo (30 s).
+3. Pestaña Alumno: pictos grandes, se tocan y hablan (45 s).
+4. Pestaña Familia: resumen + alerta + envío por WhatsApp (45 s).
+5. Cierre: el registro queda en el legajo y el informe mensual sale solo (30 s).
+
+## Próximos pasos
+- Agenda anticipada del día siguiente (rutina con pictos antes de llegar).
+- Perfil por alumno (vocabulario, sensibilidades, apoyos).
+- Informe mensual automático (prompt en `prompts/informe-mensual.md`).
+- Envío directo por WhatsApp Cloud API desde n8n.
+- Multi-escuela con login y base de datos (Supabase).
+
+## Privacidad
+Datos de menores: solo nombre de pila, sin fotos, consentimiento de la familia, datos en el dispositivo en el MVP.
+
+## Créditos
+Pictogramas: Sergio Palao. Origen: [ARASAAC](https://arasaac.org). Licencia CC BY-NC-SA. Propiedad: Gobierno de Aragón (España).
