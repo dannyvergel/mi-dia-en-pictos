@@ -91,7 +91,7 @@
     </div>
     <div class="card">
       <b>Espacio de la familia</b>
-      <p class="muted">Un link privado por alumno. La familia ve sus días en pictos, sus avances y le puede preguntar a Puente cuando quiera. Se actualiza solo cada vez que cargás un día.</p>
+      <p class="muted" id="descF">Un link privado por alumno. La familia ve sus días en pictos, sus avances y le puede preguntar a Puente cuando quiera. Se actualiza solo cada vez que cargás un día.</p>
       <select id="alumnoF"></select>
       <button class="big" id="btnLinkF">Crear o actualizar link</button>
       <div id="linkF" style="display:none;margin-top:10px">
@@ -145,13 +145,18 @@
 </footer>
 
 <script src="seed.js"></script>
+<script src="cuenta.js"></script>
 <script>
 const H = () => ({ "Content-Type": "application/json", "X-Docente-Pin": localStorage.getItem("puente_pin") || "" });
 async function chequearPin(p) {
   const r = await fetch("api/familia", { method: "POST", headers: { "Content-Type": "application/json", "X-Docente-Pin": p }, body: JSON.stringify({ accion: "verificar_pin" }) });
   return r.ok;
 }
+// Con base de datos: sesión de docente (login.html). Sin base: PIN de demo como siempre.
+let MODO_DB = false, FICHAS = {};
 (async () => {
+  const e = await fetch("api/auth").then(r => r.json()).catch(() => ({ modo: "demo" }));
+  if (e.modo === "db") return entrarConCuenta(e);
   const g = document.getElementById("pinGate"), guardado = localStorage.getItem("puente_pin");
   if (guardado && await chequearPin(guardado).catch(() => true)) return;
   g.hidden = false; document.getElementById("pinIn").focus();
@@ -162,7 +167,7 @@ async function chequearPin(p) {
   };
 })();
 
-const ALUMNOS = ["Juan", "Sofía", "Mateo", "Valentina"];
+let ALUMNOS = ["Juan", "Sofía", "Mateo", "Valentina"];
 const EJEMPLO = "Llegó contento, desayunó bien. A las 9 hicimos música y le encantó tocar el tambor. A las 11 en el recreo se angustió por el ruido y lloró un rato, lo calmamos con los auriculares. Después almorzó poco. A la tarde pintó con témperas y saludó solito a sus compañeros al irse.";
 const $ = id => document.getElementById(id);
 let hoy = null;
@@ -280,7 +285,8 @@ hist();
 ALUMNOS.forEach(a => $("alumnoP").add(new Option(a, a)));
 $("alumno").onchange = () => { $("alumnoP").value = $("alumno").value; pintarPerfil(); };
 const getPerfiles = () => JSON.parse(localStorage.getItem("perfiles") || "{}");
-function perfilDe(a) { return { ...PERFIL_VACIO, ...(getPerfiles()[a] || {}) }; }
+function perfilDe(a) { return MODO_DB ? { ...PERFIL_VACIO, ...Puente.perfilDe(FICHAS[a]?.apoyos) } : { ...PERFIL_VACIO, ...(getPerfiles()[a] || {}) }; }
+const ppiDe = a => MODO_DB ? Puente.ppiDe(FICHAS[a]?.objetivos) : (PPI[a] || PPI.Juan);
 function pintarPerfil() {
   const a = $("alumnoP").value, p = perfilDe(a);
   $("perfilNom").textContent = a;
@@ -321,7 +327,7 @@ $("btnAgente").onclick = async () => {
   $("traza").innerHTML = `<div class="paso"><span class="spin"></span><span>El agente está trabajando con ${registros.length} días de ${esc(alumno)}…</span></div>`;
   $("modoP").textContent = ""; $("estadoP").textContent = "";
   try {
-    const r = await fetch("api/agente", { signal: AbortSignal.timeout(80000), method: "POST", headers: H(), body: JSON.stringify({ alumno, registros, ppi: PPI[alumno] || PPI.Juan, perfil: perfilDe(alumno) }) });
+    const r = await fetch("api/agente", { signal: AbortSignal.timeout(80000), method: "POST", headers: H(), body: JSON.stringify({ alumno, registros, ppi: ppiDe(alumno), perfil: perfilDe(alumno) }) });
     if (!r.ok) throw new Error("el agente respondió " + r.status);
     const j = await r.json();
     $("traza").innerHTML = "";
@@ -376,12 +382,14 @@ const tokens = () => JSON.parse(localStorage.getItem("tokensFamilia") || "{}");
 const extrasFamilia = {};
 const urlFamilia = tk => `${location.origin}/familia.html?t=${tk}`;
 function mostrarLink() {
+  if (MODO_DB) { const f = FICHAS[$("alumnoF").value]; $("linkF").style.display = f ? "block" : "none"; $("urlF").value = `${location.origin}/login.html?familia`; return; }
   const tk = tokens()[$("alumnoF").value];
   $("linkF").style.display = tk ? "block" : "none";
   if (tk) $("urlF").value = urlFamilia(tk);
 }
 $("alumnoF").onchange = mostrarLink;
 async function publicarFamilia(alumno, soloSiExiste) {
+  if (MODO_DB) return publicarConCuenta(alumno);
   const tk = tokens()[alumno];
   if (soloSiExiste && !tk) return;
   const registros = JSON.parse(localStorage.getItem("hist") || "[]").filter(d => d.alumno === alumno);
@@ -398,9 +406,39 @@ async function publicarFamilia(alumno, soloSiExiste) {
   } catch (e) { $("estadoF").textContent = "No se pudo publicar: " + e.message; }
 }
 $("btnLinkF").onclick = () => publicarFamilia($("alumnoF").value, false);
-$("btnAbrirF").onclick = () => window.open($("urlF").value, "_blank");
-$("btnWaF").onclick = () => window.open("https://wa.me/?text=" + encodeURIComponent(`Hola! Este es el espacio de ${$("alumnoF").value} en Puente 🌉 Ahí van a poder ver cómo le va día a día y hacer preguntas cuando quieran:\n${$("urlF").value}`), "_blank");
+$("btnAbrirF").onclick = () => window.open(MODO_DB ? `familia.html?alumno=${FICHAS[$("alumnoF").value]?.id}` : $("urlF").value, "_blank");
+$("btnWaF").onclick = () => window.open("https://wa.me/?text=" + encodeURIComponent(MODO_DB ? `Hola! Ya pueden ver el espacio de ${$("alumnoF").value} en Puente 🌉 Entren con el email que nos dieron (les llega un código, sin contraseña):\n${$("urlF").value}` : `Hola! Este es el espacio de ${$("alumnoF").value} en Puente 🌉 Ahí van a poder ver cómo le va día a día y hacer preguntas cuando quieran:\n${$("urlF").value}`), "_blank");
 mostrarLink();
+
+// ---------- con cuentas (base de datos) ----------
+async function entrarConCuenta(e) {
+  if (!e.sesion) return location.href = "login.html?volver=cuaderno";
+  if (e.sesion.tipo !== "docente") return location.href = "familia.html";
+  MODO_DB = true;
+  const b = document.createElement("button"); b.textContent = "Fichas"; b.onclick = () => location.href = "docente.html";
+  document.querySelector("nav").appendChild(b);
+  try { FICHAS = Object.fromEntries((await Puente.api("api/fichas")).alumnos.map(a => [a.nombre, a])); }
+  catch (err) { if (err.status === 401) return location.href = "login.html?volver=cuaderno"; $("estado").textContent = err.message; }
+  ALUMNOS = Object.keys(FICHAS);
+  for (const id of ["alumno", "alumnoP", "alumnoF"]) { $(id).innerHTML = ""; ALUMNOS.forEach(a => $(id).add(new Option(a, a))); }
+  if (!ALUMNOS.length) $("estado").innerHTML = `Todavía no cargaste alumnos. <a href="docente.html">Crealos en Fichas</a>.`;
+  $("descF").textContent = "Las familias entran con el email que figura en la ficha del alumno (les llega un código). Cada vez que cargás un día se actualiza su espacio.";
+  $("btnLinkF").textContent = "Publicar ahora para la familia";
+  $("btnPerfil").textContent = "Editar en la ficha"; $("btnPerfil").onclick = () => location.href = "docente.html";
+  document.querySelectorAll(".pf").forEach(t => t.readOnly = true);
+  pintarPerfil(); mostrarLink();
+}
+async function publicarConCuenta(alumno) {
+  const f = FICHAS[alumno]; if (!f) return;
+  const registros = JSON.parse(localStorage.getItem("hist") || "[]").filter(d => d.alumno === alumno);
+  if (!registros.length) { $("estadoF").textContent = `Todavía no hay días de ${alumno}.`; return; }
+  $("estadoF").textContent = "Publicando…";
+  try {
+    const j = await Puente.api("api/familia", { method: "POST", body: { accion: "publicar", alumno_id: f.id, registros, ...(extrasFamilia[alumno] || {}) } });
+    $("alumnoF").value = alumno; mostrarLink();
+    $("estadoF").textContent = `Listo: ${j.dias} días visibles para la familia de ${alumno}` + (f.contactos.some(c => c.email) ? "." : ". Ojo: su ficha no tiene emails de contacto, nadie de la familia puede entrar todavía.");
+  } catch (err) { $("estadoF").textContent = "No se pudo publicar: " + err.message; }
+}
 
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 </script>

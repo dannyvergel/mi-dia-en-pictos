@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Puente · Entrar</title>
+<meta name="theme-color" content="#2f4a3e">
+<meta name="robots" content="noindex">
+<link rel="icon" href="icono.svg" type="image/svg+xml">
+<link rel="stylesheet" href="estilo.css">
+<style>
+  .login { max-width: 460px; margin: 0 auto; }
+  .login .pagina { min-height: 0; }
+  nav { max-width: 460px; }
+  nav button[data-s="familia"] { --tab: #e8998d; }
+  .codigo { font-size: 28px; letter-spacing: 8px; text-align: center; font-weight: 700; }
+  .error { color: var(--bad); font-weight: 700; }
+  .ok { color: var(--ok); }
+</style>
+<script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
+<script defer src="/_vercel/insights/script.js"></script>
+</head>
+<body>
+<header><h1>Puente</h1><div class="bajada">de la escuela a casa, en pictogramas</div><span class="tiza"></span></header>
+<nav id="tabs">
+  <button class="on" data-s="docente">Soy docente</button>
+  <button data-s="familia">Soy familia</button>
+</nav>
+<main class="login"><div class="pagina">
+  <p class="vacio" id="cargando">Cargando…</p>
+
+  <!-- DOCENTE -->
+  <section id="docente">
+    <div class="card cinta" id="loginDocente">
+      <span class="rotulo">Hola, seño</span>
+      <form id="fDocente">
+        <label for="dEmail">Email</label>
+        <input id="dEmail" type="email" autocomplete="username" required>
+        <label for="dPass">Contraseña</label>
+        <input id="dPass" type="password" autocomplete="current-password" required>
+        <button class="big">Entrar</button>
+      </form>
+      <p class="muted" id="dMsg">Si olvidaste tu contraseña, pedile a la docente administradora de tu escuela que te cree una nueva.</p>
+    </div>
+
+    <div class="card cinta" id="setup" hidden>
+      <span class="rotulo">Primera vez en Puente</span>
+      <p class="muted">Creá la cuenta de la primera docente (va a poder sumar a las demás). Necesitás el PIN de docente que está configurado en Vercel.</p>
+      <form id="fSetup">
+        <label for="sEscuela">Escuela</label><input id="sEscuela" placeholder="Ej: Escuela Especial N.º 2001" maxlength="120">
+        <label for="sNombre">Tu nombre</label><input id="sNombre" required maxlength="80" autocomplete="name">
+        <label for="sEmail">Tu email</label><input id="sEmail" type="email" required autocomplete="username">
+        <label for="sPass">Contraseña (mínimo 10 caracteres)</label><input id="sPass" type="password" required minlength="10" autocomplete="new-password">
+        <label for="sPin">PIN de docente</label><input id="sPin" type="password" inputmode="numeric" required>
+        <button class="big">Crear mi cuenta</button>
+      </form>
+      <p class="muted" id="sMsg"></p>
+    </div>
+  </section>
+
+  <!-- FAMILIA -->
+  <section id="familia">
+    <div class="card cinta">
+      <span class="rotulo">Hola, familia</span>
+      <form id="fPedir">
+        <p class="muted">Escribí el email que le diste a la escuela. Te mandamos un código de 6 números para entrar, sin contraseña.</p>
+        <label for="fEmail">Email</label>
+        <input id="fEmail" type="email" autocomplete="email" required>
+        <button class="big">Mandame el código</button>
+      </form>
+      <form id="fCodigo" hidden>
+        <p id="fAviso" class="muted"></p>
+        <label for="fCod">Código</label>
+        <input id="fCod" class="codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="\d{6}" required>
+        <button class="big">Entrar</button>
+        <button type="button" class="big alt chico" id="otroEmail">Usar otro email</button>
+      </form>
+      <p class="muted" id="fMsg"></p>
+    </div>
+  </section>
+
+  <section id="demo">
+    <div class="card cinta">
+      <span class="rotulo">Puente está en modo demo</span>
+      <p>Todavía no hay base de datos conectada: las docentes entran con el PIN desde el inicio y las familias con el link privado que les manda la escuela.</p>
+      <a class="big" href="index.html" style="text-align:center;text-decoration:none">Ir al inicio</a>
+    </div>
+  </section>
+</div></main>
+<footer>Datos de menores protegidos: solo nombre de pila, sin fotos ni diagnósticos.<br>Pictogramas: Sergio Palao. Origen: <a href="https://arasaac.org">ARASAAC</a>. Licencia CC BY-NC-SA. Propiedad: Gobierno de Aragón.</footer>
+<script src="cuenta.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const { api } = Puente;
+function mostrar(s) {
+  document.querySelectorAll("section").forEach(x => x.classList.toggle("on", x.id === s));
+  document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.s === s));
+}
+document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => mostrar(b.dataset.s));
+const msg = (id, texto, error = true) => { $(id).textContent = texto; $(id).className = error ? "error" : "muted"; };
+const ir = s => location.href = s.tipo === "docente" ? (new URLSearchParams(location.search).get("volver") === "cuaderno" ? "index.html" : "docente.html") : "familia.html";
+function ocupado(form, si) { form.querySelectorAll("button").forEach(b => b.disabled = si); }
+
+(async () => {
+  let e;
+  try { e = await Puente.estado(); } catch { $("cargando").textContent = "No pudimos conectar. Probá de nuevo en un rato."; return; }
+  $("cargando").remove();
+  if (e.modo === "demo") { $("tabs").hidden = true; return mostrar("demo"); }
+  if (e.sesion) return ir(e.sesion);
+  if (e.necesita_setup) { $("loginDocente").hidden = true; $("setup").hidden = false; }
+  mostrar(location.search.includes("familia") ? "familia" : "docente");
+})();
+
+$("fDocente").onsubmit = async ev => {
+  ev.preventDefault(); ocupado(ev.target, true);
+  try { const r = await api("api/auth", { method: "POST", body: { accion: "login_docente", email: $("dEmail").value, password: $("dPass").value } }); ir(r.sesion); }
+  catch (e) { msg("dMsg", e.message); $("dPass").value = ""; }
+  finally { ocupado(ev.target, false); }
+};
+
+$("fSetup").onsubmit = async ev => {
+  ev.preventDefault(); ocupado(ev.target, true);
+  try {
+    const r = await api("api/auth", { method: "POST", body: { accion: "setup", escuela: $("sEscuela").value, nombre: $("sNombre").value, email: $("sEmail").value, password: $("sPass").value, pin: $("sPin").value } });
+    ir(r.sesion);
+  } catch (e) { msg("sMsg", e.message); }
+  finally { ocupado(ev.target, false); }
+};
+
+$("fPedir").onsubmit = async ev => {
+  ev.preventDefault(); ocupado(ev.target, true); msg("fMsg", "", false);
+  try {
+    const r = await api("api/auth", { method: "POST", body: { accion: "pedir_codigo", email: $("fEmail").value } });
+    $("fPedir").hidden = true; $("fCodigo").hidden = false;
+    $("fAviso").textContent = r.mensaje + (r.codigo_dev ? ` (Prueba local: el código es ${r.codigo_dev})` : "");
+    $("fCod").focus();
+  } catch (e) { msg("fMsg", e.message); }
+  finally { ocupado(ev.target, false); }
+};
+$("fCodigo").onsubmit = async ev => {
+  ev.preventDefault(); ocupado(ev.target, true);
+  try { const r = await api("api/auth", { method: "POST", body: { accion: "verificar_codigo", email: $("fEmail").value, codigo: $("fCod").value } }); ir(r.sesion); }
+  catch (e) { msg("fMsg", e.message); $("fCod").value = ""; }
+  finally { ocupado(ev.target, false); }
+};
+$("otroEmail").onclick = () => { $("fCodigo").hidden = true; $("fPedir").hidden = false; msg("fMsg", "", false); };
+</script>
+</body>
+</html>

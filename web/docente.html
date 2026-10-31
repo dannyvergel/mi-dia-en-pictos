@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Puente · Panel docente</title>
+<meta name="theme-color" content="#2f4a3e">
+<meta name="robots" content="noindex">
+<link rel="icon" href="icono.svg" type="image/svg+xml">
+<link rel="stylesheet" href="estilo.css">
+<style>
+  nav button[data-s="alumnos"] { --tab: var(--lapiz); }
+  nav button[data-s="docentes"] { --tab: #7fb3d5; }
+  nav button[data-s="cuenta"] { --tab: #8fbf8a; }
+  .fila-al { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--renglon); cursor: pointer; }
+  .fila-al:last-child { border-bottom: 0; }
+  .fila-al b { font-family: var(--mano); font-size: 22px; font-weight: 400; }
+  .fila-al.on b { text-decoration: underline wavy var(--lapiz); }
+  .contacto { border: 1px dashed var(--borde); border-radius: 10px; padding: 8px 10px 10px; margin: 8px 0; background: #fffef9; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
+  .objetivo { display: flex; gap: 6px; margin: 6px 0; } .objetivo input { flex: 1; }
+  .quitar { border: 0; background: none; color: var(--bad); font-size: 22px; cursor: pointer; padding: 0 6px; }
+  .check { display: flex; gap: 8px; align-items: center; font-weight: 700; } .check input { width: auto; }
+  .barra { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .barra a { color: var(--tinta); font-weight: 700; }
+  .error { color: var(--bad); font-weight: 700; }
+  .aviso { background: #fdf6e1; border-left: 5px solid var(--lapiz); padding: 8px 12px; border-radius: 8px; font-size: 14px; margin: 8px 0; }
+  @media (max-width: 520px) { .grid2 { grid-template-columns: 1fr; } }
+</style>
+<script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
+<script defer src="/_vercel/insights/script.js"></script>
+</head>
+<body>
+<header><h1>Panel de la seño</h1><div class="bajada" id="sub">fichas de familia</div><span class="tiza"></span></header>
+<nav>
+  <button class="on" data-s="alumnos">Alumnos</button>
+  <button data-s="docentes">Docentes</button>
+  <button data-s="cuenta">Mi cuenta</button>
+</nav>
+<main><div class="pagina">
+  <div class="barra"><a href="index.html">← Cuaderno del día</a><span class="muted" id="quien"></span></div>
+
+  <section id="alumnos" class="on">
+    <div class="card">
+      <span class="rotulo">Mis alumnos</span>
+      <div id="lista"><p class="vacio">Cargando…</p></div>
+      <form id="fNuevo" class="fila" style="margin-top:10px">
+        <input id="nuevoNombre" placeholder="Nombre de pila (ej: Juan o Juan P.)" maxlength="40" required>
+        <button class="big chico" style="width:auto;margin:0;padding:0 16px">Agregar</button>
+      </form>
+      <p class="muted" id="msgLista"></p>
+    </div>
+
+    <div class="card cinta" id="editor" hidden>
+      <span class="rotulo">Ficha de <span id="edNom"></span></span>
+      <div class="aviso">Datos de un menor: solo nombre de pila. No escribas apellidos, diagnósticos ni datos de salud.</div>
+      <label for="edNombre">Nombre de pila</label>
+      <input id="edNombre" maxlength="40">
+
+      <h3 style="margin-top:16px">Contactos de la familia</h3>
+      <p class="muted">Los emails que cargues acá son los que pueden entrar a Puente como familia de este alumno.</p>
+      <div id="contactos"></div>
+      <button type="button" class="big alt chico" id="addContacto">+ Agregar contacto</button>
+
+      <h3 style="margin-top:16px">Apoyos y sensibilidades</h3>
+      <div id="apoyos"></div>
+
+      <h3 style="margin-top:16px">Objetivos del PPI</h3>
+      <p class="muted">El Agente de Progreso los usa para medir el avance. Uno por renglón, cortitos.</p>
+      <div id="objetivos"></div>
+      <button type="button" class="big alt chico" id="addObjetivo">+ Agregar objetivo</button>
+
+      <h3 style="margin-top:16px">Consentimiento de la familia</h3>
+      <label class="check"><input type="checkbox" id="consDado"> La familia dio su consentimiento</label>
+      <div class="grid2">
+        <div><label for="consQuien">Quién lo dio</label><input id="consQuien" maxlength="120" placeholder="Ej: Laura (mamá)"></div>
+        <div><label for="consFecha">Fecha</label><input id="consFecha" type="date"></div>
+      </div>
+      <p class="muted" id="consVia"></p>
+
+      <button class="big" id="guardar">Guardar ficha</button>
+      <div class="fila"><a class="big alt chico" id="verFamilia" target="_blank" style="text-align:center;text-decoration:none">Ver como familia</a><button class="big alt chico" id="borrar" style="color:var(--bad);border-color:var(--bad)">Borrar alumno</button></div>
+      <p id="msgEd" class="muted"></p>
+    </div>
+  </section>
+
+  <section id="docentes">
+    <div class="card"><span class="rotulo">Docentes de la escuela</span><div id="listaDoc"><p class="vacio">Cargando…</p></div></div>
+    <div class="card" id="nuevaDoc" hidden>
+      <span class="rotulo">Sumar una docente</span>
+      <form id="fDoc">
+        <label for="ndNombre">Nombre</label><input id="ndNombre" required maxlength="80">
+        <label for="ndEmail">Email</label><input id="ndEmail" type="email" required>
+        <label for="ndPass">Contraseña inicial (mínimo 10, se la pasás y la cambia al entrar)</label><input id="ndPass" required minlength="10" autocomplete="new-password">
+        <label class="check"><input type="checkbox" id="ndAdmin"> También puede sumar docentes</label>
+        <button class="big">Crear cuenta</button>
+      </form>
+      <p class="muted" id="msgDoc"></p>
+    </div>
+  </section>
+
+  <section id="cuenta">
+    <div class="card">
+      <span class="rotulo">Cambiar contraseña</span>
+      <form id="fPass">
+        <label for="pAct">Contraseña actual</label><input id="pAct" type="password" required autocomplete="current-password">
+        <label for="pNueva">Contraseña nueva (mínimo 10)</label><input id="pNueva" type="password" required minlength="10" autocomplete="new-password">
+        <button class="big">Cambiar</button>
+      </form>
+      <p class="muted" id="msgPass"></p>
+    </div>
+    <button class="big alt" id="salir">Cerrar sesión</button>
+  </section>
+</div></main>
+<footer>Datos de menores protegidos: solo nombre de pila, sin fotos ni diagnósticos.</footer>
+<script src="cuenta.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const { api, esc } = Puente;
+let YO = null, ALUMNOS = [], APOYOS = {}, actual = null;
+const msg = (id, t, err) => { $(id).textContent = t; $(id).className = err ? "error" : "muted"; };
+
+document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("nav button").forEach(x => x.classList.toggle("on", x === b));
+  document.querySelectorAll("section").forEach(s => s.classList.toggle("on", s.id === b.dataset.s));
+  if (b.dataset.s === "docentes") cargarDocentes();
+});
+
+(async () => {
+  const e = await Puente.estado().catch(() => null);
+  if (!e || e.modo === "demo") return location.href = "index.html";
+  if (!e.sesion) return location.href = "login.html";
+  if (e.sesion.tipo !== "docente") return location.href = "familia.html";
+  YO = e.sesion;
+  $("quien").textContent = `${YO.nombre} · ${YO.email}`;
+  cargarAlumnos();
+})();
+
+// ---------- alumnos ----------
+async function cargarAlumnos(seleccionar) {
+  try {
+    const r = await api("api/fichas");
+    ALUMNOS = r.alumnos; APOYOS = r.apoyos;
+    pintarLista();
+    const id = seleccionar ?? actual?.id;
+    if (id && ALUMNOS.find(a => a.id === id)) abrir(id);
+  } catch (e) { if (e.status === 401) location.href = "login.html"; else msg("msgLista", e.message, true); }
+}
+function pintarLista() {
+  $("lista").innerHTML = ALUMNOS.length ? ALUMNOS.map(a => `<div class="fila-al ${actual?.id === a.id ? "on" : ""}" data-id="${a.id}">
+      <span><b>${esc(a.nombre)}</b> <span class="muted">· ${a.contactos.length} contacto${a.contactos.length === 1 ? "" : "s"} · ${a.objetivos.length} objetivo${a.objetivos.length === 1 ? "" : "s"}</span></span>
+      <span class="sello ${a.consentimiento?.dado ? "avanzando" : "estancado"}">${a.consentimiento?.dado ? "con consentimiento" : "sin consentimiento"}</span></div>`).join("")
+    : `<p class="vacio">Todavía no cargaste alumnos.</p>`;
+  $("lista").querySelectorAll(".fila-al").forEach(el => el.onclick = () => abrir(Number(el.dataset.id)));
+}
+$("fNuevo").onsubmit = async ev => {
+  ev.preventDefault();
+  try { const r = await api("api/fichas", { method: "POST", body: { accion: "crear", nombre: $("nuevoNombre").value } }); $("nuevoNombre").value = ""; msg("msgLista", ""); await cargarAlumnos(r.alumno.id); }
+  catch (e) { msg("msgLista", e.message, true); }
+};
+
+function filaContacto(c = {}) {
+  const d = document.createElement("div"); d.className = "contacto";
+  d.innerHTML = `<div class="grid2">
+    <div><label>Nombre</label><input data-k="nombre" maxlength="60" value="${esc(c.nombre)}"></div>
+    <div><label>Vínculo</label><input data-k="vinculo" maxlength="30" placeholder="mamá, papá, abuela…" value="${esc(c.vinculo)}"></div>
+    <div><label>Email</label><input data-k="email" type="email" value="${esc(c.email)}"></div>
+    <div><label>Teléfono / WhatsApp</label><input data-k="telefono" inputmode="tel" maxlength="30" value="${esc(c.telefono)}"></div></div>
+    <button type="button" class="quitar" title="Quitar contacto">× quitar</button>`;
+  d.querySelector(".quitar").onclick = () => d.remove();
+  $("contactos").appendChild(d);
+}
+function filaObjetivo(t = "") {
+  const d = document.createElement("div"); d.className = "objetivo";
+  d.innerHTML = `<input maxlength="300" value="${esc(t)}" placeholder="Ej: Comer con autonomía en el comedor"><button type="button" class="quitar" title="Quitar">×</button>`;
+  d.querySelector(".quitar").onclick = () => d.remove();
+  $("objetivos").appendChild(d);
+}
+$("addContacto").onclick = () => filaContacto();
+$("addObjetivo").onclick = () => filaObjetivo();
+
+function abrir(id) {
+  actual = ALUMNOS.find(a => a.id === id); if (!actual) return;
+  pintarLista();
+  $("editor").hidden = false; msg("msgEd", "");
+  $("edNom").textContent = actual.nombre; $("edNombre").value = actual.nombre;
+  $("contactos").innerHTML = ""; actual.contactos.forEach(filaContacto); if (!actual.contactos.length) filaContacto();
+  $("apoyos").innerHTML = Object.entries(APOYOS).map(([k, t]) => `<label>${esc(t)}</label><textarea data-k="${k}" style="min-height:50px" maxlength="1000">${esc(actual.apoyos[k] || "")}</textarea>`).join("");
+  $("objetivos").innerHTML = ""; actual.objetivos.forEach(filaObjetivo); if (!actual.objetivos.length) filaObjetivo();
+  const c = actual.consentimiento || {};
+  $("consDado").checked = !!c.dado; $("consQuien").value = c.quien || ""; $("consFecha").value = c.fecha || "";
+  $("consVia").textContent = c.dado ? (c.via === "familia" ? "La familia lo dio desde Puente." : "Registrado por la escuela.") : (c.retirado ? `La familia lo retiró el ${c.retirado}.` : "");
+  $("verFamilia").href = `familia.html?alumno=${actual.id}`;
+  $("editor").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+$("consDado").onchange = () => { if ($("consDado").checked && !$("consFecha").value) $("consFecha").value = new Date().toISOString().slice(0, 10); };
+
+$("guardar").onclick = async () => {
+  if (!actual) return;
+  const contactos = [...$("contactos").querySelectorAll(".contacto")].map(d => Object.fromEntries([...d.querySelectorAll("input")].map(i => [i.dataset.k, i.value.trim()])))
+    .filter(c => c.nombre || c.email || c.telefono);
+  const apoyos = Object.fromEntries([...$("apoyos").querySelectorAll("textarea")].map(t => [t.dataset.k, t.value]));
+  const objetivos = [...$("objetivos").querySelectorAll("input")].map(i => i.value.trim()).filter(Boolean);
+  const consentimiento = $("consDado").checked ? { dado: true, quien: $("consQuien").value.trim(), fecha: $("consFecha").value } : { dado: false };
+  const sinCambioCons = !!actual.consentimiento?.dado === consentimiento.dado && (!consentimiento.dado || (actual.consentimiento.quien === consentimiento.quien && actual.consentimiento.fecha === consentimiento.fecha));
+  msg("msgEd", "Guardando…");
+  try {
+    const r = await api("api/fichas", { method: "POST", body: { accion: "guardar", id: actual.id, nombre: $("edNombre").value, contactos, apoyos, objetivos, ...(sinCambioCons ? {} : { consentimiento }) } });
+    Object.assign(ALUMNOS.find(a => a.id === actual.id), r.alumno);
+    abrir(actual.id); msg("msgEd", "Ficha guardada ✓");
+  } catch (e) { msg("msgEd", e.message, true); }
+};
+$("borrar").onclick = async () => {
+  if (!actual || !confirm(`¿Borrar a ${actual.nombre}, su ficha y los días publicados para su familia? No se puede deshacer.`)) return;
+  try { await api("api/fichas", { method: "POST", body: { accion: "borrar", id: actual.id } }); actual = null; $("editor").hidden = true; cargarAlumnos(); }
+  catch (e) { msg("msgEd", e.message, true); }
+};
+
+// ---------- docentes ----------
+async function cargarDocentes() {
+  try {
+    const r = await api("api/docentes");
+    $("listaDoc").innerHTML = r.docentes.map(d => `<div class="fila-al" style="cursor:default"><span><b>${esc(d.nombre)}</b> <span class="muted">· ${esc(d.email)}</span></span>
+      <span>${d.es_admin ? '<span class="sello avanzando">admin</span>' : ""} ${!d.activo ? '<span class="sello">inactiva</span>' : (YO.es_admin && d.id !== r.yo ? `<button class="quitar" data-id="${d.id}" style="font-size:14px">desactivar</button>` : "")}</span></div>`).join("");
+    $("listaDoc").querySelectorAll("button[data-id]").forEach(b => b.onclick = async () => {
+      if (!confirm("¿Desactivar esta cuenta? No va a poder entrar más.")) return;
+      try { await api("api/docentes", { method: "POST", body: { accion: "desactivar", id: Number(b.dataset.id) } }); cargarDocentes(); } catch (e) { alert(e.message); }
+    });
+    $("nuevaDoc").hidden = !YO.es_admin;
+  } catch (e) { $("listaDoc").textContent = e.message; }
+}
+$("fDoc").onsubmit = async ev => {
+  ev.preventDefault();
+  try {
+    await api("api/docentes", { method: "POST", body: { accion: "crear", nombre: $("ndNombre").value, email: $("ndEmail").value, password: $("ndPass").value, es_admin: $("ndAdmin").checked } });
+    msg("msgDoc", `Listo. Pasale a ${$("ndNombre").value} su email y la contraseña inicial; entra en ${location.origin}/login.html`);
+    ev.target.reset(); cargarDocentes();
+  } catch (e) { msg("msgDoc", e.message, true); }
+};
+
+// ---------- mi cuenta ----------
+$("fPass").onsubmit = async ev => {
+  ev.preventDefault();
+  try { await api("api/auth", { method: "POST", body: { accion: "cambiar_password", actual: $("pAct").value, nueva: $("pNueva").value } }); ev.target.reset(); msg("msgPass", "Contraseña cambiada ✓"); }
+  catch (e) { msg("msgPass", e.message, true); }
+};
+$("salir").onclick = Puente.salir;
+</script>
+</body>
+</html>
