@@ -5,73 +5,29 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Puente · de la escuela a casa, en pictogramas</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#5b4bdb">
-<style>
-  :root { --p:#5b4bdb; --bg:#f6f5ff; --ok:#2e9e5b; --warn:#e8a317; --bad:#d64545; }
-  * { box-sizing: border-box; }
-  body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:var(--bg); color:#222; }
-  header { background:var(--p); color:#fff; padding:14px 16px; display:flex; justify-content:space-between; align-items:center; }
-  header h1 { font-size:20px; margin:0; }
-  nav { display:flex; background:#fff; border-bottom:1px solid #ddd; }
-  nav button { flex:1; padding:12px; border:0; background:none; font-size:15px; cursor:pointer; }
-  nav button.on { border-bottom:3px solid var(--p); font-weight:700; color:var(--p); }
-  main { padding:16px; max-width:760px; margin:auto; }
-  section { display:none; } section.on { display:block; }
-  .card { background:#fff; border-radius:14px; padding:16px; margin-bottom:14px; box-shadow:0 1px 4px #0001; }
-  select, textarea, input { width:100%; font-size:16px; padding:10px; border:1px solid #ccc; border-radius:10px; }
-  textarea { min-height:120px; }
-  .big { width:100%; padding:18px; font-size:18px; border:0; border-radius:14px; background:var(--p); color:#fff; margin-top:10px; cursor:pointer; }
-  .big.rec { background:var(--bad); animation:pulse 1s infinite; }
-  .big.alt { background:#fff; color:var(--p); border:2px solid var(--p); }
-  @keyframes pulse { 50% { opacity:.7; } }
-  .tira { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:12px; }
-  .picto { background:#fff; border-radius:16px; padding:10px; text-align:center; border:4px solid #eee; cursor:pointer; }
-  .picto img { width:100%; aspect-ratio:1; object-fit:contain; }
-  .picto .t { font-size:18px; font-weight:700; margin-top:6px; text-transform:uppercase; }
-  .picto .h { color:#777; font-size:13px; }
-  .bien { border-color:var(--ok); } .regular { border-color:var(--warn); } .dificil { border-color:var(--bad); }
-  .alerta { background:#fff3f3; border-left:5px solid var(--bad); padding:10px; border-radius:8px; margin:6px 0; }
-  .logro { background:#f0fff4; border-left:5px solid var(--ok); padding:10px; border-radius:8px; margin:6px 0; }
-  .muted { color:#777; font-size:13px; }
-  pre { white-space:pre-wrap; background:#f3f3f3; padding:10px; border-radius:8px; font-size:13px; }
-  footer { text-align:center; font-size:11px; color:#888; padding:20px; }
-  .traza { font-family: ui-monospace, Menlo, monospace; font-size:13px; }
-  .paso { padding:8px 10px; border-left:3px solid var(--p); margin:6px 0; background:#f8f7ff; border-radius:6px; animation:entra .4s ease; }
-  .paso b { color:var(--p); } .paso .r { color:#555; word-break:break-word; }
-  @keyframes entra { from { opacity:0; transform:translateX(-8px); } to { opacity:1; transform:none; } }
-  .titular { font-size:20px; font-weight:700; line-height:1.3; }
-  .chip { display:inline-block; padding:2px 8px; border-radius:20px; font-size:12px; font-weight:700; color:#fff; background:#888; }
-  .chip.avanzando, .chip.logrado { background:var(--ok); } .chip.estancado, .chip.retroceso { background:var(--bad); } .chip.estable { background:var(--warn); }
-  .ppi { padding:8px 0; border-bottom:1px solid #eee; }
-  .estr { padding:10px; border:1px solid #e3e0ff; border-radius:10px; margin:8px 0; }
-  .estr a { font-size:12px; color:var(--p); }
-  .picto.apoyo { border-color:var(--p); border-style:dashed; background:#f3f1ff; }
-  .picto.apoyo::before { content:"✨ apoyo"; display:block; font-size:11px; color:var(--p); font-weight:700; }
-  .spin { display:inline-block; animation:gira 1s linear infinite; } @keyframes gira { to { transform:rotate(360deg); } }
-  .cfg { font-size:12px; color:#fff; opacity:.85; cursor:pointer; }
-</style>
+<meta name="theme-color" content="#2f4a3e">
+<link rel="icon" href="icono.svg" type="image/svg+xml">
+<link rel="stylesheet" href="estilo.css">
 </head>
 <body>
-<header><div><h1>🌉 Puente</h1><div style="font-size:12px;opacity:.85">de la escuela a casa, en pictogramas</div></div></header>
+<header><h1>Puente</h1><div class="bajada">de la escuela a casa, en pictogramas</div><span class="tiza"></span></header>
 <nav>
-  <button class="on" data-s="docente">👩‍🏫 Docente</button>
-  <button data-s="alumno">🧒 Alumno</button>
-  <button data-s="familia">👪 Familia</button>
-  <button data-s="progreso">🧠 Progreso</button>
+  <button class="on" data-s="docente">Docente</button>
+  <button data-s="alumno">Alumno</button>
+  <button data-s="familia">Familia</button>
+  <button data-s="progreso">Progreso</button>
 </nav>
-<main>
+<main><div class="pagina">
   <!-- DOCENTE -->
   <section id="docente" class="on">
+    <h2>Cuaderno del día</h2>
     <div class="card">
-      <label>Alumno</label>
+      <label for="alumno">Alumno</label>
       <select id="alumno"></select>
-    </div>
-    <div class="card">
-      <label>¿Cómo fue el día? Dictalo o escribilo.</label>
+      <label for="texto">¿Cómo fue el día? Dictalo o escribilo.</label>
       <textarea id="texto" placeholder="Ej: Llegó contento, desayunó bien. A las 9 hicimos música..."></textarea>
-      <button class="big alt" id="btnMic">🎙️ Dictar</button>
-      <button class="big" id="btnEnviar">✨ Generar día</button>
-      <button class="big alt" id="btnEjemplo" style="font-size:14px;padding:10px">Cargar relato de ejemplo</button>
+      <div class="fila"><button class="big alt" id="btnMic">Dictar</button><button class="big" id="btnEnviar">Armar el día</button></div>
+      <button class="big alt chico" id="btnEjemplo">Cargar relato de ejemplo</button>
       <p class="muted" id="estado"></p>
     </div>
     <div class="card" id="registroCard" style="display:none">
@@ -80,7 +36,7 @@
       <p class="muted">Se guarda en el historial del alumno para el informe mensual.</p>
     </div>
     <div class="card">
-      <b>Historial</b>
+      <b>Días anteriores</b>
       <div id="historial" class="muted">Sin registros todavía.</div>
     </div>
   </section>
@@ -88,7 +44,8 @@
   <!-- ALUMNO -->
   <section id="alumnoS">
     <h2 id="tituloAlumno">Mi día</h2>
-    <div class="tira" id="tira"><p class="muted">Todavía no hay un día cargado.</p></div>
+    <p class="muted">Tocá cada dibujo para escucharlo.</p>
+    <div class="tira" id="tira"><p class="vacio">Todavía no hay un día cargado.</p></div>
   </section>
 
   <!-- FAMILIA -->
@@ -103,17 +60,16 @@
     <div class="card">
       <b>Mensaje para enviar</b>
       <pre id="mensaje"></pre>
-      <button class="big" id="btnWa">📲 Enviar por WhatsApp</button>
+      <button class="big" id="btnWa">Enviar por WhatsApp</button>
     </div>
     <div class="card">
-      <b>🌉 Espacio de la familia</b>
+      <b>Espacio de la familia</b>
       <p class="muted">Un link privado por alumno. La familia ve sus días en pictos, sus avances y le puede preguntar a Puente cuando quiera. Se actualiza solo cada vez que cargás un día.</p>
       <select id="alumnoF"></select>
-      <button class="big" id="btnLinkF">🔗 Crear o actualizar link</button>
+      <button class="big" id="btnLinkF">Crear o actualizar link</button>
       <div id="linkF" style="display:none;margin-top:10px">
         <input id="urlF" readonly onclick="this.select()">
-        <button class="big alt" id="btnAbrirF" style="font-size:14px;padding:10px">Abrir como familia</button>
-        <button class="big" id="btnWaF" style="font-size:14px;padding:10px">📲 Mandar link por WhatsApp</button>
+        <div class="fila"><button class="big alt chico" id="btnAbrirF">Ver como familia</button><button class="big chico" id="btnWaF">Mandar por WhatsApp</button></div>
       </div>
       <p class="muted" id="estadoF"></p>
     </div>
@@ -121,42 +77,42 @@
   <!-- PROGRESO (Agente) -->
   <section id="progreso">
     <div class="card">
-      <h2 style="margin-top:0">🧠 Agente de Progreso</h2>
+      <h2 style="margin-top:0">Seguimiento con IA</h2>
       <p class="muted">Lee todos los días registrados del alumno, encuentra patrones, mide su PPI, busca estrategias con evidencia y arma la agenda del próximo día difícil.</p>
       <label>Alumno</label>
       <select id="alumnoP"></select>
-      <button class="big" id="btnAgente">🧠 Analizar progreso</button>
-      <button class="big alt" id="btnSeed" style="font-size:14px;padding:10px">Cargar 3 semanas de ejemplo (Juan, datos ficticios)</button>
+      <button class="big" id="btnAgente">Analizar progreso</button>
+      <button class="big alt chico" id="btnSeed">Cargar 3 semanas de ejemplo (Juan, datos ficticios)</button>
       <p class="muted" id="estadoP"></p>
     </div>
     <div class="card">
       <details id="perfilBox">
-        <summary><b>🧩 Perfil funcional de <span id="perfilNom">Juan</span></b> <span class="muted">(sin diagnósticos ni datos de salud)</span></summary>
+        <summary><b style="font-family:var(--mano);font-size:22px;font-weight:400">Perfil de <span id="perfilNom">Juan</span></b> <span class="muted">(sin diagnósticos ni datos de salud)</span></summary>
         <label>Cómo se comunica</label><textarea class="pf" data-k="comunicacion" style="min-height:50px"></textarea>
         <label>Qué le molesta</label><textarea class="pf" data-k="sensibilidades" style="min-height:50px" placeholder="Ej: ruido fuerte, cambios sin aviso"></textarea>
         <label>Qué lo calma</label><textarea class="pf" data-k="lo_calma" style="min-height:50px" placeholder="Ej: auriculares, rincón tranquilo"></textarea>
         <label>Qué le gusta</label><textarea class="pf" data-k="le_gusta" style="min-height:50px"></textarea>
         <label>Observaciones</label><textarea class="pf" data-k="observaciones" style="min-height:50px"></textarea>
-        <button class="big alt" id="btnPerfil" style="font-size:14px;padding:10px">Guardar perfil</button>
+        <button class="big alt chico" id="btnPerfil">Guardar perfil</button>
       </details>
     </div>
     <div class="card" id="trazaCard" style="display:none">
-      <b>Lo que está haciendo el agente</b> <span class="muted" id="modoP"></span>
+      <b>Lo que va haciendo el agente</b> <span class="muted" id="modoP"></span>
       <div class="traza" id="traza"></div>
     </div>
     <div id="resultadoP" style="display:none">
-      <div class="card"><div class="titular" id="titular"></div><div id="hallazgos"></div></div>
+      <div class="card cinta"><div class="titular" id="titular"></div><div id="hallazgos"></div></div>
       <div class="card"><b>Objetivos del PPI</b><div id="ppiP"></div></div>
-      <div class="card"><b>Estrategias sugeridas (con evidencia)</b><div id="estrP"></div></div>
+      <div class="card"><b>Estrategias sugeridas</b><div id="estrP"></div></div>
       <div class="card"><b id="agendaTit">Agenda visual propuesta</b>
         <div class="tira" id="agendaP" style="margin-top:10px"></div>
         <button class="big alt" id="btnUsarAgenda">Mostrar esta agenda al alumno</button>
       </div>
-      <div class="card"><b>Mensaje para la familia</b><pre id="msgP"></pre><button class="big" id="btnWaP">📲 Enviar por WhatsApp</button></div>
+      <div class="card"><b>Mensaje para la familia</b><pre id="msgP"></pre><button class="big" id="btnWaP">Enviar por WhatsApp</button></div>
       <div class="card"><b>Nota para el legajo</b><p id="notaP"></p><p class="muted">El agente sugiere; la docente decide. Sin diagnósticos.</p></div>
     </div>
   </section>
-</main>
+</div></main>
 <footer>
   Pictogramas: Sergio Palao. Origen: <a href="https://arasaac.org">ARASAAC</a>. Licencia CC BY-NC-SA. Propiedad: Gobierno de Aragón.
 </footer>
@@ -190,19 +146,19 @@ $("btnMic").onclick = () => {
   const base = $("texto").value;
   let acum = "";
   rec.onresult = e => { for (let i = e.resultIndex; i < e.results.length; i++) acum += e.results[i][0].transcript + " "; $("texto").value = (base + " " + acum).trim(); };
-  rec.onend = () => { rec = null; $("btnMic").classList.remove("rec"); $("btnMic").textContent = "🎙️ Dictar"; };
-  rec.start(); $("btnMic").classList.add("rec"); $("btnMic").textContent = "⏹️ Terminar dictado";
+  rec.onend = () => { rec = null; $("btnMic").classList.remove("rec"); $("btnMic").textContent = "Dictar"; };
+  rec.start(); $("btnMic").classList.add("rec"); $("btnMic").textContent = "Terminar dictado";
 };
 
 // ---------- generar ----------
 $("btnEnviar").onclick = async () => {
   const texto = $("texto").value.trim(), alumno = $("alumno").value;
   if (!texto) return alert("Contá cómo fue el día primero.");
-  $("estado").textContent = "Generando…";
+  $("estado").textContent = "Armando el día…";
   try {
     hoy = (await viaApi(alumno, texto)) || await demo(alumno, texto);
     guardar(hoy); pintar(hoy); publicarFamilia(alumno, true);
-    $("estado").textContent = "Listo ✅ Mirá las pestañas Alumno y Familia.";
+    $("estado").textContent = "Listo. Mirá las pestañas Alumno y Familia.";
   } catch (e) { console.error(e); $("estado").textContent = "Error: " + e.message; }
 };
 
@@ -243,7 +199,8 @@ async function picto(kw) {
 }
 
 // ---------- render ----------
-const EMOJI = { contento:"😄", tranquilo:"🙂", cansado:"🥱", angustiado:"😢", irritable:"😠" };
+const ANIMO = { contento: 35547, tranquilo: 31310, cansado: 35537, angustiado: 35545, irritable: 35539 };
+const animoImg = (a, px = 28) => ANIMO[a] ? `<img src="https://static.arasaac.org/pictograms/${ANIMO[a]}/${ANIMO[a]}_300.png" alt="${a}" width="${px}" height="${px}">` : "";
 function pintar(d) {
   $("registroCard").style.display = "block"; $("registro").textContent = d.registro_docente || "";
   $("tituloAlumno").textContent = `El día de ${d.alumno}`;
@@ -251,16 +208,16 @@ function pintar(d) {
   (d.actividades || []).forEach(a => {
     const el = document.createElement("div");
     el.className = "picto " + (a.estado || "");
-    el.innerHTML = `${a.picto_url ? `<img src="${a.picto_url}" alt="${a.palabra_clave}">` : `<div style="font-size:64px">⭐</div>`}
+    el.innerHTML = `${a.picto_url ? `<img src="${a.picto_url}" alt="${a.palabra_clave}">` : `<div class="vacio" style="font-size:48px">?</div>`}
       <div class="t">${a.palabra_clave || ""}</div><div class="h">${a.hora || ""}</div>`;
     el.onclick = () => hablar(a.palabra_clave);
     $("tira").appendChild(el);
   });
   $("tituloFamilia").textContent = `El día de ${d.alumno}`;
-  $("animo").innerHTML = `<span style="font-size:40px">${EMOJI[d.animo_general] || "🙂"}</span> <b>${d.animo_general || ""}</b>`;
+  $("animo").innerHTML = `<div class="animo">${animoImg(d.animo_general, 64)}<b>${d.animo_general || ""}</b></div>`;
   $("resumen").textContent = d.resumen_familia || "";
-  $("alertas").innerHTML = (d.alertas || []).map(a => `<div class="alerta">⚠️ ${a.detalle}</div>`).join("");
-  $("logros").innerHTML = (d.logros || []).map(l => `<div class="logro">⭐ ${l}</div>`).join("");
+  $("alertas").innerHTML = (d.alertas || []).map(a => `<div class="alerta">${a.detalle}</div>`).join("");
+  $("logros").innerHTML = (d.logros || []).map(l => `<div class="logro">${l}</div>`).join("");
   $("mensaje").textContent = d.mensaje_familia || d.resumen_familia || "";
 }
 function hablar(t) { if ("speechSynthesis" in window) { const u = new SpeechSynthesisUtterance(t); u.lang = "es-AR"; speechSynthesis.speak(u); } }
@@ -271,8 +228,8 @@ function guardar(d) { const h = JSON.parse(localStorage.getItem("hist") || "[]")
 function hist() {
   const h = JSON.parse(localStorage.getItem("hist") || "[]");
   if (!h.length) return;
-  $("historial").innerHTML = h.map((d, i) => `<div style="padding:6px 0;border-bottom:1px solid #eee;cursor:pointer" data-i="${i}">${d.fecha} · <b>${d.alumno}</b> · ${EMOJI[d.animo_general] || ""} ${(d.alertas || []).length ? "⚠️" : ""}</div>`).join("");
-  $("historial").querySelectorAll("div").forEach(el => el.onclick = () => { hoy = h[el.dataset.i]; pintar(hoy); });
+  $("historial").innerHTML = h.map((d, i) => `<div class="hist" data-i="${i}"><span>${new Date(d.fecha + "T12:00:00").toLocaleDateString("es-AR", { weekday: "short", day: "numeric", month: "short" })} · <b>${d.alumno}</b></span><span>${(d.alertas || []).length ? '<span class="etiqueta">con alerta</span> ' : ""}${animoImg(d.animo_general)}</span></div>`).join("");
+  $("historial").querySelectorAll(".hist").forEach(el => el.onclick = () => { hoy = h[el.dataset.i]; pintar(hoy); });
 }
 hist();
 
@@ -291,10 +248,10 @@ $("btnPerfil").onclick = () => {
   const ps = getPerfiles(), p = {};
   document.querySelectorAll(".pf").forEach(t => p[t.dataset.k] = t.value.trim());
   ps[$("alumnoP").value] = p; localStorage.setItem("perfiles", JSON.stringify(ps));
-  $("estadoP").textContent = "Perfil guardado ✅";
+  $("estadoP").textContent = "Perfil guardado.";
 };
 pintarPerfil();
-const HERR = { leer_perfil: "🧩 Leyendo su perfil funcional", leer_historial: "📖 Leyendo el historial", analizar_patrones: "🔎 Buscando patrones", evaluar_ppi: "🎯 Midiendo objetivos del PPI", buscar_estrategias: "📚 Buscando estrategias con evidencia", armar_agenda: "🗓️ Armando la agenda visual" };
+const HERR = { leer_perfil: "Lee su perfil", leer_historial: "Repasa el historial", analizar_patrones: "Busca patrones", evaluar_ppi: "Mide los objetivos del PPI", buscar_estrategias: "Busca estrategias con evidencia", armar_agenda: "Arma la agenda visual" };
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 let agendaAgente = null;
@@ -318,36 +275,37 @@ $("btnAgente").onclick = async () => {
   const registros = JSON.parse(localStorage.getItem("hist") || "[]").filter(d => d.alumno === alumno);
   if (registros.length < 3) return alert(`Necesito al menos 3 días de ${alumno}. Cargá los de ejemplo o registrá más días.`);
   $("resultadoP").style.display = "none"; $("trazaCard").style.display = "block";
-  $("traza").innerHTML = `<div class="paso"><span class="spin">⏳</span> El agente está pensando con ${registros.length} días de ${esc(alumno)}…</div>`;
+  $("traza").innerHTML = `<div class="paso"><span class="spin"></span><span>El agente está trabajando con ${registros.length} días de ${esc(alumno)}…</span></div>`;
   $("modoP").textContent = ""; $("estadoP").textContent = "";
   try {
     const r = await fetch("api/agente", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ alumno, registros, ppi: PPI[alumno] || PPI.Juan, perfil: perfilDe(alumno) }) });
     if (!r.ok) throw new Error("el agente respondió " + r.status);
     const j = await r.json();
     $("traza").innerHTML = "";
-    $("modoP").textContent = j.modo === "ia" ? `· IA (${j.modelo}) · ${(j.ms / 1000).toFixed(1)} s` : "· modo demo (plan fijo, sin IA)";
+    $("modoP").textContent = j.modo === "ia" ? `IA · ${j.modelo} · ${(j.ms / 1000).toFixed(1)} s` : "modo demo, sin IA";
+    let n = 0;
     for (const p of j.traza) {
       await sleep(550);
       const el = document.createElement("div"); el.className = "paso";
       const args = Object.keys(p.args || {}).length && p.herramienta !== "armar_agenda" ? ` <span class="muted">${esc(JSON.stringify(p.args))}</span>` : "";
-      el.innerHTML = `${p.pensamiento ? `<div class="muted">💭 ${esc(p.pensamiento)}</div>` : ""}<b>${HERR[p.herramienta] || p.herramienta}</b>${args}<div class="r">→ ${esc(p.resultado)}</div>`;
+      el.innerHTML = `<span class="n">${++n}</span><div>${p.pensamiento ? `<div class="muted"><i>${esc(p.pensamiento)}</i></div>` : ""}<b>${HERR[p.herramienta] || p.herramienta}</b>${args}<div class="r">${esc(p.resultado)}</div></div>`;
       $("traza").appendChild(el);
     }
     await sleep(400);
     pintarAgente(j);
-  } catch (e) { console.error(e); $("traza").innerHTML += `<div class="paso">❌ ${esc(e.message)}</div>`; }
+  } catch (e) { console.error(e); $("traza").innerHTML += `<div class="alerta">No se pudo completar: ${esc(e.message)}</div>`; }
 };
 
 function pintarAgente(j) {
   const R = j.resultado || {};
-  $("titular").textContent = "💡 " + (R.titular || "");
-  $("hallazgos").innerHTML = (R.hallazgos || []).map(h => `<div class="alerta" style="background:#f8f7ff;border-color:var(--p)">${esc(h.texto)}<div class="muted">${esc(h.evidencia)}</div></div>`).join("");
+  $("titular").textContent = R.titular || "";
+  $("hallazgos").innerHTML = (R.hallazgos || []).map(h => `<div class="hallazgo">${esc(h.texto)}<div class="muted">${esc(h.evidencia)}</div></div>`).join("");
   const cls = e => /logrado|avanzando/.test(e) ? "avanzando" : /estancado/.test(e) ? "estancado" : /retroceso/.test(e) ? "retroceso" : /estable/.test(e) ? "estable" : "";
-  $("ppiP").innerHTML = (R.ppi || []).map(o => `<div class="ppi"><span class="chip ${cls(o.estado)}">${esc(o.estado)}</span> <b>${esc(o.objetivo)}</b><div class="muted">${esc(o.comentario)}</div></div>`).join("");
-  $("estrP").innerHTML = (R.estrategias || []).map(e => `<div class="estr"><b>${esc(e.nombre)}</b><div>${esc(e.como)}</div><div class="muted">Por qué: ${esc(e.por_que)}</div>${e.url ? `<a href="${esc(e.url)}" target="_blank" rel="noopener">📚 ${esc(e.fuente)}</a>` : `<span class="muted">${esc(e.fuente)}</span>`}</div>`).join("");
+  $("ppiP").innerHTML = (R.ppi || []).map(o => `<div class="ppi"><span class="sello ${cls(o.estado)}">${esc(o.estado)}</span> <b>${esc(o.objetivo)}</b><div class="muted">${esc(o.comentario)}</div></div>`).join("");
+  $("estrP").innerHTML = (R.estrategias || []).map(e => `<div class="estr"><b>${esc(e.nombre)}</b><div>${esc(e.como)}</div><div class="muted">Por qué: ${esc(e.por_que)}</div>${e.url ? `<a href="${esc(e.url)}" target="_blank" rel="noopener">Fuente: ${esc(e.fuente)}</a>` : `<span class="muted">${esc(e.fuente)}</span>`}</div>`).join("");
   agendaAgente = j.agenda;
   $("agendaTit").textContent = `Agenda visual propuesta${j.agenda?.dia ? " para el " + j.agenda.dia : ""}`;
-  $("agendaP").innerHTML = (j.agenda?.pasos || []).map(p => `<div class="picto ${p.es_apoyo ? "apoyo" : ""}">${p.picto_url ? `<img src="${p.picto_url}" alt="${esc(p.palabra_clave)}">` : `<div style="font-size:64px">⭐</div>`}<div class="t">${esc(p.palabra_clave)}</div><div class="h">${esc(p.hora || "")} ${esc(p.texto)}</div></div>`).join("");
+  $("agendaP").innerHTML = (j.agenda?.pasos || []).map(p => `<div class="picto ${p.es_apoyo ? "apoyo" : ""}">${p.picto_url ? `<img src="${p.picto_url}" alt="${esc(p.palabra_clave)}">` : `<div class="vacio" style="font-size:48px">?</div>`}<div class="t">${esc(p.palabra_clave)}</div><div class="h">${esc(p.hora || "")} ${esc(p.texto)}</div></div>`).join("");
   $("msgP").textContent = R.mensaje_familia || "";
   $("notaP").textContent = R.nota_docente || "";
   $("resultadoP").style.display = "block";
@@ -363,7 +321,7 @@ $("btnUsarAgenda").onclick = () => {
   $("tira").innerHTML = "";
   agendaAgente.pasos.forEach(p => {
     const el = document.createElement("div"); el.className = "picto " + (p.es_apoyo ? "apoyo" : "");
-    el.innerHTML = `${p.picto_url ? `<img src="${p.picto_url}" alt="">` : `<div style="font-size:64px">⭐</div>`}<div class="t">${esc(p.palabra_clave)}</div><div class="h">${esc(p.hora || "")}</div>`;
+    el.innerHTML = `${p.picto_url ? `<img src="${p.picto_url}" alt="">` : `<div class="vacio" style="font-size:48px">?</div>`}<div class="t">${esc(p.palabra_clave)}</div><div class="h">${esc(p.hora || "")}</div>`;
     el.onclick = () => hablar(p.texto);
     $("tira").appendChild(el);
   });
@@ -393,7 +351,7 @@ async function publicarFamilia(alumno, soloSiExiste) {
     if (!r.ok) throw new Error(j.error);
     const ts = tokens(); ts[alumno] = j.token; localStorage.setItem("tokensFamilia", JSON.stringify(ts));
     $("alumnoF").value = alumno; mostrarLink();
-    $("estadoF").textContent = `Listo ✅ ${j.dias} días visibles para la familia de ${alumno}.`;
+    $("estadoF").textContent = `Listo: ${j.dias} días visibles para la familia de ${alumno}.`;
   } catch (e) { $("estadoF").textContent = "No se pudo publicar: " + e.message; }
 }
 $("btnLinkF").onclick = () => publicarFamilia($("alumnoF").value, false);
