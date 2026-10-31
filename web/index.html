@@ -282,7 +282,7 @@ $("btnAgente").onclick = async () => {
     if (!r.ok) throw new Error("el agente respondió " + r.status);
     const j = await r.json();
     $("traza").innerHTML = "";
-    $("modoP").textContent = j.modo === "ia" ? `IA · ${j.modelo} · ${(j.ms / 1000).toFixed(1)} s` : "modo demo, sin IA";
+    $("modoP").textContent = j.modo === "ia" ? `IA · ${j.modelo} · ${(j.ms / 1000).toFixed(1)} s` : j.modo === "plan-fijo" ? "plan de respaldo: la IA no respondió a tiempo" : "modo demo, sin IA";
     let n = 0;
     for (const p of j.traza) {
       await sleep(550);
