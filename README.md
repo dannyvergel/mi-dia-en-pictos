@@ -24,6 +24,9 @@ prompts/        Prompt de registro diario e informe mensual
 data/           Relato de ejemplo para la demo
 ```
 
+## Publicar en Vercel
+Importar el repo en Vercel y elegir `web` como *Root Directory* (sin build, es estático).
+
 ## Correr la demo
 ```bash
 cd web && python3 -m http.server 8080
@@ -34,7 +37,10 @@ cd web && python3 -m http.server 8080
 
 ## Configurar n8n
 1. Importar `n8n/mi-dia-en-pictos.json`.
-2. En el nodo **LLM - Estructurar día**, asignar una credencial OpenAI (o cambiar la URL/modelo por cualquier API compatible con OpenAI).
+2. En el nodo **LLM - Estructurar día**, crear una credencial *Header Auth*: nombre `Authorization`, valor `Bearer TU_API_KEY_DE_OPENROUTER`.
+   - Modelo por defecto: `deepseek/deepseek-v4-flash` (US$0,09 / M tokens de entrada, US$0,18 / M de salida). Un registro diario cuesta una fracción de centavo.
+   - Para desarrollar gratis: `google/gemma-4-31b-it:free` (con límite de uso).
+   - Aún más barato: `qwen/qwen3.7-flash`.
 3. Activar el workflow y copiar la URL de producción del webhook (`/webhook/mi-dia`).
 4. Probar:
 ```bash
