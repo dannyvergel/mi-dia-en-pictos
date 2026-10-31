@@ -12,6 +12,12 @@
   nav button[data-s="alumnos"] { --tab: var(--lapiz); }
   nav button[data-s="docentes"] { --tab: #7fb3d5; }
   nav button[data-s="cuenta"] { --tab: #8fbf8a; }
+  nav button[data-s="solicitudes"] { --tab: #e8998d; }
+  .cuenta-n { display: inline-block; min-width: 20px; padding: 0 6px; border-radius: 10px; background: var(--bad); color: #fff; font-size: 12px; line-height: 20px; margin-left: 4px; }
+  .sol { border: 1px solid var(--borde); border-radius: 10px; padding: 10px 12px; margin: 10px 0; background: #fffef9; }
+  .sol b { font-family: var(--mano); font-size: 22px; font-weight: 400; }
+  .sol .msj { white-space: pre-wrap; background: #fdf9ef; border-left: 4px solid var(--renglon); padding: 6px 10px; margin: 6px 0; font-size: 15px; }
+  .sol select, .sol input[type=text] { margin-bottom: 4px; }
   .fila-al { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--renglon); cursor: pointer; }
   .fila-al:last-child { border-bottom: 0; }
   .fila-al b { font-family: var(--mano); font-size: 22px; font-weight: 400; }
@@ -34,6 +40,7 @@
 <header><h1>Panel de la seño</h1><div class="bajada" id="sub">fichas de familia</div><span class="tiza"></span></header>
 <nav>
   <button class="on" data-s="alumnos">Alumnos</button>
+  <button data-s="solicitudes" id="tabSol" hidden>Solicitudes <span class="cuenta-n" id="nSol" hidden></span></button>
   <button data-s="docentes">Docentes</button>
   <button data-s="cuenta">Mi cuenta</button>
 </nav>
@@ -84,6 +91,15 @@
     </div>
   </section>
 
+  <section id="solicitudes">
+    <div class="card"><span class="rotulo">Pedidos de acceso</span>
+      <p class="muted">Docentes que pidieron entrar desde la pantalla de ingreso. Al aprobar, le llega un mail y entra con su email y un código, sin contraseña.</p>
+      <div id="listaSol"><p class="vacio">Cargando…</p></div>
+      <p class="muted" id="msgSol"></p>
+    </div>
+    <div class="card" id="resueltasCard" hidden><span class="rotulo">Últimas resueltas</span><div id="listaRes"></div></div>
+  </section>
+
   <section id="docentes">
     <div class="card"><span class="rotulo">Docentes de la escuela</span><div id="listaDoc"><p class="vacio">Cargando…</p></div></div>
     <div class="card" id="nuevaDoc" hidden>
@@ -91,9 +107,9 @@
       <form id="fDoc">
         <label for="ndNombre">Nombre</label><input id="ndNombre" required maxlength="80">
         <label for="ndEmail">Email</label><input id="ndEmail" type="email" required>
-        <label for="ndPass">Contraseña inicial (mínimo 10, se la pasás y la cambia al entrar)</label><input id="ndPass" required minlength="10" autocomplete="new-password">
         <label class="check"><input type="checkbox" id="ndAdmin"> También puede sumar docentes</label>
-        <button class="big">Crear cuenta</button>
+        <p class="muted">No hace falta contraseña: le mandamos un mail y entra con su email y un código.</p>
+        <button class="big">Dar acceso</button>
       </form>
       <p class="muted" id="msgDoc"></p>
     </div>
@@ -101,13 +117,9 @@
 
   <section id="cuenta">
     <div class="card">
-      <span class="rotulo">Cambiar contraseña</span>
-      <form id="fPass">
-        <label for="pAct">Contraseña actual</label><input id="pAct" type="password" required autocomplete="current-password">
-        <label for="pNueva">Contraseña nueva (mínimo 10)</label><input id="pNueva" type="password" required minlength="10" autocomplete="new-password">
-        <button class="big">Cambiar</button>
-      </form>
-      <p class="muted" id="msgPass"></p>
+      <span class="rotulo">Cómo entrás</span>
+      <p>Entrás con tu email: cada vez te mandamos un código de 6 números. Puente no usa contraseñas.</p>
+      <p class="muted" id="miEmail"></p>
     </div>
     <button class="big alt" id="salir">Cerrar sesión</button>
   </section>
@@ -124,7 +136,9 @@ document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
   document.querySelectorAll("nav button").forEach(x => x.classList.toggle("on", x === b));
   document.querySelectorAll("section").forEach(s => s.classList.toggle("on", s.id === b.dataset.s));
   if (b.dataset.s === "docentes") cargarDocentes();
+  if (b.dataset.s === "solicitudes") cargarSolicitudes();
 });
+const abrirTab = s => document.querySelector(`nav button[data-s="${s}"]`)?.click();
 
 (async () => {
   const e = await Puente.estado().catch(() => null);
@@ -133,7 +147,9 @@ document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
   if (e.sesion.tipo !== "docente") return location.href = "familia.html";
   YO = e.sesion;
   $("quien").textContent = `${YO.nombre} · ${YO.email}`;
+  $("miEmail").textContent = "Tu email: " + YO.email;
   cargarAlumnos();
+  if (YO.es_admin) { $("tabSol").hidden = false; await cargarSolicitudes(); if (location.hash === "#solicitudes") abrirTab("solicitudes"); }
 })();
 
 // ---------- alumnos ----------
@@ -232,18 +248,61 @@ async function cargarDocentes() {
 $("fDoc").onsubmit = async ev => {
   ev.preventDefault();
   try {
-    await api("api/docentes", { method: "POST", body: { accion: "crear", nombre: $("ndNombre").value, email: $("ndEmail").value, password: $("ndPass").value, es_admin: $("ndAdmin").checked } });
-    msg("msgDoc", `Listo. Pasale a ${$("ndNombre").value} su email y la contraseña inicial; entra en ${location.origin}/login.html`);
+    const r = await api("api/docentes", { method: "POST", body: { accion: "crear", nombre: $("ndNombre").value, email: $("ndEmail").value, es_admin: $("ndAdmin").checked } });
+    msg("msgDoc", r.docente.avisada ? `Listo. Le mandamos un mail a ${r.docente.email}: entra en ${location.origin}/login.html con su email y un código.`
+      : `Listo, la cuenta está activa, pero no pudimos mandarle el mail. Avisale que entre en ${location.origin}/login.html con su email.`);
     ev.target.reset(); cargarDocentes();
   } catch (e) { msg("msgDoc", e.message, true); }
 };
 
-// ---------- mi cuenta ----------
-$("fPass").onsubmit = async ev => {
-  ev.preventDefault();
-  try { await api("api/auth", { method: "POST", body: { accion: "cambiar_password", actual: $("pAct").value, nueva: $("pNueva").value } }); ev.target.reset(); msg("msgPass", "Contraseña cambiada ✓"); }
-  catch (e) { msg("msgPass", e.message, true); }
-};
+// ---------- solicitudes (solo admin) ----------
+const fecha = t => { if (!t) return ""; const d = new Date(t); return isNaN(d) ? String(t) : d.toLocaleString("es-AR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); };
+async function cargarSolicitudes() {
+  try {
+    const r = await api("api/solicitudes");
+    $("nSol").textContent = r.pendientes.length; $("nSol").hidden = !r.pendientes.length;
+    const opciones = r.escuelas.map(e => `<option value="${e.id}" ${e.id === r.mi_escuela ? "selected" : ""}>${esc(e.nombre)}${e.id === r.mi_escuela ? " (la mía)" : ""}</option>`).join("") + `<option value="nueva">Escuela nueva…</option>`;
+    $("listaSol").innerHTML = r.pendientes.length ? r.pendientes.map(s => `<div class="sol" data-id="${s.id}">
+        <b>${esc(s.nombre)}</b> <span class="muted">· ${esc(s.email)} · ${fecha(s.creado)}</span>
+        <div>Escuela: <strong>${esc(s.escuela)}</strong>${s.rol ? ` · ${esc(s.rol)}` : ""}</div>
+        ${s.mensaje ? `<div class="msj">${esc(s.mensaje)}</div>` : ""}
+        <label>Escuela en Puente</label><select data-k="escuela">${opciones}</select>
+        <input type="text" data-k="nueva" maxlength="120" value="${esc(s.escuela)}" hidden placeholder="Nombre de la escuela nueva">
+        <label class="check"><input type="checkbox" data-k="admin"> También puede administrar (sumar docentes y ver solicitudes)</label>
+        <div class="fila"><button class="big chico" data-a="aprobar">Aprobar</button><button class="big alt chico" data-a="rechazar" style="color:var(--bad);border-color:var(--bad)">Rechazar</button></div>
+      </div>`).join("") : `<p class="vacio">No hay pedidos pendientes.</p>`;
+    $("listaSol").querySelectorAll(".sol").forEach(el => {
+      const sel = el.querySelector('[data-k="escuela"]'), nueva = el.querySelector('[data-k="nueva"]'), adm = el.querySelector('[data-k="admin"]');
+      sel.onchange = () => { nueva.hidden = sel.value !== "nueva"; if (sel.value === "nueva") { adm.checked = true; adm.disabled = true; } else adm.disabled = false; };
+      el.querySelector('[data-a="aprobar"]').onclick = () => resolver(el, "aprobar", sel.value === "nueva" ? { escuela_nueva: nueva.value } : { escuela_id: Number(sel.value) }, adm.checked);
+      el.querySelector('[data-a="rechazar"]').onclick = () => resolver(el, "rechazar");
+    });
+    $("resueltasCard").hidden = !r.resueltas.length;
+    $("listaRes").innerHTML = r.resueltas.map(s => `<div class="fila-al" style="cursor:default"><span>${esc(s.nombre)} <span class="muted">· ${esc(s.email)} · ${fecha(s.resuelto)}</span></span>
+      <span class="sello ${s.estado === "aprobada" ? "avanzando" : "estancado"}">${s.estado}</span></div>`).join("");
+  } catch (e) { $("listaSol").textContent = e.message; }
+}
+async function resolver(el, accion, escuela = {}, esAdmin = false) {
+  const nombre = el.querySelector("b").textContent, id = Number(el.dataset.id);
+  let body;
+  if (accion === "aprobar") {
+    if ("escuela_nueva" in escuela && !escuela.escuela_nueva.trim()) return msg("msgSol", "Escribí el nombre de la escuela nueva.", true);
+    if (!confirm(`¿Dar acceso a ${nombre}?${esAdmin ? " También va a poder administrar." : ""} Le mandamos un mail para que entre.`)) return;
+    body = { accion, id, ...escuela, es_admin: esAdmin };
+  } else {
+    if (!confirm(`¿Rechazar el pedido de ${nombre}?`)) return;
+    body = { accion, id, avisar: confirm(`¿Le mandamos un mail amable a ${nombre} avisando que por ahora no se habilitó? (Aceptar = sí, Cancelar = no)`) };
+  }
+  el.querySelectorAll("button").forEach(b => b.disabled = true);
+  try {
+    const r = await api("api/solicitudes", { method: "POST", body });
+    msg("msgSol", accion === "aprobar"
+      ? (r.avisada ? `${nombre} ya tiene acceso. Le mandamos un mail.` : `${nombre} ya tiene acceso, pero no pudimos mandarle el mail: avisale que entre en ${location.origin}/login.html con su email.`)
+      : `Pedido de ${nombre} rechazado${r.avisada ? " (le avisamos por mail)" : ""}.`);
+    await cargarSolicitudes();
+  } catch (e) { msg("msgSol", e.message, true); el.querySelectorAll("button").forEach(b => b.disabled = false); }
+}
+
 $("salir").onclick = Puente.salir;
 </script>
 </body>

@@ -16,6 +16,9 @@
   .codigo { font-size: 28px; letter-spacing: 8px; text-align: center; font-weight: 700; }
   .error { color: var(--bad); font-weight: 700; }
   .ok { color: var(--ok); }
+  .trampa { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+  .enlace { background: none; border: 0; padding: 0; color: var(--tinta); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
+  .opc { font-weight: 400; color: var(--gris); }
 </style>
 <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
 <script defer src="/_vercel/insights/script.js"></script>
@@ -33,24 +36,46 @@
   <section id="docente">
     <div class="card cinta" id="loginDocente">
       <span class="rotulo">Hola, seño</span>
-      <form id="fDocente">
+      <form id="dPedir">
+        <p class="muted">Escribí tu email de la escuela. Te mandamos un código de 6 números para entrar, sin contraseña.</p>
         <label for="dEmail">Email</label>
-        <input id="dEmail" type="email" autocomplete="username" required>
-        <label for="dPass">Contraseña</label>
-        <input id="dPass" type="password" autocomplete="current-password" required>
-        <button class="big">Entrar</button>
+        <input id="dEmail" type="email" autocomplete="email" required>
+        <button class="big">Mandame el código</button>
       </form>
-      <p class="muted" id="dMsg">Si olvidaste tu contraseña, pedile a la docente administradora de tu escuela que te cree una nueva.</p>
+      <form id="dCodigo" hidden>
+        <p id="dAviso" class="muted"></p>
+        <label for="dCod">Código</label>
+        <input id="dCod" class="codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="\d{6}" required>
+        <button class="big">Entrar</button>
+        <button type="button" class="big alt chico" id="dOtro">Usar otro email</button>
+      </form>
+      <p class="muted" id="dMsg"></p>
+      <p class="muted" id="dPie">¿Todavía no tenés cuenta? <button type="button" class="enlace" id="abrirSolicitud">Solicitar acceso</button></p>
+    </div>
+
+    <div class="card cinta" id="solicitud" hidden>
+      <span class="rotulo">Solicitar acceso</span>
+      <form id="fSolicitud">
+        <p class="muted">Contanos quién sos. Una docente administradora revisa el pedido y te avisamos por mail.</p>
+        <label for="soNombre">Nombre y apellido</label><input id="soNombre" required minlength="2" maxlength="80" autocomplete="name">
+        <label for="soEmail">Email</label><input id="soEmail" type="email" required autocomplete="email">
+        <label for="soEscuela">Escuela</label><input id="soEscuela" required minlength="2" maxlength="120" placeholder="Ej: Escuela Especial N.º 2001">
+        <label for="soRol">Rol o grado <span class="opc">(opcional)</span></label><input id="soRol" maxlength="80" placeholder="Ej: seña de 2.º, maestra integradora">
+        <label for="soMensaje">Mensaje <span class="opc">(opcional)</span></label><textarea id="soMensaje" maxlength="1000" style="min-height:64px"></textarea>
+        <div class="trampa" aria-hidden="true"><label for="soWeb">No completar</label><input id="soWeb" tabindex="-1" autocomplete="off"></div>
+        <button class="big">Mandar pedido</button>
+        <button type="button" class="big alt chico" id="cerrarSolicitud">Volver</button>
+      </form>
+      <p class="muted" id="soMsg"></p>
     </div>
 
     <div class="card cinta" id="setup" hidden>
       <span class="rotulo">Primera vez en Puente</span>
-      <p class="muted">Creá la cuenta de la primera docente (va a poder sumar a las demás). Necesitás el PIN de docente que está configurado en Vercel.</p>
+      <p class="muted">Creá la cuenta de la primera docente (va a poder sumar a las demás). Necesitás el PIN de docente que está configurado en Vercel. Después entrás con un código que te llega a ese email.</p>
       <form id="fSetup">
         <label for="sEscuela">Escuela</label><input id="sEscuela" placeholder="Ej: Escuela Especial N.º 2001" maxlength="120">
         <label for="sNombre">Tu nombre</label><input id="sNombre" required maxlength="80" autocomplete="name">
-        <label for="sEmail">Tu email</label><input id="sEmail" type="email" required autocomplete="username">
-        <label for="sPass">Contraseña (mínimo 10 caracteres)</label><input id="sPass" type="password" required minlength="10" autocomplete="new-password">
+        <label for="sEmail">Tu email</label><input id="sEmail" type="email" required autocomplete="email">
         <label for="sPin">PIN de docente</label><input id="sPin" type="password" inputmode="numeric" required>
         <button class="big">Crear mi cuenta</button>
       </form>
@@ -73,7 +98,7 @@
         <label for="fCod">Código</label>
         <input id="fCod" class="codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="\d{6}" required>
         <button class="big">Entrar</button>
-        <button type="button" class="big alt chico" id="otroEmail">Usar otro email</button>
+        <button type="button" class="big alt chico" id="fOtro">Usar otro email</button>
       </form>
       <p class="muted" id="fMsg"></p>
     </div>
@@ -108,42 +133,67 @@ function ocupado(form, si) { form.querySelectorAll("button").forEach(b => b.disa
   if (e.modo === "demo") { $("tabs").hidden = true; return mostrar("demo"); }
   if (e.sesion) return ir(e.sesion);
   if (e.necesita_setup) { $("loginDocente").hidden = true; $("setup").hidden = false; }
+  if (location.hash === "#solicitar" && !e.necesita_setup) $("abrirSolicitud").click();
   mostrar(location.search.includes("familia") ? "familia" : "docente");
 })();
 
-$("fDocente").onsubmit = async ev => {
-  ev.preventDefault(); ocupado(ev.target, true);
-  try { const r = await api("api/auth", { method: "POST", body: { accion: "login_docente", email: $("dEmail").value, password: $("dPass").value } }); ir(r.sesion); }
-  catch (e) { msg("dMsg", e.message); $("dPass").value = ""; }
-  finally { ocupado(ev.target, false); }
-};
+// Ingreso con código por email: el mismo flujo para docentes (prefijo d) y familias (prefijo f).
+// Cuando haya SSO, los botones van acá según e.metodos.
+function flujoCodigo(p, tipo) {
+  const pedir = async email => {
+    msg(p + "Msg", "", false);
+    const r = await api("api/auth", { method: "POST", body: { accion: "pedir_codigo", tipo, email } });
+    $(p + "Pedir").hidden = true; $(p + "Codigo").hidden = false;
+    $(p + "Aviso").textContent = r.mensaje + (r.codigo_dev ? ` (Prueba local: el código es ${r.codigo_dev})` : "");
+    $(p + "Cod").value = ""; $(p + "Cod").focus();
+  };
+  $(p + "Pedir").onsubmit = async ev => {
+    ev.preventDefault(); ocupado(ev.target, true);
+    try { await pedir($(p + "Email").value); } catch (e) { msg(p + "Msg", e.message); }
+    finally { ocupado(ev.target, false); }
+  };
+  $(p + "Codigo").onsubmit = async ev => {
+    ev.preventDefault(); ocupado(ev.target, true);
+    try { const r = await api("api/auth", { method: "POST", body: { accion: "verificar_codigo", tipo, email: $(p + "Email").value, codigo: $(p + "Cod").value } }); ir(r.sesion); }
+    catch (e) { msg(p + "Msg", e.message); $(p + "Cod").value = ""; }
+    finally { ocupado(ev.target, false); }
+  };
+  $(p + "Otro").onclick = () => { $(p + "Codigo").hidden = true; $(p + "Pedir").hidden = false; msg(p + "Msg", "", false); };
+  return pedir;
+}
+const pedirDocente = flujoCodigo("d", "docente");
+flujoCodigo("f", "familia");
 
+// Primera docente: PIN + email. No abre sesión: después entra con el código que le llega.
 $("fSetup").onsubmit = async ev => {
   ev.preventDefault(); ocupado(ev.target, true);
   try {
-    const r = await api("api/auth", { method: "POST", body: { accion: "setup", escuela: $("sEscuela").value, nombre: $("sNombre").value, email: $("sEmail").value, password: $("sPass").value, pin: $("sPin").value } });
-    ir(r.sesion);
+    const r = await api("api/auth", { method: "POST", body: { accion: "setup", escuela: $("sEscuela").value, nombre: $("sNombre").value, email: $("sEmail").value, pin: $("sPin").value } });
+    $("setup").hidden = true; $("loginDocente").hidden = false; $("dPie").hidden = false;
+    $("dEmail").value = r.email;
+    try { await pedirDocente(r.email); } catch (e) { msg("dMsg", e.message); }
   } catch (e) { msg("sMsg", e.message); }
   finally { ocupado(ev.target, false); }
 };
 
-$("fPedir").onsubmit = async ev => {
-  ev.preventDefault(); ocupado(ev.target, true); msg("fMsg", "", false);
+// Solicitar acceso (docentes nuevas).
+$("abrirSolicitud").onclick = () => {
+  $("loginDocente").hidden = true; $("solicitud").hidden = false; $("fSolicitud").hidden = false; msg("soMsg", "", false);
+  if ($("dEmail").value && !$("soEmail").value) $("soEmail").value = $("dEmail").value;
+  $("soNombre").focus();
+};
+$("cerrarSolicitud").onclick = () => { $("solicitud").hidden = true; $("loginDocente").hidden = false; };
+$("fSolicitud").onsubmit = async ev => {
+  ev.preventDefault(); ocupado(ev.target, true); msg("soMsg", "", false);
   try {
-    const r = await api("api/auth", { method: "POST", body: { accion: "pedir_codigo", email: $("fEmail").value } });
-    $("fPedir").hidden = true; $("fCodigo").hidden = false;
-    $("fAviso").textContent = r.mensaje + (r.codigo_dev ? ` (Prueba local: el código es ${r.codigo_dev})` : "");
-    $("fCod").focus();
-  } catch (e) { msg("fMsg", e.message); }
+    const r = await api("api/solicitudes", { method: "POST", body: { accion: "crear", nombre: $("soNombre").value, email: $("soEmail").value,
+      escuela: $("soEscuela").value, rol: $("soRol").value, mensaje: $("soMensaje").value, sitio_web: $("soWeb").value } });
+    ev.target.reset(); ev.target.hidden = true;
+    $("soMsg").innerHTML = ""; $("soMsg").className = "ok";
+    $("soMsg").append(r.mensaje + " ", Object.assign(document.createElement("button"), { type: "button", className: "enlace", textContent: "Volver a entrar", onclick: () => $("cerrarSolicitud").click() }));
+  } catch (e) { msg("soMsg", e.message); }
   finally { ocupado(ev.target, false); }
 };
-$("fCodigo").onsubmit = async ev => {
-  ev.preventDefault(); ocupado(ev.target, true);
-  try { const r = await api("api/auth", { method: "POST", body: { accion: "verificar_codigo", email: $("fEmail").value, codigo: $("fCod").value } }); ir(r.sesion); }
-  catch (e) { msg("fMsg", e.message); $("fCod").value = ""; }
-  finally { ocupado(ev.target, false); }
-};
-$("otroEmail").onclick = () => { $("fCodigo").hidden = true; $("fPedir").hidden = false; msg("fMsg", "", false); };
 </script>
 </body>
 </html>

@@ -3,20 +3,6 @@ const assert = require("node:assert/strict");
 const S = require("../api/_lib/seguridad");
 const F = require("../api/_lib/fichas");
 
-test("scrypt: verifica la contraseña correcta y rechaza la incorrecta", async () => {
-  const h = await S.hashPassword("una clave larga 123");
-  assert.match(h, /^scrypt\$16384\$8\$1\$/);
-  assert.equal(await S.verificarPassword("una clave larga 123", h), true);
-  assert.equal(await S.verificarPassword("otra clave", h), false);
-  assert.equal(await S.verificarPassword("cualquiera", null), false); // usuario inexistente
-  assert.notEqual(await S.hashPassword("x".repeat(10)), await S.hashPassword("x".repeat(10))); // sal distinta
-});
-
-test("contraseñas: mínimo 10 caracteres", () => {
-  assert.equal(S.passwordValida("corta"), false);
-  assert.equal(S.passwordValida("suficiente1"), true);
-});
-
 test("SESSION_SECRET obligatorio en producción", () => {
   const antes = { ...process.env };
   try {

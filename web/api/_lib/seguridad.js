@@ -1,4 +1,4 @@
-// Contraseñas (scrypt), sesiones con cookie firmada (HMAC) + tabla, límites de intentos.
+// Sesiones con cookie firmada (HMAC) + tabla, límites de intentos.
 const crypto = require("crypto");
 const { q, uno } = require("./db");
 
@@ -12,26 +12,6 @@ function secreto() {
   if (esProduccion()) throw Object.assign(new Error("Falta SESSION_SECRET (mínimo 16 caracteres) en Vercel."), { status: 500, publico: true });
   return "puente-solo-para-desarrollo-no-usar-en-produccion";
 }
-
-// ---------- contraseñas ----------
-const SCRYPT = { N: 16384, r: 8, p: 1, len: 64 };
-const scrypt = (pw, salt, o = SCRYPT) => new Promise((ok, mal) =>
-  crypto.scrypt(String(pw), salt, o.len, { N: o.N, r: o.r, p: o.p, maxmem: 64 * 1024 * 1024 }, (e, k) => e ? mal(e) : ok(k)));
-
-async function hashPassword(pw) {
-  const salt = crypto.randomBytes(16);
-  const k = await scrypt(pw, salt);
-  return `scrypt$${SCRYPT.N}$${SCRYPT.r}$${SCRYPT.p}$${salt.toString("base64")}$${k.toString("base64")}`;
-}
-const DUMMY = "scrypt$16384$8$1$AAAAAAAAAAAAAAAAAAAAAA==$" + Buffer.alloc(64).toString("base64");
-async function verificarPassword(pw, guardado) {
-  const [alg, N, r, p, salt, hash] = String(guardado || DUMMY).split("$");
-  if (alg !== "scrypt") return false;
-  const esperado = Buffer.from(hash, "base64");
-  const k = await scrypt(pw, Buffer.from(salt, "base64"), { N: +N, r: +r, p: +p, len: esperado.length });
-  return k.length === esperado.length && crypto.timingSafeEqual(k, esperado) && !!guardado;
-}
-function passwordValida(pw) { return typeof pw === "string" && pw.length >= 10 && pw.length <= 200; }
 
 // ---------- utilidades ----------
 const sha256 = s => crypto.createHash("sha256").update(String(s)).digest("hex");
@@ -95,7 +75,7 @@ async function registrarIntento(clave) {
 async function limpiarIntentos(clave) { await q("DELETE FROM limites WHERE clave = $1", [clave]); }
 
 module.exports = {
-  COOKIE, esProduccion, secreto, hashPassword, verificarPassword, passwordValida,
+  COOKIE, esProduccion, secreto,
   sha256, hmac, igualSeguro, normEmail, emailValido, ipDe, leerCookies,
   crearSesion, leerSesion, cerrarSesion, superaLimite, registrarIntento, limpiarIntentos
 };

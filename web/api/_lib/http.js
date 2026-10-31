@@ -20,4 +20,15 @@ function manejarError(res, e) {
 }
 const errorPublico = (msg, status = 400) => Object.assign(new Error(msg), { publico: true, status });
 
-module.exports = { cuerpo, consulta, exigirJson, manejarError, errorPublico };
+// URL pública para links en emails. No se arma con el Host del pedido (se podría falsear),
+// salvo en local. Orden: PUENTE_URL → dominio de producción → URL de la rama/deploy en Vercel.
+function urlPublica(req) {
+  if (process.env.PUENTE_URL) return process.env.PUENTE_URL.replace(/\/+$/, "");
+  const host = process.env.VERCEL_ENV === "production"
+    ? process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL
+    : process.env.VERCEL_BRANCH_URL || process.env.VERCEL_URL;
+  if (host) return "https://" + host;
+  return "http://" + (String(req?.headers?.host || "").replace(/[^a-z0-9.:-]/gi, "") || "localhost:3000");
+}
+
+module.exports = { cuerpo, consulta, exigirJson, manejarError, errorPublico, urlPublica };

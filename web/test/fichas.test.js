@@ -1,7 +1,7 @@
 // Fichas de familia, código por email y espacio de la familia con sesión.
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { baseNueva, cliente } = require("./ayuda");
+const { baseNueva, cliente, entrarConCodigo } = require("./ayuda");
 const auth = require("../api/auth");
 const fichas = require("../api/fichas");
 const familia = require("../api/familia");
@@ -13,14 +13,13 @@ const post = (c, h, body) => c.llamar(h, { method: "POST", body });
 
 test.before(async () => {
   pg = await baseNueva();
-  ana = cliente();
-  const r = await post(ana, auth, { accion: "setup", escuela: "Escuela 2001", nombre: "Ana", email: "ana@escuela.edu.ar", password: "clave-segura-1", pin: "4321" });
+  const r = await post(cliente(), auth, { accion: "setup", escuela: "Escuela 2001", nombre: "Ana", email: "ana@escuela.edu.ar", pin: "4321" });
   assert.equal(r.status, 200);
+  ana = await entrarConCodigo(pg, "ana@escuela.edu.ar");
   // Docente de otra escuela (para probar el aislamiento)
   await pg.query("INSERT INTO escuelas (nombre) VALUES ('Otra escuela')");
-  await pg.query("INSERT INTO docentes (escuela_id, email, nombre, pass_hash) SELECT 2, 'zoe@otra.edu.ar', 'Zoe', pass_hash FROM docentes WHERE id = 1");
-  otraEscuela = cliente();
-  assert.equal((await post(otraEscuela, auth, { accion: "login_docente", email: "zoe@otra.edu.ar", password: "clave-segura-1" })).status, 200);
+  await pg.query("INSERT INTO docentes (escuela_id, email, nombre) VALUES (2, 'zoe@otra.edu.ar', 'Zoe')");
+  otraEscuela = await entrarConCodigo(pg, "zoe@otra.edu.ar");
 });
 
 test("sin sesión no se ve ninguna ficha", async () => {

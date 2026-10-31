@@ -33,4 +33,15 @@ function cliente(ip = "10.0.0." + Math.floor(Math.random() * 250)) {
   return { llamar, get cookie() { return cookie; }, set cookie(v) { cookie = v; } };
 }
 
-module.exports = { baseNueva, cliente };
+// Entra con código por email (modo desarrollo: el código vuelve en codigo_dev). Limpia los límites antes.
+async function entrarConCodigo(pg, email, tipo = "docente", c = cliente()) {
+  const auth = require("../api/auth");
+  await pg.query("DELETE FROM limites");
+  const p = await c.llamar(auth, { method: "POST", body: { accion: "pedir_codigo", tipo, email } });
+  if (!p.body?.codigo_dev) throw new Error(`No llegó código para ${email} (${tipo}): ${JSON.stringify(p.body)}`);
+  const v = await c.llamar(auth, { method: "POST", body: { accion: "verificar_codigo", tipo, email, codigo: p.body.codigo_dev } });
+  if (v.status !== 200) throw new Error(`No pudo entrar ${email}: ${JSON.stringify(v.body)}`);
+  return c;
+}
+
+module.exports = { baseNueva, cliente, entrarConCodigo };

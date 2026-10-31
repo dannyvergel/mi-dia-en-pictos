@@ -12,7 +12,7 @@ const SCHEMA = [
     escuela_id BIGINT NOT NULL REFERENCES escuelas(id),
     email TEXT NOT NULL UNIQUE,
     nombre TEXT NOT NULL,
-    pass_hash TEXT NOT NULL,
+    pass_hash TEXT,
     es_admin BOOLEAN NOT NULL DEFAULT false,
     activo BOOLEAN NOT NULL DEFAULT true,
     creado TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -66,7 +66,30 @@ const SCHEMA = [
     clave TEXT NOT NULL,
     creado TIMESTAMPTZ NOT NULL DEFAULT now()
   )`,
-  `CREATE INDEX IF NOT EXISTS limites_clave ON limites (clave, creado)`
+  `CREATE INDEX IF NOT EXISTS limites_clave ON limites (clave, creado)`,
+  // Las docentes entran con código por email (y más adelante SSO): la contraseña ya no se usa.
+  // Columna vieja: queda, opcional y sin uso (migración idempotente).
+  `ALTER TABLE docentes ALTER COLUMN pass_hash DROP NOT NULL`,
+  // Los códigos sirven para docentes o familias, nunca cruzados.
+  `ALTER TABLE codigos ADD COLUMN IF NOT EXISTS tipo TEXT NOT NULL DEFAULT 'familia'`,
+  `CREATE INDEX IF NOT EXISTS codigos_email_tipo ON codigos (email, tipo, creado DESC)`,
+  // Pedidos de acceso de docentes nuevas (formulario público en /login.html).
+  `CREATE TABLE IF NOT EXISTS solicitudes (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    nombre TEXT NOT NULL,
+    email TEXT NOT NULL,
+    escuela TEXT NOT NULL,
+    rol TEXT NOT NULL DEFAULT '',
+    mensaje TEXT NOT NULL DEFAULT '',
+    estado TEXT NOT NULL DEFAULT 'pendiente' CHECK (estado IN ('pendiente', 'aprobada', 'rechazada')),
+    creado TIMESTAMPTZ NOT NULL DEFAULT now(),
+    actualizado TIMESTAMPTZ NOT NULL DEFAULT now(),
+    resuelto TIMESTAMPTZ,
+    resuelto_por BIGINT REFERENCES docentes(id),
+    docente_id BIGINT REFERENCES docentes(id)
+  )`,
+  `CREATE INDEX IF NOT EXISTS solicitudes_estado ON solicitudes (estado, creado DESC)`,
+  `CREATE INDEX IF NOT EXISTS solicitudes_email ON solicitudes (email)`
 ];
 
 module.exports = { SCHEMA };
