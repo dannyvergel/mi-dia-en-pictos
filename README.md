@@ -1,4 +1,6 @@
-# 🌈 Mi Día en Pictos
+# 🌉 Puente
+
+**De la escuela a casa, en pictogramas.** Demo: https://puente-pictos.vercel.app
 
 **La docente cuenta el día en 20 segundos. El chico lo ve en pictogramas. La familia recibe un resumen claro. Y el registro queda guardado solo.**
 

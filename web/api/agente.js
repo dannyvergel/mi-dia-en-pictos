@@ -5,7 +5,7 @@ const { crearHerramientas } = require("./_lib/tools");
 const MODEL = process.env.OPENROUTER_MODEL || "deepseek/deepseek-v4-flash";
 const MAX_PASOS = 8;
 
-const SISTEMA = `Sos el Agente de Progreso de "Mi Día en Pictos", para docentes de educación especial en Argentina.
+const SISTEMA = `Sos el Agente de Progreso de "Puente", para docentes de educación especial en Argentina.
 Tu trabajo: leer el historial de un alumno, encontrar patrones que a ojo no se ven, medir el avance de su PPI y proponer qué cambiar, con evidencia.
 
 Cómo trabajás:
@@ -32,7 +32,7 @@ const resumir = (r) => { const s = JSON.stringify(r); return s.length > 220 ? s.
 async function llm(messages, tools) {
   const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
-    headers: { Authorization: "Bearer " + process.env.OPENROUTER_API_KEY, "Content-Type": "application/json", "HTTP-Referer": "https://mi-dia-en-pictos.vercel.app", "X-Title": "Mi Dia en Pictos" },
+    headers: { Authorization: "Bearer " + process.env.OPENROUTER_API_KEY, "Content-Type": "application/json", "HTTP-Referer": "https://puente-pictos.vercel.app", "X-Title": "Puente" },
     body: JSON.stringify({ model: MODEL, temperature: 0.2, messages, ...(tools ? { tools, tool_choice: "auto" } : { response_format: { type: "json_object" } }) })
   });
   if (!r.ok) throw new Error("OpenRouter " + r.status + ": " + (await r.text()).slice(0, 200));
