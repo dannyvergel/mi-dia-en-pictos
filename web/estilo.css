@@ -80,6 +80,7 @@ textarea { min-height: 120px; line-height: 32px; background-image: repeating-lin
   box-shadow: 0 3px 0 var(--pizarron-2);
 }
 .big:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--pizarron-2); }
+.big:disabled { opacity: .5; cursor: not-allowed; transform: none; }
 .big.alt { background: #fff; color: var(--tinta); border: 1.5px solid var(--tinta); box-shadow: 0 3px 0 #23364f33; }
 .big.chico { font-size: 14px; padding: 10px; }
 .big.rec { background: var(--bad); color: #fff; box-shadow: 0 3px 0 #7d2e1f; animation: pulso 1.2s infinite; }
@@ -164,5 +165,23 @@ footer a { color: var(--gris); }
 /* Pantalla de PIN */
 .gate { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 20px; background: #2f4a3ef2; }
 .gate[hidden] { display: none; }
+/* El atributo hidden tiene que ganarle a .big, .fila, .cuenta-n… (si no, se ven botones ocultos como «Borrar alumno»). */
+[hidden] { display: none !important; }
 .gate .card { width: 100%; max-width: 380px; }
 .gate form { display: flex; gap: 8px; } .gate form .big { width: auto; margin: 0; padding: 0 18px; }
+
+/* Autocompletar de escuelas (escuelas.js) */
+.ac { position: relative; }
+.ac-lista { position: absolute; z-index: 20; left: 0; right: 0; top: 100%; margin: 2px 0 0; padding: 4px 0; list-style: none; max-height: 320px; overflow-y: auto;
+  background: #fff; border: 1.5px solid var(--lapiz); border-radius: 10px; box-shadow: 0 10px 24px -12px #5a4a2a66; }
+.ac-lista li { padding: 8px 12px; cursor: pointer; line-height: 1.3; border-bottom: 1px solid var(--renglon); }
+.ac-lista li:last-child { border-bottom: 0; }
+.ac-lista li[aria-selected="true"], .ac-lista li:hover { background: #fdf6e1; }
+.ac-lista li[aria-selected="true"] { outline: 2px solid var(--lapiz); outline-offset: -2px; }
+.ac-nombre { font-weight: 700; }
+.ac-det { display: block; font-size: 13px; color: var(--gris); }
+.ac-esp { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--pizarron); background: #dfeadb; padding: 0 8px; border-radius: 10px; }
+.ac-estado { font-size: 13px; color: var(--gris); min-height: 0; margin-top: 2px; }
+.ac-estado:empty { display: none; }
+.ac-elegida { font-size: 13px; color: var(--ok); margin-top: 4px; }
+.ac-elegida .enlace { background: none; border: 0; padding: 0; color: var(--tinta); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; margin-left: 4px; }

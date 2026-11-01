@@ -20,10 +20,16 @@
   .m { padding:10px 12px; border-radius:12px; max-width:86%; line-height:1.45; white-space:pre-wrap; }
   .m.familia { align-self:flex-end; background:var(--pizarron); color:var(--tiza); border-bottom-right-radius:3px; }
   .m.puente { align-self:flex-start; background:#fdf6e1; border:1px solid #efe2b8; border-bottom-left-radius:3px; }
+  .m.puente.aviso { background:#f3f1ec; border-color:#ddd8cc; color:#555; font-style:italic; }
   .sug { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
   .sug button { border:1.5px solid var(--tinta); color:var(--tinta); background:#fff; border-radius:20px; padding:6px 12px; font:inherit; font-size:14px; cursor:pointer; }
   form { display:flex; gap:8px; } form .big { width:auto; margin:0; padding:0 18px; }
   .pagina { padding-top:22px; border-radius:14px; margin-top:14px; }
+  .chips { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
+  .chips button { border:1.5px solid var(--tinta); background:#fff; color:var(--tinta); border-radius:20px; padding:6px 14px; font:inherit; font-weight:700; cursor:pointer; }
+  .chips button.on { background:var(--pizarron); color:var(--tiza); border-color:var(--pizarron); }
+  .ficha dt { font-weight:700; margin-top:8px; } .ficha dd { margin:2px 0 0; white-space:pre-wrap; }
+  .barra { display:flex; justify-content:flex-end; gap:12px; font-size:14px; margin-bottom:6px; } .barra a { color:var(--tinta); }
 </style>
   <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
   <script defer src="/_vercel/insights/script.js"></script>
@@ -31,7 +37,8 @@
 <body>
 <header><h1 id="tit">Puente</h1><div class="bajada" id="sub">de la escuela a casa, en pictogramas</div><span class="tiza"></span></header>
 <main><div class="pagina" id="app"><p class="vacio">Cargando…</p></div></main>
-<footer>Este espacio es privado: solo lo ve quien tiene el link.<br>Pictogramas: Sergio Palao. Origen: <a href="https://arasaac.org">ARASAAC</a>. Licencia CC BY-NC-SA. Propiedad: Gobierno de Aragón.</footer>
+<footer><span id="pie">Este espacio es privado: solo lo ve quien tiene el link.</span><br>Pictogramas: Sergio Palao. Origen: <a href="https://arasaac.org">ARASAAC</a>. Licencia CC BY-NC-SA. Propiedad: Gobierno de Aragón.</footer>
+<script src="cuenta.js"></script>
 <script>
 const PICTOS = {};
 async function buscarPicto(k) {
@@ -52,11 +59,37 @@ const PLANO = { "logrado o casi logrado": ["avanzando", "Casi logrado"], "avanza
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
 const fechaLinda = f => new Date(f + "T12:00:00").toLocaleDateString("es-AR", { weekday:"long", day:"numeric", month:"long" });
 function hablar(x) { if ("speechSynthesis" in window) { const u = new SpeechSynthesisUtterance(x); u.lang = "es-AR"; speechSynthesis.speak(u); } }
-let D = null, chat = [];
+let D = null;
 
+let MODO = "token", ALUMNO_ID = null, FICHA = null, ESFAMILIA = false, MIS = [];
 async function cargar() {
-  if (!t) return $("app").innerHTML = `<div class="card">Este link no es válido. Pedile a la docente el link de tu hijo o hija.</div>`;
+  if (t) return cargarToken();
+  const e = await Puente.estado().catch(() => null);
+  if (!e || e.modo === "demo") return $("app").innerHTML = `<div class="card">Este link no es válido. Pedile a la docente el link de tu hijo o hija.</div>`;
+  if (!e.sesion) return location.href = "login.html?familia";
+  MODO = "sesion"; ESFAMILIA = e.sesion.tipo === "familia";
+  $("pie").textContent = ESFAMILIA ? "Este espacio es privado: solo lo ven las familias que la escuela vinculó." : "Vista previa de la docente: así lo ve la familia.";
+  const pedido = Number(new URLSearchParams(location.search).get("alumno")) || null;
+  try {
+    if (ESFAMILIA) MIS = (await Puente.api("api/fichas")).alumnos;
+    else if (pedido) MIS = [(await Puente.api("api/fichas?id=" + pedido)).alumno];
+  } catch (err) { return $("app").innerHTML = `<div class="card">${esc(err.message)}</div>`; }
+  if (!MIS.length) return $("app").innerHTML = `<div class="card">${ESFAMILIA ? "Tu email todavía no está vinculado a ningún alumno. Pedile a la docente que lo agregue en la ficha." : "Elegí un alumno desde el panel docente."}</div><div class="barra"><a href="#" onclick="Puente.salir();return false">Salir</a></div>`;
+  await abrirAlumno((MIS.find(a => a.id === pedido) || MIS[0]).id);
+}
+async function abrirAlumno(id) {
+  ALUMNO_ID = id; FICHA = MIS.find(a => a.id === id);
+  const r = await fetch("api/familia?alumno=" + id, { credentials: "same-origin" });
+  if (r.status === 401) return location.href = "login.html?familia";
+  if (!r.ok) return $("app").innerHTML = `<div class="card">No pudimos cargar el espacio. Probá de nuevo en un rato.</div>`;
+  D = await r.json();
+  $("tit").textContent = `El cuaderno de ${D.alumno}`;
+  $("sub").textContent = D.actualizado ? "Puente · actualizado el " + new Date(D.actualizado).toLocaleString("es-AR", { day:"numeric", month:"long", hour:"2-digit", minute:"2-digit" }) : "Puente · de la escuela a casa";
+  pintar();
+}
+async function cargarToken() {
   const r = await fetch("api/familia?t=" + encodeURIComponent(t));
+  if (r.status === 410) return location.href = "login.html?familia";
   if (!r.ok) return $("app").innerHTML = `<div class="card">${r.status === 404 ? "No encontramos este espacio." : "No pudimos cargar el espacio."} Pedile el link a la docente.</div>`;
   D = await r.json();
   $("tit").textContent = `El cuaderno de ${D.alumno}`;
@@ -64,11 +97,50 @@ async function cargar() {
   pintar();
 }
 
+// Ficha de familia (solo con cuentas): lectura, consentimiento y su propio teléfono.
+const APOYO_TXT = { comunicacion: "Comunicación", sensoriales: "Sensoriales (qué le molesta)", regulacion: "Qué lo calma", alimentacion: "Alimentación", intereses: "Qué le gusta", otros: "Otros apoyos" };
+function htmlFicha() {
+  if (!FICHA) return "";
+  const c = FICHA.consentimiento || {};
+  const apoyos = Object.entries(APOYO_TXT).filter(([k]) => FICHA.apoyos[k]).map(([k, txt]) => `<dt>${txt}</dt><dd>${esc(FICHA.apoyos[k])}</dd>`).join("");
+  return `<div class="card ficha"><details${c.dado ? "" : " open"}><summary><span class="rotulo" style="display:inline">La ficha de ${esc(FICHA.nombre)}</span></summary>
+    <p class="muted">La completa la escuela. Si algo no está bien, avisale a la docente.</p>
+    <dl>
+      <dt>Contactos</dt><dd>${FICHA.contactos.map(x => `${esc(x.nombre)}${x.vinculo ? " (" + esc(x.vinculo) + ")" : ""}${x.telefono ? " · " + esc(x.telefono) : ""}${x.email ? " · " + esc(x.email) : ""}`).join("<br>") || "—"}</dd>
+      ${apoyos}
+      <dt>Objetivos del PPI</dt><dd>${FICHA.objetivos.length ? FICHA.objetivos.map(o => "• " + esc(o)).join("<br>") : "—"}</dd>
+    </dl>
+    ${ESFAMILIA && FICHA.contactos.some(x => x.email) ? `<form id="fTel" class="fila" style="margin-top:10px"><input id="miTel" inputmode="tel" maxlength="30" placeholder="Tu teléfono / WhatsApp"><button class="big chico" style="width:auto;margin:0;padding:0 14px">Actualizar mi teléfono</button></form>` : ""}
+    <div class="${c.dado ? "logro" : "alerta"}" style="margin-top:12px">${c.dado ? `Consentimiento dado por ${esc(c.quien)} el ${esc(c.fecha)}.` : "Todavía no está el consentimiento de la familia para usar Puente."}</div>
+    ${ESFAMILIA ? (c.dado ? `<button class="big alt chico" id="btnCons" data-dar="0">Retirar el consentimiento</button>`
+      : `<p class="muted">Al dar tu consentimiento aceptás que la escuela registre en Puente cómo fue el día de ${esc(FICHA.nombre)} (solo su nombre de pila, sin fotos ni diagnósticos) y que lo puedan ver las familias vinculadas.</p><button class="big" id="btnCons" data-dar="1">Doy mi consentimiento</button>`) : ""}
+    <p class="muted" id="msgFicha"></p></details></div>`;
+}
+function conectarFicha() {
+  const b = $("btnCons");
+  if (b) b.onclick = async () => {
+    if (b.dataset.dar === "0" && !confirm("¿Seguro que querés retirar el consentimiento?")) return;
+    try { const r = await Puente.api("api/fichas", { method: "POST", body: { accion: "consentir", id: ALUMNO_ID, dado: b.dataset.dar === "1" } }); actualizarFicha(r.alumno); }
+    catch (e) { $("msgFicha").textContent = e.message; }
+  };
+  const f = $("fTel");
+  if (f) f.onsubmit = async ev => {
+    ev.preventDefault();
+    try { const r = await Puente.api("api/fichas", { method: "POST", body: { accion: "mi_contacto", id: ALUMNO_ID, telefono: $("miTel").value } }); actualizarFicha(r.alumno); $("msgFicha").textContent = "Teléfono actualizado ✓"; }
+    catch (e) { $("msgFicha").textContent = e.message; }
+  };
+}
+function actualizarFicha(a) { Object.assign(FICHA, a); const el = $("ficha"); el.innerHTML = htmlFicha(); el.querySelector("details").open = true; conectarFicha(); }
+
 function pintar() {
   const dias = D.dias || [];
   const logros = dias.flatMap(d => d.logros.map(l => ({ l, f: d.fecha })));
   $("app").innerHTML = `
+    ${MODO === "sesion" ? `<div class="barra">${ESFAMILIA ? `<a href="#" id="salir">Salir</a>` : `<a href="docente.html">← Panel docente</a>`}</div>` : ""}
+    ${MIS.length > 1 ? `<div class="chips">${MIS.map(a => `<button data-id="${a.id}" class="${a.id === ALUMNO_ID ? "on" : ""}">${esc(a.nombre)}</button>`).join("")}</div>` : ""}
+    <div id="ficha">${htmlFicha()}</div>
     <div class="card"><span class="rotulo">Sus últimos días</span>
+      ${dias.length ? "" : `<p class="vacio">Todavía no hay días publicados. Apenas la escuela cargue uno, lo vas a ver acá.</p>`}
       <div class="semana" id="semana">${dias.slice().reverse().map((d, i) => `<div class="dia" data-f="${d.fecha}">${animoImg(d.animo)}<div class="d">${esc(d.dia).slice(0,3)} ${d.fecha.slice(8)}</div></div>`).join("")}</div>
       <div id="detalle"></div>
     </div>
@@ -81,9 +153,12 @@ function pintar() {
       <p class="muted">Responde con lo que la escuela registró de ${esc(D.alumno)}. Para temas de salud, hablá con la docente.</p>
       <div class="chat" id="chat"></div>
       <div class="sug" id="sug">${["¿Cómo estuvo esta semana?", "¿Cómo viene comiendo?", "¿Qué día le cuesta más?", "¿Qué puedo hacer en casa?"].map(s => `<button>${s}</button>`).join("")}</div>
-      <form id="f"><input id="q" placeholder="Escribí tu pregunta…" autocomplete="off"><button class="big">Enviar</button></form>
+      <form id="f"><input id="q" placeholder="Escribí tu pregunta…" autocomplete="off" maxlength="500"><button class="big">Enviar</button></form>
     </div>`;
   document.querySelectorAll(".dia").forEach(el => el.onclick = () => verDia(el.dataset.f));
+  document.querySelectorAll(".chips button").forEach(b => b.onclick = () => abrirAlumno(Number(b.dataset.id)));
+  if ($("salir")) $("salir").onclick = e => { e.preventDefault(); Puente.salir(); };
+  conectarFicha();
   document.querySelectorAll(".picto[data-h]").forEach(el => el.onclick = () => hablar(el.dataset.h));
   document.querySelectorAll("#sug button").forEach(b => b.onclick = () => enviar(b.textContent));
   $("f").onsubmit = e => { e.preventDefault(); const v = $("q").value.trim(); if (v) { $("q").value = ""; enviar(v); } };
@@ -108,10 +183,12 @@ async function enviar(p) {
   burbuja("familia", p);
   const espera = burbuja("puente", "Puente está mirando los registros…");
   try {
-    const r = await fetch("api/familia", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ accion:"preguntar", token:t, pregunta:p, historial:chat }) });
-    const j = await r.json();
+    // El historial lo guarda el servidor (con sesión); el navegador solo manda la pregunta.
+    const r = await fetch("api/familia", { method:"POST", headers:{ "Content-Type":"application/json" }, credentials:"same-origin", body: JSON.stringify({ accion:"preguntar", ...(MODO === "sesion" ? { alumno_id: ALUMNO_ID } : { token:t }), pregunta:p }) });
+    const j = await r.json().catch(() => ({}));
     espera.textContent = j.respuesta || j.error || "No pude responder.";
-    chat.push({ rol:"familia", texto:p }, { rol:"puente", texto:espera.textContent });
+    // Negativas (fuera de tema) y límites se muestran como aviso suave, no como respuesta.
+    if (!r.ok || j.modo === "fuera_de_tema") espera.classList.add("aviso");
   } catch { espera.textContent = "No pude conectarme. Probá de nuevo."; }
 }
 cargar();

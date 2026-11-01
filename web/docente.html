@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Puente · Panel docente</title>
+<meta name="theme-color" content="#2f4a3e">
+<meta name="robots" content="noindex">
+<link rel="icon" href="icono.svg" type="image/svg+xml">
+<link rel="stylesheet" href="estilo.css">
+<style>
+  nav button[data-s="alumnos"] { --tab: var(--lapiz); }
+  nav button[data-s="docentes"] { --tab: #7fb3d5; }
+  nav button[data-s="cuenta"] { --tab: #8fbf8a; }
+  nav button[data-s="solicitudes"] { --tab: #e8998d; }
+  nav button[data-s="escuela"] { --tab: #b9a3d6; }
+  nav button[data-s="escuelas"] { --tab: #f2c46d; }
+  nav button[data-s="importar"] { --tab: #9ccfc4; }
+  .imp-tabla { overflow-x: auto; margin: 10px 0; }
+  .imp-tabla table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .imp-tabla th, .imp-tabla td { text-align: left; vertical-align: top; padding: 5px 8px; border-bottom: 1px solid var(--renglon); }
+  .imp-tabla th { position: sticky; top: 0; background: #fffef9; }
+  .imp-tabla tr.imp-error td { background: #fbefe9; }
+  .imp-tabla tr.imp-duplicado td { color: var(--gris); }
+  .imp-bajar { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip { display: inline-flex; align-items: center; gap: 2px; border: 1px solid var(--borde); border-radius: 14px; padding: 2px 4px 2px 10px; margin: 3px 4px 3px 0; background: #fffef9; font-size: 15px; }
+  .chip .quitar { font-size: 18px; padding: 0 4px; }
+  .inv { font-size: 14px; margin-top: 4px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .enlace { background: none; border: 0; padding: 0; color: var(--tinta); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
+  .cuenta-n { display: inline-block; min-width: 20px; padding: 0 6px; border-radius: 10px; background: var(--bad); color: #fff; font-size: 12px; line-height: 20px; margin-left: 4px; }
+  .sol { border: 1px solid var(--borde); border-radius: 10px; padding: 10px 12px; margin: 10px 0; background: #fffef9; }
+  .sol b { font-family: var(--mano); font-size: 22px; font-weight: 400; }
+  .sol .msj { white-space: pre-wrap; background: #fdf9ef; border-left: 4px solid var(--renglon); padding: 6px 10px; margin: 6px 0; font-size: 15px; }
+  .sol select, .sol input[type=text] { margin-bottom: 4px; }
+  .fila-al { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--renglon); cursor: pointer; }
+  .fila-al:last-child { border-bottom: 0; }
+  .fila-al b { font-family: var(--mano); font-size: 22px; font-weight: 400; }
+  .fila-al.on b { text-decoration: underline wavy var(--lapiz); }
+  .contacto { border: 1px dashed var(--borde); border-radius: 10px; padding: 8px 10px 10px; margin: 8px 0; background: #fffef9; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
+  .objetivo { display: flex; gap: 6px; margin: 6px 0; } .objetivo input { flex: 1; }
+  .quitar { border: 0; background: none; color: var(--bad); font-size: 22px; cursor: pointer; padding: 0 6px; }
+  .contacto > .quitar { font-family: var(--texto); font-size: 14px; font-weight: 700; padding: 4px 0; margin-top: 4px; }
+  .inv-msg { display: block; font-size: 14px; margin-top: 2px; }
+  .inv-msg.error { color: var(--bad); font-weight: 700; }
+  #impEscuelaFila { align-items: center; }
+  .check { display: flex; gap: 8px; align-items: center; font-weight: 700; } .check input { width: auto; }
+  .barra { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .barra a { color: var(--tinta); font-weight: 700; }
+  .error { color: var(--bad); font-weight: 700; }
+  .aviso { background: #fdf6e1; border-left: 5px solid var(--lapiz); padding: 8px 12px; border-radius: 8px; font-size: 14px; margin: 8px 0; }
+  @media (max-width: 520px) { .grid2 { grid-template-columns: 1fr; } }
+</style>
+<script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
+<script defer src="/_vercel/insights/script.js"></script>
+</head>
+<body>
+<header><h1>Panel de la seño</h1><div class="bajada" id="sub">fichas de familia</div><span class="tiza"></span></header>
+<nav>
+  <button class="on" data-s="alumnos">Alumnos</button>
+  <button data-s="solicitudes" id="tabSol" hidden>Solicitudes <span class="cuenta-n" id="nSol" hidden></span></button>
+  <button data-s="escuela" id="tabEsc" hidden>Escuela</button>
+  <button data-s="escuelas" id="tabEscs" hidden>Escuelas</button>
+  <button data-s="importar" id="tabImp" hidden>Importar</button>
+  <button data-s="docentes">Docentes</button>
+  <button data-s="cuenta">Mi cuenta</button>
+</nav>
+<main><div class="pagina">
+  <div class="barra"><a href="index.html">← Cuaderno del día</a><span class="muted" id="quien"></span></div>
+
+  <section id="alumnos" class="on">
+    <div class="card">
+      <span class="rotulo">Mis alumnos</span>
+      <div id="lista"><p class="vacio">Cargando…</p></div>
+      <form id="fNuevo" class="fila" style="margin-top:10px">
+        <input id="nuevoNombre" placeholder="Nombre de pila (ej: Juan o Juan P.)" maxlength="40" required>
+        <button class="big chico" style="width:auto;margin:0;padding:0 16px">Agregar</button>
+      </form>
+      <p class="muted" id="msgLista"></p>
+    </div>
+
+    <div class="card cinta" id="editor" hidden>
+      <span class="rotulo">Ficha de <span id="edNom"></span></span>
+      <div class="aviso">Datos de un menor: solo nombre de pila. No escribas apellidos, diagnósticos ni datos de salud.</div>
+      <label for="edNombre">Nombre de pila</label>
+      <input id="edNombre" maxlength="40">
+
+      <h3 style="margin-top:16px">Docentes a cargo</h3>
+      <p class="muted">Ven y editan la ficha, cargan sus días y publican para la familia. Las admins de la escuela ven a todos los alumnos.</p>
+      <div id="asignadas"></div>
+      <div class="fila" id="asignarFila"><select id="asignarSel" aria-label="Docente para asignar"></select><button type="button" class="big alt chico" id="asignarBtn" style="width:auto;margin:0;padding:0 16px">Asignar</button></div>
+
+      <h3 style="margin-top:16px">Contactos de la familia</h3>
+      <p class="muted">Los emails que cargues acá son los que pueden entrar a Puente como familia de este alumno. Al guardar, a cada email nuevo le mandamos una invitación para entrar.</p>
+      <div id="contactos"></div>
+      <button type="button" class="big alt chico" id="addContacto">+ Agregar contacto</button>
+
+      <h3 style="margin-top:16px">Apoyos y sensibilidades</h3>
+      <div id="apoyos"></div>
+
+      <h3 style="margin-top:16px">Objetivos del PPI</h3>
+      <p class="muted">El Agente de Progreso los usa para medir el avance. Uno por renglón, cortitos.</p>
+      <div id="objetivos"></div>
+      <button type="button" class="big alt chico" id="addObjetivo">+ Agregar objetivo</button>
+
+      <h3 style="margin-top:16px">Consentimiento de la familia</h3>
+      <label class="check"><input type="checkbox" id="consDado"> La familia dio su consentimiento</label>
+      <div class="grid2">
+        <div><label for="consQuien">Quién lo dio</label><input id="consQuien" maxlength="120" placeholder="Ej: Laura (mamá)"></div>
+        <div><label for="consFecha">Fecha</label><input id="consFecha" type="date"></div>
+      </div>
+      <p class="muted" id="consVia"></p>
+
+      <button class="big" id="guardar">Guardar ficha</button>
+      <div class="fila"><a class="big alt chico" id="verFamilia" target="_blank" style="text-align:center;text-decoration:none">Ver como familia</a><button class="big alt chico" id="borrar" hidden style="color:var(--bad);border-color:var(--bad)">Borrar alumno</button></div>
+      <p id="msgEd" class="muted"></p>
+    </div>
+  </section>
+
+  <section id="solicitudes">
+    <div class="card"><span class="rotulo">Pedidos de acceso</span>
+      <p class="muted">Docentes que pidieron entrar desde la pantalla de ingreso. Al aprobar, le llega un mail y entra con su email y un código, sin contraseña.</p>
+      <div id="listaSol"><p class="vacio">Cargando…</p></div>
+      <p class="muted" id="msgSol"></p>
+    </div>
+    <div class="card" id="resueltasCard" hidden><span class="rotulo">Últimas resueltas</span><div id="listaRes"></div></div>
+  </section>
+
+  <section id="escuelas">
+    <div class="card"><span class="rotulo">Escuelas en Puente</span>
+      <p class="muted">Solo la ve la plataforma. Una escuela desactivada no puede entrar (ni sus docentes ni sus familias) y sus pedidos nuevos llegan acá.</p>
+      <div id="listaEscs"><p class="vacio">Cargando…</p></div>
+      <p class="muted" id="msgEscs"></p>
+    </div>
+  </section>
+
+  <section id="importar">
+    <div class="card cinta">
+      <span class="rotulo">Importar docentes y alumnos</span>
+      <p class="muted">Cargá de una vez a las docentes de la escuela y a los alumnos con sus familias. Primero ves una vista previa fila por fila; no se guarda nada hasta que confirmás. Si importás la misma planilla de nuevo, no se duplica nada.</p>
+      <div class="aviso">Datos de menores: solo nombre de pila (ej. «Juan» o «Juan P.»), sin apellidos, diagnósticos, datos de salud ni fotos.</div>
+      <h3>1. Bajá la plantilla</h3>
+      <div class="imp-bajar">
+        <button type="button" class="big alt chico" id="impBajarXlsx" style="width:auto;margin:0;padding:0 16px">Excel (.xlsx, dos hojas)</button>
+        <button type="button" class="big alt chico" id="impBajarDoc" style="width:auto;margin:0;padding:0 16px">CSV docentes</button>
+        <button type="button" class="big alt chico" id="impBajarAl" style="width:auto;margin:0;padding:0 16px">CSV alumnos y familias</button>
+      </div>
+      <p class="muted">Docentes: nombre, email, rol (grado o función) y admin (sí/no). Alumnos: nombre de pila, grado, emails de sus docentes y hasta 6 contactos de la familia (nombre, vínculo, email, teléfono). Las instrucciones están en la hoja «instrucciones» del Excel. Hasta 500 filas por vez.</p>
+      <h3 style="margin-top:16px">2. Subí la planilla completa</h3>
+      <div class="fila" id="impEscuelaFila" hidden><label for="impEscuela" style="margin:0">Escuela</label><select id="impEscuela"></select></div>
+      <input type="file" id="impArchivo" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" multiple aria-label="Archivos para importar">
+      <div id="impArchivos" style="margin:8px 0"></div>
+      <label class="check"><input type="checkbox" id="impOmitir"> Si hay filas con error, importar igual las filas válidas</label>
+      <button class="big" id="impPrevia" disabled>Ver vista previa</button>
+      <p class="muted" id="msgImp"></p>
+    </div>
+    <div class="card" id="impResultado" hidden>
+      <span class="rotulo">3. Vista previa</span>
+      <div id="impResumen"></div>
+      <label class="check"><input type="checkbox" id="impSoloErr"> Ver solo las filas con error</label>
+      <div id="impTablas"></div>
+      <p class="muted" id="impNota"></p>
+      <button class="big" id="impConfirmar" disabled>Confirmar e importar</button>
+    </div>
+    <div class="card" id="impFinal" hidden></div>
+  </section>
+
+  <section id="escuela">
+    <div class="card cinta">
+      <span class="rotulo">Ficha de la escuela</span>
+      <p class="muted">Solo la ven y la editan las docentes administradoras de esta escuela. Buscala en el Padrón Oficial para completar los datos institucionales; si no aparece, cargalos a mano.</p>
+      <label for="feBuscar">Buscar en el padrón oficial <span class="muted">(Santa Fe)</span></label>
+      <input id="feBuscar" maxlength="80">
+      <form id="fEscuela">
+        <div class="grid2">
+          <div><label for="feNombre">Nombre de la escuela</label><input id="feNombre" required minlength="2" maxlength="120"></div>
+          <div><label for="feCue">CUE + anexo <span class="muted">(9 números)</span></label><input id="feCue" inputmode="numeric" pattern="\d{9}" maxlength="9" placeholder="Ej: 820060800"></div>
+          <div><label for="feDomicilio">Domicilio</label><input id="feDomicilio" maxlength="200"></div>
+          <div><label for="feLocalidad">Localidad</label><input id="feLocalidad" maxlength="100"></div>
+          <div><label for="feDepartamento">Departamento</label><input id="feDepartamento" maxlength="100"></div>
+          <div><label for="feModalidad">Modalidad y niveles</label><input id="feModalidad" maxlength="300" placeholder="Ej: Educación Especial (inicial, primario)"></div>
+        </div>
+        <h3 style="margin-top:16px">Contacto institucional</h3>
+        <div class="grid2">
+          <div><label for="feEmail">Email de la escuela</label><input id="feEmail" type="email"></div>
+          <div><label for="feTelefono">Teléfono</label><input id="feTelefono" inputmode="tel" maxlength="60"></div>
+        </div>
+        <h3 style="margin-top:16px">Directivo responsable</h3>
+        <div class="grid2">
+          <div><label for="feDirNombre">Nombre</label><input id="feDirNombre" maxlength="120" placeholder="Ej: Directora Laura Pérez"></div>
+          <div><label for="feDirEmail">Email</label><input id="feDirEmail" type="email"></div>
+        </div>
+        <h3 style="margin-top:16px">Responsable del tratamiento de datos</h3>
+        <p class="muted">Quién responde por los datos de alumnos y familias que se cargan en Puente (Ley 25.326).</p>
+        <div class="grid2">
+          <div><label for="feResNombre">Nombre y cargo</label><input id="feResNombre" maxlength="160"></div>
+          <div><label for="feResEmail">Email</label><input id="feResEmail" type="email"></div>
+        </div>
+        <h3 style="margin-top:16px">Aval de la escuela</h3>
+        <label class="check"><input type="checkbox" id="feAval"> La escuela firmó el aval para usar Puente</label>
+        <div class="grid2">
+          <div><label for="feAvalFecha">Fecha</label><input id="feAvalFecha" type="date"></div>
+          <div><label for="feAvalPor">Quién lo firmó</label><input id="feAvalPor" maxlength="120" placeholder="Ej: Laura Pérez (directora)"></div>
+        </div>
+        <label for="feNotas">Notas</label><textarea id="feNotas" maxlength="2000" style="min-height:64px"></textarea>
+        <button class="big">Guardar ficha de la escuela</button>
+      </form>
+      <p class="muted">Fuente de la búsqueda: Padrón Oficial de Establecimientos Educativos, Ministerio de Educación de la Nación (actualizado el 07/09/2026).</p>
+      <p class="muted" id="msgEsc"></p>
+    </div>
+  </section>
+
+  <section id="docentes">
+    <div class="card"><span class="rotulo">Docentes de la escuela</span><div id="listaDoc"><p class="vacio">Cargando…</p></div></div>
+    <div class="card" id="nuevaDoc" hidden>
+      <span class="rotulo">Sumar una docente</span>
+      <form id="fDoc">
+        <label for="ndNombre">Nombre</label><input id="ndNombre" required maxlength="80">
+        <label for="ndEmail">Email</label><input id="ndEmail" type="email" required>
+        <label class="check"><input type="checkbox" id="ndAdmin"> También puede sumar docentes</label>
+        <p class="muted">No hace falta contraseña: le mandamos un mail y entra con su email y un código.</p>
+        <button class="big">Dar acceso</button>
+      </form>
+      <p class="muted" id="msgDoc"></p>
+    </div>
+  </section>
+
+  <section id="cuenta">
+    <div class="card">
+      <span class="rotulo">Cómo entrás</span>
+      <p>Entrás con tu email: cada vez te mandamos un código de 6 números. Puente no usa contraseñas.</p>
+      <p class="muted" id="miEmail"></p>
+    </div>
+    <button class="big alt" id="salir">Cerrar sesión</button>
+  </section>
+</div></main>
+<footer>Datos de menores protegidos: solo nombre de pila, sin fotos ni diagnósticos.</footer>
+<script src="cuenta.js"></script>
+<script src="escuelas.js"></script>
+<script src="importar.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const { api, esc } = Puente;
+let YO = null, ALUMNOS = [], APOYOS = {}, DOCENTES = [], YO_ID = null, actual = null;
+const msg = (id, t, err) => { $(id).textContent = t; $(id).className = err ? "error" : "muted"; };
+
+document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("nav button").forEach(x => x.classList.toggle("on", x === b));
+  document.querySelectorAll("section").forEach(s => s.classList.toggle("on", s.id === b.dataset.s));
+  if (b.dataset.s === "docentes") cargarDocentes();
+  if (b.dataset.s === "solicitudes") cargarSolicitudes();
+  if (b.dataset.s === "escuela") cargarEscuela();
+  if (b.dataset.s === "escuelas") cargarEscuelas();
+  if (b.dataset.s === "importar") Importar.iniciar(YO);
+});
+const abrirTab = s => document.querySelector(`nav button[data-s="${s}"]`)?.click();
+
+(async () => {
+  const e = await Puente.estado().catch(() => null);
+  if (!e || e.modo === "demo") return location.href = "index.html";
+  if (!e.sesion) return location.href = "login.html";
+  if (e.sesion.tipo !== "docente") return location.href = "familia.html";
+  YO = e.sesion;
+  $("quien").textContent = `${YO.nombre} · ${YO.email}`;
+  $("miEmail").textContent = "Tu email: " + YO.email;
+  cargarAlumnos();
+  if (YO.es_admin) { $("tabEsc").hidden = false; if (location.hash === "#escuela") abrirTab("escuela"); }
+  if (YO.es_plataforma) { $("tabEscs").hidden = false; if (location.hash === "#escuelas") abrirTab("escuelas"); }
+  if (YO.es_admin || YO.es_plataforma) { $("tabImp").hidden = false; if (location.hash === "#importar") abrirTab("importar"); }
+  if (YO.es_admin || YO.es_plataforma) { $("tabSol").hidden = false; await cargarSolicitudes(); if (location.hash === "#solicitudes") abrirTab("solicitudes"); }
+})();
+
+// ---------- alumnos ----------
+async function cargarAlumnos(seleccionar) {
+  try {
+    const r = await api("api/fichas");
+    ALUMNOS = r.alumnos; APOYOS = r.apoyos; DOCENTES = r.docentes || []; YO_ID = r.yo;
+    pintarLista();
+    const id = seleccionar ?? actual?.id;
+    if (id && ALUMNOS.find(a => a.id === id)) abrir(id);
+  } catch (e) { if (e.status === 401) location.href = "login.html"; else msg("msgLista", e.message, true); }
+}
+function pintarLista() {
+  $("lista").innerHTML = ALUMNOS.length ? ALUMNOS.map(a => `<div class="fila-al ${actual?.id === a.id ? "on" : ""}" data-id="${a.id}">
+      <span><b>${esc(a.nombre)}</b> <span class="muted">${a.grado ? "· " + esc(a.grado) + " " : ""}· ${a.contactos.length} contacto${a.contactos.length === 1 ? "" : "s"} · ${a.objetivos.length} objetivo${a.objetivos.length === 1 ? "" : "s"}${YO.es_admin ? " · " + (a.docentes.length ? a.docentes.map(d => esc(d.nombre)).join(", ") : "sin docente asignada") : ""}</span></span>
+      <span class="sello ${a.consentimiento?.dado ? "avanzando" : "estancado"}">${a.consentimiento?.dado ? "con consentimiento" : "sin consentimiento"}</span></div>`).join("")
+    : `<p class="vacio">${YO.es_admin ? "Todavía no hay alumnos en la escuela." : "Todavía no tenés alumnos. Agregá uno o pedile a la admin de la escuela que te asigne los tuyos."}</p>`;
+  $("lista").querySelectorAll(".fila-al").forEach(el => el.onclick = () => abrir(Number(el.dataset.id)));
+}
+$("fNuevo").onsubmit = async ev => {
+  ev.preventDefault();
+  try { const r = await api("api/fichas", { method: "POST", body: { accion: "crear", nombre: $("nuevoNombre").value } }); $("nuevoNombre").value = ""; msg("msgLista", ""); await cargarAlumnos(r.alumno.id); }
+  catch (e) { msg("msgLista", e.message, true); }
+};
+
+function filaContacto(c = {}) {
+  const d = document.createElement("div"); d.className = "contacto";
+  d.innerHTML = `<div class="grid2">
+    <div><label>Nombre</label><input data-k="nombre" maxlength="60" value="${esc(c.nombre)}"></div>
+    <div><label>Vínculo</label><input data-k="vinculo" maxlength="30" placeholder="mamá, papá, abuela…" value="${esc(c.vinculo)}"></div>
+    <div><label>Email</label><input data-k="email" type="email" value="${esc(c.email)}"></div>
+    <div><label>Teléfono / WhatsApp</label><input data-k="telefono" inputmode="tel" maxlength="30" value="${esc(c.telefono)}"></div></div>
+    <div class="inv"></div>
+    <button type="button" class="quitar" title="Quitar contacto">× quitar</button>`;
+  d.querySelector(".quitar").onclick = () => d.remove();
+  // Invitación: solo para emails ya guardados en la ficha.
+  const guardado = c.email && actual?.contactos.some(x => x.email === c.email);
+  if (guardado) {
+    const env = actual.invitaciones?.[c.email], inv = d.querySelector(".inv");
+    inv.innerHTML = `<span class="muted">${env ? "Invitación enviada " + esc(fecha(env)) : "Sin invitación enviada"}</span> <button type="button" class="enlace">${env ? "reenviar invitación" : "mandar invitación"}</button>`;
+    // El aviso (ej.: «esperá 24 h») va al lado del botón, no al pie de la ficha.
+    const avisoInv = t => { let m = inv.querySelector(".inv-msg"); if (!m) { m = document.createElement("span"); m.className = "inv-msg error"; m.setAttribute("role", "status"); inv.appendChild(m); } m.textContent = t; };
+    inv.querySelector("button").onclick = async ev => {
+      ev.target.disabled = true;
+      try { const r = await api("api/fichas", { method: "POST", body: { accion: "invitar", id: actual.id, email: c.email } });
+        Object.assign(ALUMNOS.find(a => a.id === actual.id), r.alumno); abrir(actual.id); msg("msgEd", `Le mandamos la invitación a ${c.email} ✓`); }
+      catch (e) { avisoInv(e.message); ev.target.disabled = false; }
+    };
+  }
+  $("contactos").appendChild(d);
+}
+function filaObjetivo(t = "") {
+  const d = document.createElement("div"); d.className = "objetivo";
+  d.innerHTML = `<input maxlength="300" value="${esc(t)}" placeholder="Ej: Comer con autonomía en el comedor"><button type="button" class="quitar" title="Quitar">×</button>`;
+  d.querySelector(".quitar").onclick = () => d.remove();
+  $("objetivos").appendChild(d);
+}
+$("addContacto").onclick = () => filaContacto();
+$("addObjetivo").onclick = () => filaObjetivo();
+
+function abrir(id) {
+  actual = ALUMNOS.find(a => a.id === id); if (!actual) return;
+  pintarLista();
+  $("editor").hidden = false; msg("msgEd", "");
+  $("edNom").textContent = actual.nombre; $("edNombre").value = actual.nombre;
+  $("contactos").innerHTML = ""; actual.contactos.forEach(filaContacto); if (!actual.contactos.length) filaContacto();
+  $("apoyos").innerHTML = Object.entries(APOYOS).map(([k, t]) => `<label>${esc(t)}</label><textarea data-k="${k}" style="min-height:50px" maxlength="1000">${esc(actual.apoyos[k] || "")}</textarea>`).join("");
+  $("objetivos").innerHTML = ""; actual.objetivos.forEach(filaObjetivo); if (!actual.objetivos.length) filaObjetivo();
+  const c = actual.consentimiento || {};
+  $("consDado").checked = !!c.dado; $("consQuien").value = c.quien || ""; $("consFecha").value = c.fecha || "";
+  $("consVia").textContent = c.dado ? (c.via === "familia" ? "La familia lo dio desde Puente." : "Registrado por la escuela.") : (c.retirado ? `La familia lo retiró el ${c.retirado}.` : "");
+  $("verFamilia").href = `familia.html?alumno=${actual.id}`;
+  $("borrar").hidden = !YO.es_admin;
+  pintarAsignadas();
+  $("editor").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+// ---------- docentes a cargo del alumno ----------
+function pintarAsignadas() {
+  const asig = actual.docentes || [];
+  $("asignadas").innerHTML = asig.length ? asig.map(d => `<span class="chip">${esc(d.nombre)}${YO.es_admin || d.id === YO_ID ? ` <button type="button" class="quitar" data-id="${d.id}" title="${d.id === YO_ID ? "Dejar de tenerlo asignado" : "Quitar"}">×</button>` : ""}</span>`).join("")
+    : `<p class="muted">Ninguna docente asignada: solo lo ven las admins.</p>`;
+  $("asignadas").querySelectorAll("button[data-id]").forEach(b => b.onclick = () => cambiarAsignacion(Number(b.dataset.id), false));
+  const libres = DOCENTES.filter(d => !asig.some(a => a.id === d.id));
+  $("asignarFila").hidden = !libres.length;
+  $("asignarSel").innerHTML = libres.map(d => `<option value="${d.id}">${esc(d.nombre)}${d.id === YO_ID ? " (yo)" : ""}</option>`).join("");
+}
+async function cambiarAsignacion(docenteId, sumar) {
+  if (!sumar && docenteId === YO_ID && !YO.es_admin && !confirm(`Si te quitás, vas a dejar de ver a ${actual.nombre}. ¿Seguro?`)) return;
+  try {
+    const r = await api("api/fichas", { method: "POST", body: { accion: sumar ? "asignar" : "desasignar", id: actual.id, docente_id: docenteId } });
+    if (!r.alumno) { actual = null; $("editor").hidden = true; return cargarAlumnos(); }
+    Object.assign(ALUMNOS.find(a => a.id === actual.id), r.alumno); pintarLista(); pintarAsignadas(); msg("msgEd", "Docentes a cargo actualizadas ✓");
+  } catch (e) { msg("msgEd", e.message, true); }
+}
+$("asignarBtn").onclick = () => $("asignarSel").value && cambiarAsignacion(Number($("asignarSel").value), true);
+
+$("consDado").onchange = () => { if ($("consDado").checked && !$("consFecha").value) $("consFecha").value = new Date().toLocaleDateString("en-CA"); };
+
+$("guardar").onclick = async () => {
+  if (!actual) return;
+  const contactos = [...$("contactos").querySelectorAll(".contacto")].map(d => Object.fromEntries([...d.querySelectorAll("input")].map(i => [i.dataset.k, i.value.trim()])))
+    .filter(c => c.nombre || c.email || c.telefono);
+  const apoyos = Object.fromEntries([...$("apoyos").querySelectorAll("textarea")].map(t => [t.dataset.k, t.value]));
+  const objetivos = [...$("objetivos").querySelectorAll("input")].map(i => i.value.trim()).filter(Boolean);
+  const consentimiento = $("consDado").checked ? { dado: true, quien: $("consQuien").value.trim(), fecha: $("consFecha").value } : { dado: false };
+  const sinCambioCons = !!actual.consentimiento?.dado === consentimiento.dado && (!consentimiento.dado || (actual.consentimiento.quien === consentimiento.quien && actual.consentimiento.fecha === consentimiento.fecha));
+  msg("msgEd", "Guardando…");
+  try {
+    const r = await api("api/fichas", { method: "POST", body: { accion: "guardar", id: actual.id, nombre: $("edNombre").value, contactos, apoyos, objetivos, ...(sinCambioCons ? {} : { consentimiento }) } });
+    Object.assign(ALUMNOS.find(a => a.id === actual.id), r.alumno);
+    abrir(actual.id);
+    const i = r.invitaciones || {};
+    msg("msgEd", "Ficha guardada ✓" + (i.enviadas?.length ? ` Le mandamos la invitación a ${i.enviadas.join(", ")}.` : "")
+      + (i.fallidas?.length ? ` No pudimos mandar la invitación a ${i.fallidas.join(", ")}: probá con «mandar invitación».` : ""), !!i.fallidas?.length);
+  } catch (e) { msg("msgEd", e.message, true); }
+};
+$("borrar").onclick = async () => {
+  if (!actual || !confirm(`¿Borrar a ${actual.nombre}, su ficha y los días publicados para su familia? No se puede deshacer.`)) return;
+  try { await api("api/fichas", { method: "POST", body: { accion: "borrar", id: actual.id } }); actual = null; $("editor").hidden = true; cargarAlumnos(); }
+  catch (e) { msg("msgEd", e.message, true); }
+};
+
+// ---------- docentes ----------
+async function cargarDocentes() {
+  try {
+    const r = await api("api/docentes");
+    $("listaDoc").innerHTML = r.docentes.map(d => `<div class="fila-al" style="cursor:default"><span><b>${esc(d.nombre)}</b> <span class="muted">· ${esc(d.email)}</span></span>
+      <span>${d.es_plataforma ? '<span class="sello avanzando">plataforma</span>' : ""} ${d.es_admin ? '<span class="sello avanzando">admin</span>' : ""}
+        ${YO.es_plataforma && d.activo && d.id !== r.yo ? `<button class="enlace" data-plat="${d.id}" data-valor="${d.es_plataforma ? "" : "1"}" style="font-size:14px">${d.es_plataforma ? "quitar plataforma" : "hacer plataforma"}</button>` : ""} ${!d.activo ? '<span class="sello">inactiva</span>' : (YO.es_admin && d.id !== r.yo ? `<button class="quitar" data-id="${d.id}" style="font-size:14px">desactivar</button>` : "")}</span></div>`).join("");
+    $("listaDoc").querySelectorAll("button[data-id]").forEach(b => b.onclick = async () => {
+      if (!confirm("¿Desactivar esta cuenta? No va a poder entrar más.")) return;
+      try { await api("api/docentes", { method: "POST", body: { accion: "desactivar", id: Number(b.dataset.id) } }); cargarDocentes(); } catch (e) { alert(e.message); }
+    });
+    $("listaDoc").querySelectorAll("button[data-plat]").forEach(b => b.onclick = async () => {
+      const si = !!b.dataset.valor;
+      if (!confirm(si ? "¿Darle acceso de plataforma? Va a ver todas las escuelas y aprobar directoras." : "¿Quitarle el acceso de plataforma?")) return;
+      try { await api("api/docentes", { method: "POST", body: { accion: "plataforma", id: Number(b.dataset.plat), valor: si } }); cargarDocentes(); } catch (e) { alert(e.message); }
+    });
+    $("nuevaDoc").hidden = !YO.es_admin;
+  } catch (e) { $("listaDoc").textContent = e.message; }
+}
+$("fDoc").onsubmit = async ev => {
+  ev.preventDefault();
+  try {
+    const r = await api("api/docentes", { method: "POST", body: { accion: "crear", nombre: $("ndNombre").value, email: $("ndEmail").value, es_admin: $("ndAdmin").checked } });
+    msg("msgDoc", r.docente.avisada ? `Listo. Le mandamos un mail a ${r.docente.email}: entra en ${location.origin}/login.html con su email y un código.`
+      : `Listo, la cuenta está activa, pero no pudimos mandarle el mail. Avisale que entre en ${location.origin}/login.html con su email.`);
+    ev.target.reset(); cargarDocentes();
+  } catch (e) { msg("msgDoc", e.message, true); }
+};
+
+// ---------- solicitudes (solo admin) ----------
+const fecha = t => { if (!t) return ""; const d = new Date(t); return isNaN(d) ? String(t) : d.toLocaleString("es-AR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); };
+async function cargarSolicitudes() {
+  try {
+    const r = await api("api/solicitudes");
+    $("nSol").textContent = r.pendientes.length; $("nSol").hidden = !r.pendientes.length;
+    // Por defecto: la escuela de Puente con el mismo CUE; si no existe y eligió del padrón, crearla desde el padrón; si no, la mía.
+    const opciones = s => {
+      if (!r.plataforma) return r.escuelas.map(e => `<option value="${e.id}" selected>${esc(e.nombre)} (la mía)</option>`).join("");
+      const elegida = s.escuela_cue_id ? String(s.escuela_cue_id) : s.padron ? "padron" : String(r.mi_escuela);
+      return (s.padron ? `<option value="padron" selected>Crear desde el padrón: ${esc(Puente.tituloEscuela(s.padron.nombre))} (${esc(Puente.tituloEscuela(s.padron.localidad))})</option>` : "")
+        + r.escuelas.map(e => `<option value="${e.id}" ${String(e.id) === elegida ? "selected" : ""}>${esc(e.nombre)}${e.id === r.mi_escuela ? " (la mía)" : ""}${e.cue && e.cue === s.cue ? " · mismo CUE" : ""}</option>`).join("")
+        + `<option value="nueva">Escuela nueva…</option>`;
+    };
+    $("listaSol").innerHTML = r.pendientes.length ? r.pendientes.map(s => `<div class="sol" data-id="${s.id}" ${s.es_director && r.plataforma ? 'data-dir="1"' : ""}>
+        <b>${esc(s.nombre)}</b> <span class="muted">· ${esc(s.email)} · ${fecha(s.creado)}</span>
+        ${s.es_director ? `<span class="sello avanzando">dice ser director/a</span>` : ""}
+        <div>Escuela: <strong>${esc(s.escuela)}</strong>${s.rol ? ` · ${esc(s.rol)}` : ""}</div>
+        ${s.cue ? `<div class="muted">La eligió del padrón oficial: CUE ${esc(s.cue)}${s.escuela_cue_id ? " · ya está en Puente" : ""}${s.padron?.modalidad ? " · " + esc(s.padron.modalidad) : ""}</div>` : ""}
+        ${s.mensaje ? `<div class="msj">${esc(s.mensaje)}</div>` : ""}
+        <label>Escuela en Puente</label><select data-k="escuela">${opciones(s)}</select>
+        <input type="text" data-k="nueva" maxlength="120" value="${esc(s.escuela)}" hidden placeholder="Nombre de la escuela nueva">
+        <label class="check"><input type="checkbox" data-k="admin" ${s.es_director ? "checked" : ""}> También puede administrar la escuela (sumar docentes, ver solicitudes y todos los alumnos)</label>
+        <div class="fila"><button class="big chico" data-a="aprobar">Aprobar</button><button class="big alt chico" data-a="rechazar" style="color:var(--bad);border-color:var(--bad)">Rechazar</button></div>
+      </div>`).join("") : `<p class="vacio">No hay pedidos pendientes.</p>`;
+    $("listaSol").querySelectorAll(".sol").forEach(el => {
+      const sel = el.querySelector('[data-k="escuela"]'), nueva = el.querySelector('[data-k="nueva"]'), adm = el.querySelector('[data-k="admin"]');
+      sel.onchange = () => { nueva.hidden = sel.value !== "nueva"; if (sel.value === "nueva" || sel.value === "padron" || el.dataset.dir) { adm.checked = true; adm.disabled = true; } else adm.disabled = false; };
+      sel.onchange();
+      el.querySelector('[data-a="aprobar"]').onclick = () => resolver(el, "aprobar",
+        sel.value === "nueva" ? { escuela_nueva: nueva.value } : sel.value === "padron" ? { desde_padron: true } : r.plataforma ? { escuela_id: Number(sel.value) } : {}, adm.checked);
+      el.querySelector('[data-a="rechazar"]').onclick = () => resolver(el, "rechazar");
+    });
+    $("resueltasCard").hidden = !r.resueltas.length;
+    $("listaRes").innerHTML = r.resueltas.map(s => `<div class="fila-al" style="cursor:default"><span>${esc(s.nombre)} <span class="muted">· ${esc(s.email)} · ${fecha(s.resuelto)}</span></span>
+      <span class="sello ${s.estado === "aprobada" ? "avanzando" : "estancado"}">${s.estado}</span></div>`).join("");
+  } catch (e) { $("listaSol").textContent = e.message; }
+}
+async function resolver(el, accion, escuela = {}, esAdmin = false) {
+  const nombre = el.querySelector("b").textContent, id = Number(el.dataset.id);
+  let body;
+  if (accion === "aprobar") {
+    if ("escuela_nueva" in escuela && !escuela.escuela_nueva.trim()) return msg("msgSol", "Escribí el nombre de la escuela nueva.", true);
+    if (!confirm(`¿Dar acceso a ${nombre}?${esAdmin ? " También va a poder administrar." : ""} Le mandamos un mail para que entre.`)) return;
+    body = { accion, id, ...escuela, es_admin: esAdmin };
+  } else {
+    if (!confirm(`¿Rechazar el pedido de ${nombre}?`)) return;
+    body = { accion, id, avisar: confirm(`¿Le mandamos un mail amable a ${nombre} avisando que por ahora no se habilitó? (Aceptar = sí, Cancelar = no)`) };
+  }
+  el.querySelectorAll("button").forEach(b => b.disabled = true);
+  try {
+    const r = await api("api/solicitudes", { method: "POST", body });
+    msg("msgSol", accion === "aprobar"
+      ? (r.avisada ? `${nombre} ya tiene acceso. Le mandamos un mail.` : `${nombre} ya tiene acceso, pero no pudimos mandarle el mail: avisale que entre en ${location.origin}/login.html con su email.`)
+      : `Pedido de ${nombre} rechazado${r.avisada ? " (le avisamos por mail)" : ""}.`);
+    await cargarSolicitudes();
+  } catch (e) { msg("msgSol", e.message, true); el.querySelectorAll("button").forEach(b => b.disabled = false); }
+}
+
+// ---------- ficha de la escuela (solo admin) ----------
+const CAMPOS_ESC = { feNombre: "nombre", feCue: "cue", feDomicilio: "domicilio", feLocalidad: "localidad", feDepartamento: "departamento",
+  feModalidad: "modalidad", feEmail: "email", feTelefono: "telefono", feDirNombre: "directivo_nombre", feDirEmail: "directivo_email",
+  feResNombre: "responsable_datos_nombre", feResEmail: "responsable_datos_email", feAvalFecha: "aval_fecha", feAvalPor: "aval_por", feNotas: "notas" };
+const acEscuela = Puente.autocompletarEscuela($("feBuscar"), {
+  alElegir: async e => {
+    try {
+      const r = await api("api/escuelas?cue=" + encodeURIComponent(e.cue));
+      for (const [id, k] of Object.entries(CAMPOS_ESC)) if (k in r.ficha) $(id).value = k === "nombre" ? Puente.tituloEscuela(r.ficha[k]) : r.ficha[k] || "";
+      msg("msgEsc", "Completamos los datos del padrón. Revisalos, sumá el directivo y el responsable de datos, y guardá.");
+    } catch (err) { msg("msgEsc", err.message, true); }
+  }
+});
+function pintarEscuela(f) {
+  for (const [id, k] of Object.entries(CAMPOS_ESC)) $(id).value = f[k] || "";
+  $("feAval").checked = !!f.aval_firmado;
+  $("feBuscar").value = "";
+}
+async function cargarEscuela() {
+  try { pintarEscuela((await api("api/escuelas?ficha=1")).ficha || {}); msg("msgEsc", ""); }
+  catch (e) { msg("msgEsc", e.message, true); }
+}
+$("feAval").onchange = () => { if ($("feAval").checked && !$("feAvalFecha").value) $("feAvalFecha").value = new Date().toLocaleDateString("en-CA"); };
+$("fEscuela").onsubmit = async ev => {
+  ev.preventDefault();
+  const body = { accion: "guardar_ficha", aval_firmado: $("feAval").checked };
+  for (const [id, k] of Object.entries(CAMPOS_ESC)) body[k] = $(id).value.trim();
+  msg("msgEsc", "Guardando…");
+  try {
+    const r = await api("api/escuelas", { method: "POST", body });
+    pintarEscuela(r.ficha); acEscuela.limpiar();
+    msg("msgEsc", "Ficha de la escuela guardada ✓" + (r.ficha.cue && !r.en_padron ? " (ese CUE no está en el padrón de Santa Fe: revisalo)" : ""));
+  } catch (e) { msg("msgEsc", e.message, true); }
+};
+
+// ---------- escuelas (solo plataforma) ----------
+async function cargarEscuelas() {
+  try {
+    const r = await api("api/escuelas?todas=1");
+    $("listaEscs").innerHTML = r.escuelas.length ? r.escuelas.map(e => `<div class="fila-al" style="cursor:default">
+        <span><b>${esc(e.nombre)}</b> <span class="muted">· ${e.cue ? "CUE " + esc(e.cue) : "sin CUE"}${e.localidad ? " · " + esc(e.localidad) : ""}
+          · ${e.docentes} docente${e.docentes === 1 ? "" : "s"} (${e.admins} admin) · ${e.alumnos} alumno${e.alumnos === 1 ? "" : "s"}</span></span>
+        <span><span class="sello ${e.aval_firmado ? "avanzando" : "estancado"}">${e.aval_firmado ? "con aval" : "sin aval"}</span>
+          ${!e.activa ? '<span class="sello">desactivada</span>' : ""}
+          ${e.id !== r.mi_escuela ? `<button class="enlace" data-esc="${e.id}" data-activa="${e.activa ? "1" : ""}" style="font-size:14px">${e.activa ? "desactivar" : "reactivar"}</button>` : ""}</span></div>`).join("")
+      : `<p class="vacio">Todavía no hay escuelas.</p>`;
+    $("listaEscs").querySelectorAll("button[data-esc]").forEach(b => b.onclick = async () => {
+      const desactivar = !!b.dataset.activa;
+      if (desactivar && !confirm("¿Desactivar esta escuela? Sus docentes y familias no van a poder entrar hasta que la reactives.")) return;
+      try { await api("api/escuelas", { method: "POST", body: { accion: desactivar ? "desactivar_escuela" : "activar_escuela", id: Number(b.dataset.esc) } }); msg("msgEscs", desactivar ? "Escuela desactivada." : "Escuela reactivada ✓"); cargarEscuelas(); }
+      catch (e) { msg("msgEscs", e.message, true); }
+    });
+  } catch (e) { msg("msgEscs", e.message, true); }
+}
+
+$("salir").onclick = Puente.salir;
+</script>
+</body>
+</html>

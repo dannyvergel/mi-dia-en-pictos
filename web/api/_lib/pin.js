@@ -1,10 +1,10 @@
 // PIN de docente: protege cargar días, correr el agente y publicar para las familias.
 // En Vercel se define DOCENTE_PIN; sin variable, el PIN de demo es "2026".
 const crypto = require("crypto");
-const PIN = String(process.env.DOCENTE_PIN || "2026");
+const pinEsperado = () => String(process.env.DOCENTE_PIN || "2026");
 function pinOk(req) {
   const p = String(req.headers["x-docente-pin"] || "");
-  const a = crypto.createHash("sha256").update(p).digest(), b = crypto.createHash("sha256").update(PIN).digest();
+  const a = crypto.createHash("sha256").update(p).digest(), b = crypto.createHash("sha256").update(pinEsperado()).digest();
   return crypto.timingSafeEqual(a, b);
 }
 function exigirPin(req, res) {
