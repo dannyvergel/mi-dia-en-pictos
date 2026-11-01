@@ -19,7 +19,7 @@ module.exports = async (req, res) => {
     const yo = await exigirDocente(req, res);
     if (!yo) return;
     if (req.method === "GET") {
-      const docentes = await q("SELECT id, nombre, email, es_admin, es_plataforma, activo FROM docentes WHERE escuela_id = $1 ORDER BY nombre", [yo.escuela_id]);
+      const docentes = await q("SELECT id, nombre, email, rol, es_admin, es_plataforma, activo FROM docentes WHERE escuela_id = $1 ORDER BY nombre", [yo.escuela_id]);
       return res.status(200).json({ docentes: docentes.map(d => ({ ...d, es_plataforma: S.esPlataforma(d) })), yo: yo.id });
     }
     if (req.method !== "POST") return res.status(405).json({ error: "Método no permitido" });

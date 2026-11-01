@@ -13,7 +13,12 @@ const dbActiva = () => inyectado || !!urlBase();
 function crearCliente() {
   const { neon } = require("@neondatabase/serverless");
   const sql = neon(urlBase());
-  return { query: async (text, params = []) => { const r = await sql.query(text, params); return Array.isArray(r) ? r : (r.rows || []); } };
+  const filas = r => Array.isArray(r) ? r : (r.rows || []);
+  return {
+    query: async (text, params = []) => filas(await sql.query(text, params)),
+    // Transacción no interactiva por HTTP: todas las sentencias se mandan juntas; si una falla, no queda ninguna.
+    transaccion: async stmts => (await sql.transaction(stmts.map(([t, p]) => sql.query(t, p || [])))).map(filas)
+  };
 }
 
 // Crea las tablas si faltan (idempotente). Se corre una vez por instancia.
@@ -31,11 +36,17 @@ async function db() {
 
 async function q(text, params) { return (await db()).query(text, params); }
 async function uno(text, params) { return (await q(text, params))[0] || null; }
+// Varias sentencias [[sql, params], …] en una sola transacción (todo o nada). Devuelve las filas de cada una.
+// Ojo: no es interactiva, así que una sentencia no puede usar el resultado de otra salvo por SQL (subconsultas / claves naturales).
+async function transaccion(stmts) { return (await db()).transaccion(stmts); }
 
 // Solo para tests: base PGlite (u otra con .query que devuelva {rows}).
 function usarBaseDePrueba(pg) {
   inyectado = !!pg; esquemaListo = null;
-  cliente = pg ? { query: async (t, p = []) => (await pg.query(t, p)).rows } : null;
+  cliente = pg ? {
+    query: async (t, p = []) => (await pg.query(t, p)).rows,
+    transaccion: stmts => pg.transaction(async tx => { const out = []; for (const [t, p] of stmts) out.push((await tx.query(t, p || [])).rows); return out; })
+  } : null;
 }
 
-module.exports = { dbActiva, db, q, uno, asegurarEsquema, usarBaseDePrueba };
+module.exports = { dbActiva, db, q, uno, transaccion, asegurarEsquema, usarBaseDePrueba };

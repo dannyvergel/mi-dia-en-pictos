@@ -150,7 +150,10 @@ const SCHEMA = [
     enviado TIMESTAMPTZ NOT NULL DEFAULT now(),
     enviado_por BIGINT,
     PRIMARY KEY (alumno_id, email)
-  )`
+  )`,
+  // Importación masiva: grado del alumno ("3° B", "Sala de 5") y grado/rol de la docente ("Maestra de 3° B", "Integradora").
+  `ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS grado TEXT NOT NULL DEFAULT ''`,
+  `ALTER TABLE docentes ADD COLUMN IF NOT EXISTS rol TEXT NOT NULL DEFAULT ''`
 ];
 
 module.exports = { SCHEMA };

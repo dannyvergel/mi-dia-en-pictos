@@ -9,6 +9,8 @@
 //   POST accion=invitar { id, email }  → reenviar invitación (429 si se mandó hace menos de 24 h)
 //   POST accion=asignar | desasignar { id, docente_id }   (asignar: admins y docentes asignadas; quitar a otra: solo admins)
 //   POST accion=borrar  { id }
+//   POST accion=importar_previa | importar_confirmar | importar_enviar   (solo admins de escuela / plataforma)
+//                                        Importación masiva de docentes y alumnos con familias: ver _lib/importacion.js
 // Familia: ve solo los alumnos vinculados a su email (los emails de "contactos" de la ficha), de escuelas activas.
 //   GET                                → sus alumnos con la ficha (solo lectura)
 //   POST accion=consentir   { id, dado }
@@ -19,11 +21,12 @@ const F = require("./_lib/fichas");
 const { borrarFamilia } = require("./_lib/almacen");
 const A = require("./_lib/alumnos");
 const inv = require("./_lib/invitaciones");
+const importacion = require("./_lib/importacion");
 const { cuerpo, consulta, exigirJson, manejarError, errorPublico } = require("./_lib/http");
 
-const SELECT = `SELECT a.id, a.nombre, a.blob_token IS NOT NULL AS publicado, f.contactos, f.apoyos, f.objetivos, f.consentimiento, f.actualizado
+const SELECT = `SELECT a.id, a.nombre, a.grado, a.blob_token IS NOT NULL AS publicado, f.contactos, f.apoyos, f.objetivos, f.consentimiento, f.actualizado
   FROM alumnos a LEFT JOIN fichas f ON f.alumno_id = a.id`;
-const forma = r => r && ({ id: Number(r.id), nombre: r.nombre, publicado: !!r.publicado, contactos: r.contactos || [], apoyos: r.apoyos || {},
+const forma = r => r && ({ id: Number(r.id), nombre: r.nombre, grado: r.grado || "", publicado: !!r.publicado, contactos: r.contactos || [], apoyos: r.apoyos || {},
   objetivos: r.objetivos || [], consentimiento: r.consentimiento || { dado: false }, actualizado: r.actualizado });
 
 // Suma a cada alumno sus docentes asignadas y cuándo se invitó a cada email de contacto.
@@ -66,6 +69,7 @@ async function docente(req, res, yo) {
       yo: Number(yo.id), es_admin: !!yo.es_admin });
   }
   const b = cuerpo(req);
+  if (String(b.accion || "").startsWith("importar_")) return importacion.manejar(req, res, yo, b);
   if (b.accion === "crear") {
     const nombre = F.validarNombre(b.nombre);
     const contactos = F.validarContactos(b.contactos);

@@ -8,6 +8,7 @@ Estado: ☐ pendiente · ☑ hecho
 - ☐ Mergear PR #1 (login, fichas, solicitudes de acceso, chat blindado: commit 786cdae) a `main`.
 - ☐ Prueba de punta a punta en producción: setup del admin (plataforma) → solicitud de una directora → aprobación → solicitud de una seño de esa escuela (le llega a la directora) → aprobación → ficha con email de familia (le llega la invitación) → asignar docente → publicación → familia entra por código y da consentimiento → chat.
 - ☐ Cargar solo alumnos y familias ficticios. Nada real en producción hasta cerrar la sección 3.
+- ☐ Probar la importación masiva en producción con una planilla ficticia (XLSX y CSV): vista previa con errores → corregir → confirmar → reimportar (no duplica) → llegan bienvenidas e invitaciones.
 - ☐ Firewall: pasar Bot Protection y AI Bots de *log* a *challenge/deny* después de revisar lo registrado.
 - ☐ Rotar el token de Vercel (se compartió por chat).
 - ☐ Aviso BETA visible y créditos ARASAAC (CC BY-NC-SA) en todas las páginas.
@@ -35,9 +36,12 @@ Estado: ☐ pendiente · ☑ hecho
 - ☐ Definir responsable del tratamiento (¿la escuela? ¿Puente?) y un contacto para reclamos.
 - ☐ Acuerdo de confidencialidad para docentes que usan la plataforma.
 - ☐ Revisar el texto de la invitación a familias (qué se comparte, consentimiento) con la escuela antes de mandar invitaciones reales.
+- ☐ Antes de importar una planilla real: que la escuela confirme que tiene el consentimiento de esas familias para cargar sus emails y teléfonos, y que la planilla tiene solo nombre de pila (sin apellidos, diagnósticos ni datos de salud). Borrar la planilla de la compu después de importar.
 
 ## 5. Operación del piloto
 - ☐ Una sola escuela piloto, pocos alumnos, plazo definido.
+- ☑ Importación masiva de docentes y alumnos con familias (CSV/XLSX, vista previa, todo o nada, idempotente, mails solo al confirmar).
+- ☐ Verificar el límite de envíos de Resend del plan contratado antes de importar muchas familias juntas (hoy: tandas de 20 con pausa).
 - ☐ Procedimiento para dar de baja a una familia o alumno y borrar sus datos (incluye días en Blob e historial de chat).
 - ☐ Plazo de retención: días publicados, historial de chat (30 días) y fichas.
 - ☐ Registro de accesos de docentes y alertas de intentos fallidos.

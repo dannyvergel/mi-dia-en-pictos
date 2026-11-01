@@ -15,6 +15,14 @@
   nav button[data-s="solicitudes"] { --tab: #e8998d; }
   nav button[data-s="escuela"] { --tab: #b9a3d6; }
   nav button[data-s="escuelas"] { --tab: #f2c46d; }
+  nav button[data-s="importar"] { --tab: #9ccfc4; }
+  .imp-tabla { overflow-x: auto; margin: 10px 0; }
+  .imp-tabla table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .imp-tabla th, .imp-tabla td { text-align: left; vertical-align: top; padding: 5px 8px; border-bottom: 1px solid var(--renglon); }
+  .imp-tabla th { position: sticky; top: 0; background: #fffef9; }
+  .imp-tabla tr.imp-error td { background: #fbefe9; }
+  .imp-tabla tr.imp-duplicado td { color: var(--gris); }
+  .imp-bajar { display: flex; gap: 8px; flex-wrap: wrap; }
   .chip { display: inline-flex; align-items: center; gap: 2px; border: 1px solid var(--borde); border-radius: 14px; padding: 2px 4px 2px 10px; margin: 3px 4px 3px 0; background: #fffef9; font-size: 15px; }
   .chip .quitar { font-size: 18px; padding: 0 4px; }
   .inv { font-size: 14px; margin-top: 4px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
@@ -49,6 +57,7 @@
   <button data-s="solicitudes" id="tabSol" hidden>Solicitudes <span class="cuenta-n" id="nSol" hidden></span></button>
   <button data-s="escuela" id="tabEsc" hidden>Escuela</button>
   <button data-s="escuelas" id="tabEscs" hidden>Escuelas</button>
+  <button data-s="importar" id="tabImp" hidden>Importar</button>
   <button data-s="docentes">Docentes</button>
   <button data-s="cuenta">Mi cuenta</button>
 </nav>
@@ -119,6 +128,37 @@
       <div id="listaEscs"><p class="vacio">Cargando…</p></div>
       <p class="muted" id="msgEscs"></p>
     </div>
+  </section>
+
+  <section id="importar">
+    <div class="card cinta">
+      <span class="rotulo">Importar docentes y alumnos</span>
+      <p class="muted">Cargá de una vez a las docentes de la escuela y a los alumnos con sus familias. Primero ves una vista previa fila por fila; no se guarda nada hasta que confirmás. Si importás la misma planilla de nuevo, no se duplica nada.</p>
+      <div class="aviso">Datos de menores: solo nombre de pila (ej. «Juan» o «Juan P.»), sin apellidos, diagnósticos, datos de salud ni fotos.</div>
+      <h3>1. Bajá la plantilla</h3>
+      <div class="imp-bajar">
+        <button type="button" class="big alt chico" id="impBajarXlsx" style="width:auto;margin:0;padding:0 16px">Excel (.xlsx, dos hojas)</button>
+        <button type="button" class="big alt chico" id="impBajarDoc" style="width:auto;margin:0;padding:0 16px">CSV docentes</button>
+        <button type="button" class="big alt chico" id="impBajarAl" style="width:auto;margin:0;padding:0 16px">CSV alumnos y familias</button>
+      </div>
+      <p class="muted">Docentes: nombre, email, rol (grado o función) y admin (sí/no). Alumnos: nombre de pila, grado, emails de sus docentes y hasta 6 contactos de la familia (nombre, vínculo, email, teléfono). Las instrucciones están en la hoja «instrucciones» del Excel. Hasta 500 filas por vez.</p>
+      <h3 style="margin-top:16px">2. Subí la planilla completa</h3>
+      <div class="fila" id="impEscuelaFila" hidden><label for="impEscuela" style="margin:0">Escuela</label><select id="impEscuela"></select></div>
+      <input type="file" id="impArchivo" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" multiple aria-label="Archivos para importar">
+      <div id="impArchivos" style="margin:8px 0"></div>
+      <label class="check"><input type="checkbox" id="impOmitir"> Si hay filas con error, importar igual las filas válidas</label>
+      <button class="big" id="impPrevia" disabled>Ver vista previa</button>
+      <p class="muted" id="msgImp"></p>
+    </div>
+    <div class="card" id="impResultado" hidden>
+      <span class="rotulo">3. Vista previa</span>
+      <div id="impResumen"></div>
+      <label class="check"><input type="checkbox" id="impSoloErr"> Ver solo las filas con error</label>
+      <div id="impTablas"></div>
+      <p class="muted" id="impNota"></p>
+      <button class="big" id="impConfirmar" disabled>Confirmar e importar</button>
+    </div>
+    <div class="card" id="impFinal" hidden></div>
   </section>
 
   <section id="escuela">
@@ -193,6 +233,7 @@
 <footer>Datos de menores protegidos: solo nombre de pila, sin fotos ni diagnósticos.</footer>
 <script src="cuenta.js"></script>
 <script src="escuelas.js"></script>
+<script src="importar.js"></script>
 <script>
 const $ = id => document.getElementById(id);
 const { api, esc } = Puente;
@@ -206,6 +247,7 @@ document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
   if (b.dataset.s === "solicitudes") cargarSolicitudes();
   if (b.dataset.s === "escuela") cargarEscuela();
   if (b.dataset.s === "escuelas") cargarEscuelas();
+  if (b.dataset.s === "importar") Importar.iniciar(YO);
 });
 const abrirTab = s => document.querySelector(`nav button[data-s="${s}"]`)?.click();
 
@@ -220,6 +262,7 @@ const abrirTab = s => document.querySelector(`nav button[data-s="${s}"]`)?.click
   cargarAlumnos();
   if (YO.es_admin) { $("tabEsc").hidden = false; if (location.hash === "#escuela") abrirTab("escuela"); }
   if (YO.es_plataforma) { $("tabEscs").hidden = false; if (location.hash === "#escuelas") abrirTab("escuelas"); }
+  if (YO.es_admin || YO.es_plataforma) { $("tabImp").hidden = false; if (location.hash === "#importar") abrirTab("importar"); }
   if (YO.es_admin || YO.es_plataforma) { $("tabSol").hidden = false; await cargarSolicitudes(); if (location.hash === "#solicitudes") abrirTab("solicitudes"); }
 })();
 
@@ -235,7 +278,7 @@ async function cargarAlumnos(seleccionar) {
 }
 function pintarLista() {
   $("lista").innerHTML = ALUMNOS.length ? ALUMNOS.map(a => `<div class="fila-al ${actual?.id === a.id ? "on" : ""}" data-id="${a.id}">
-      <span><b>${esc(a.nombre)}</b> <span class="muted">· ${a.contactos.length} contacto${a.contactos.length === 1 ? "" : "s"} · ${a.objetivos.length} objetivo${a.objetivos.length === 1 ? "" : "s"}${YO.es_admin ? " · " + (a.docentes.length ? a.docentes.map(d => esc(d.nombre)).join(", ") : "sin docente asignada") : ""}</span></span>
+      <span><b>${esc(a.nombre)}</b> <span class="muted">${a.grado ? "· " + esc(a.grado) + " " : ""}· ${a.contactos.length} contacto${a.contactos.length === 1 ? "" : "s"} · ${a.objetivos.length} objetivo${a.objetivos.length === 1 ? "" : "s"}${YO.es_admin ? " · " + (a.docentes.length ? a.docentes.map(d => esc(d.nombre)).join(", ") : "sin docente asignada") : ""}</span></span>
       <span class="sello ${a.consentimiento?.dado ? "avanzando" : "estancado"}">${a.consentimiento?.dado ? "con consentimiento" : "sin consentimiento"}</span></div>`).join("")
     : `<p class="vacio">${YO.es_admin ? "Todavía no hay alumnos en la escuela." : "Todavía no tenés alumnos. Agregá uno o pedile a la admin de la escuela que te asigne los tuyos."}</p>`;
   $("lista").querySelectorAll(".fila-al").forEach(el => el.onclick = () => abrir(Number(el.dataset.id)));

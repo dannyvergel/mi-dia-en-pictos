@@ -77,6 +77,20 @@ Plataforma (ADMIN_EMAIL y quien ella promueva)
 - **Docente**: ve y edita solo los **alumnos asignados** (tabla `alumno_docentes`): ficha, *Cuaderno del día* (`/api/dia`), Agente de Progreso, publicar para la familia y la vista previa del chat. Quien crea un alumno queda asignada. Una docente asignada puede sumar a otra de su escuela (maestra integradora, terapeuta…; puede haber varias); quitar a otra solo lo hace una admin, y cada una se puede quitar a sí misma.
 - **Migración**: se aplica sola. Columnas nuevas idempotentes (`es_plataforma`, `escuelas.activa`, `solicitudes.destino/escuela_id/es_director`) y, **una sola vez** (tabla `migraciones`), cada alumno que ya existía sin asignaciones queda asignado a todas las docentes activas de su escuela, así nadie deja de ver lo que veía. Las solicitudes pendientes de antes quedan para la plataforma.
 
+### 📥 Importación masiva (docentes, alumnos y familias)
+*Panel → Importar* (solo admins de escuela y plataforma; una docente sin admin recibe 403). Sirve para arrancar una escuela sin cargar ficha por ficha.
+- **Plantillas**: Excel `.xlsx` con dos hojas (`docentes`, `alumnos-familias`) más una hoja de instrucciones, o dos CSV (separados por `;`, con BOM para que Excel en español abra bien las tildes). Se generan en el navegador.
+  - *docentes*: `nombre`, `email` (obligatorios), `rol` (grado o función), `admin` (sí/no; vacío = no cambia).
+  - *alumnos-familias*: `nombre` (solo nombre de pila), `grado` (obligatorios), `docentes` (emails separados por coma: docentes de la escuela o de la hoja de docentes) y `contacto1_nombre/vinculo/email/telefono` … hasta 6 contactos.
+- **Lectura**: el navegador lee el XLSX con SheetJS (`web/vendor/xlsx.mini.min.js` 0.20.3, Apache-2.0, copiado en el repo y cargado con SRI solo al usarlo) y manda las filas como JSON. Los CSV se mandan como texto y los lee el servidor: separador `;`, `,` o tab, comillas, BOM, UTF-8 (o Windows-1252 si Excel lo guardó así). Encabezados sin importar tildes/mayúsculas; columnas que no son de la plantilla se ignoran con aviso.
+- **1. Vista previa** (`POST /api/fichas` `accion=importar_previa`): valida cada fila contra la base y devuelve su estado (**nuevo / actualiza / duplicado / error**) con mensajes en castellano (email inválido, docente inexistente, alumno duplicado en la escuela, campos obligatorios, nombre con apellido, contactos inválidos, docente de otra escuela, filas vacías ignoradas…). No escribe nada ni manda mails.
+- **2. Confirmar** (`accion=importar_confirmar`): vuelve a validar (no confía en la vista previa) y pide la `huella` de la vista previa (si la planilla cambió, hay que previsualizar de nuevo). **Todo o nada**: si hay alguna fila con error no se importa nada (409), salvo que se marque *importar solo las filas válidas* (`omitir_errores`). Se escribe en **una sola transacción** (Neon: transacción HTTP no interactiva; sentencias por lote con `jsonb_to_recordset`).
+- **Idempotente**: la docente se reconoce por email y el alumno por nombre (+ grado) dentro de la escuela. Reimportar la misma planilla no duplica nada ni reenvía mails. Los contactos se **fusionan** con los de la ficha (por email, o por nombre si el de la ficha no tenía email; una celda vacía no borra nada) y las asignaciones a docentes se **suman** (`alumno_docentes`), nunca se quitan. Un alumno con el mismo nombre en otro grado es error (*alumno duplicado en la escuela*: se pide una inicial). Docentes nuevas quedan activas, sin contraseña (entran con código), en la escuela de quien importa; una docente activa de otra escuela es error; nadie se puede quitar su propio admin por planilla.
+- **Mails solo después de confirmar**: bienvenida (*"Ya tenés acceso a Puente"*) a docentes nuevas o reactivadas (máx. 1 cada 24 h por email) e invitación a cada email nuevo de familia con el helper de invitaciones (1 cada 24 h por email + alumno). Van de a 20 por pedido (con pausa entre envíos para el límite de Resend); el resto vuelve como `pendientes` y el panel los manda con `accion=importar_enviar`. Un mail que falla no deshace nada: se informa cuántos salieron y cuántos fallaron, y las invitaciones se pueden reenviar desde la ficha.
+- **Límites**: hasta 500 filas (docentes + alumnos) y 2 MB por importación; 30 vistas previas cada 10 min, 10 confirmaciones por hora y 120 tandas de envío por hora por docente. Solo JSON; todo lo que viene de la planilla se escapa en el panel y en los mails.
+- **Plataforma**: importa en su escuela o elige otra en el selector (`escuela_id`). Una admin de escuela solo en la suya (403 si pide otra).
+- Columnas nuevas (migración automática): `alumnos.grado` y `docentes.rol`.
+
 **SSO más adelante**: `api/_lib/identidad.js` separa *probar que la persona controla un email* (el proveedor: hoy `_lib/codigos.js`) de *qué cuenta de Puente le toca* (`cuentaPara` / `entrar`, con las reglas de docente activa y familia vinculada). Un proveedor SSO (Google Workspace, Microsoft, OIDC) solo tiene que conseguir un email verificado, llamar a `entrar(res, "docente", email, "sso:google")` y sumarse en `metodos()` (que `/login.html` recibe en `GET /api/auth`).
 
 **Modo demo**: si no hay `DATABASE_URL` (ni `POSTGRES_URL`), todo sigue como antes: PIN de docente y link privado por alumno. Así producción no se rompe hasta conectar la base. Con base conectada, el PIN solo sirve para crear la primera cuenta y los links viejos (`familia.html?t=…`) mandan al login.
@@ -124,11 +138,13 @@ web/api/        Funciones de Vercel: agente.js (Agente de Progreso), dia.js (reg
                 escuelas.js (búsqueda en el padrón y ficha de escuela)
 web/api/_lib/   db.js + schema.js (Postgres/Neon), identidad.js (cuentas y proveedores de ingreso), codigos.js (código por email),
                 padron.js (padrón de escuelas en Postgres y búsqueda), alumnos.js (qué alumnos ve cada docente, asignaciones),
-                invitaciones.js (invitación a familias, 1 cada 24 h), seguridad.js (sesiones, límites), chat.js (chat de la familia: filtros, historial, límites), correo.js + avisos.js (Resend), almacen.js (Blob)
+                invitaciones.js (invitación a familias, 1 cada 24 h), importacion.js (importación masiva CSV/XLSX), seguridad.js (sesiones, límites), chat.js (chat de la familia: filtros, historial, límites), correo.js + avisos.js (Resend), almacen.js (Blob)
 web/familia.html Vista de la familia (con sesión, o con link en modo demo)
 web/login.html  Entrar con código por email (docente o familia) y *Solicitar acceso*
 web/docente.html Panel docente: alumnos (con docentes a cargo e invitaciones), fichas, solicitudes (admin/plataforma), escuela (admin),
-                escuelas (plataforma), docentes, mi cuenta
+                escuelas (plataforma), importar (admin/plataforma), docentes, mi cuenta
+web/importar.js Pestaña Importar: plantillas, lectura de CSV/XLSX, vista previa y confirmación
+web/vendor/     SheetJS (xlsx.mini 0.20.3, Apache-2.0) para leer y armar planillas Excel en el navegador
 web/escuelas.js Buscador de escuelas accesible (combobox) que usan login.html y docente.html
 web/data/       escuelas-santa-fe.json: Padrón Oficial filtrado (lo genera web/scripts/padron.js)
 web/test/       Tests (node --test)
