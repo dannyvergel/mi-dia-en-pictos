@@ -117,7 +117,8 @@
     </div>
   </section>
 </div></main>
-<footer>Datos de menores protegidos: solo nombre de pila, sin fotos ni diagnósticos.<br>Pictogramas: Sergio Palao. Origen: <a href="https://arasaac.org">ARASAAC</a>. Licencia CC BY-NC-SA. Propiedad: Gobierno de Aragón.</footer>
+<footer>Datos de menores protegidos: solo nombre de pila, sin fotos ni diagnósticos.<div id="puente-pie"></div></footer>
+<script src="pie.js" defer></script>
 <script src="cuenta.js"></script>
 <script src="escuelas.js"></script>
 <script>
@@ -131,6 +132,8 @@ const acSolicitud = Puente.autocompletarEscuela($("soEscuela"), { formulario: ()
 function mostrar(s) {
   document.querySelectorAll("section").forEach(x => x.classList.toggle("on", x.id === s));
   document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.s === s));
+  // Las donaciones nunca se muestran del lado de las familias.
+  document.body.classList.toggle("modo-familia", s === "familia");
 }
 document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => mostrar(b.dataset.s));
 const msg = (id, texto, error = true) => { $(id).textContent = texto; $(id).className = error ? "error" : "muted"; };

@@ -185,3 +185,26 @@ footer a { color: var(--gris); }
 .ac-estado:empty { display: none; }
 .ac-elegida { font-size: 13px; color: var(--ok); margin-top: 4px; }
 .ac-elegida .enlace { background: none; border: 0; padding: 0; color: var(--tinta); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; margin-left: 4px; }
+
+/* ---------- Pie común (pie.js): BETA, legales, ARASAAC, comentarios y donaciones ---------- */
+.pie-puente { margin-top: 10px; font-size: 13px; }
+.pie-puente p { margin: 6px 0; }
+.pie-puente .beta { display: inline-block; background: var(--lapiz); color: var(--tinta); font-weight: 700; font-size: 11px; letter-spacing: .5px; padding: 1px 7px; border-radius: 10px; margin-right: 4px; }
+.pie-puente .pie-arasaac { color: var(--gris); }
+.pie-fb-form { max-width: 520px; margin: 8px auto; text-align: left; }
+.pie-fb-form textarea { min-height: 70px; }
+.pie-don { margin: 10px auto 4px; max-width: 620px; }
+.pie-don-txt { color: var(--gris); }
+.pie-don-botones { display: flex; flex-wrap: wrap; gap: 10px 18px; justify-content: center; align-items: flex-start; }
+.pie-don-item { display: flex; flex-direction: column; align-items: center; gap: 4px; max-width: 260px; }
+.pie-don-en { color: var(--gris); font-size: 12px; }
+.boton-don { display: inline-block; border: 1.5px solid var(--tinta); color: var(--tinta); background: #fff; border-radius: 20px; padding: 4px 14px; font-weight: 700; text-decoration: none; font-size: 13px; }
+.boton-don:hover, .boton-don:focus-visible { background: var(--tinta); color: var(--tiza); }
+table.tabla { border-collapse: collapse; width: 100%; font-size: 13px; }
+table.tabla th, table.tabla td { text-align: left; padding: 4px 8px 4px 0; border-bottom: 1px dashed var(--borde); vertical-align: top; }
+/* Páginas legales */
+.legal { max-width: 760px; }
+.legal h3 { font-family: var(--mano); font-weight: 400; font-size: 22px; margin: 18px 0 4px; }
+.borrador { background: #fff4d6; border: 1.5px dashed var(--warn); border-radius: 10px; padding: 10px 12px; margin: 8px 0 14px; }
+.pie-puente .enlace { background: none; border: 0; padding: 0; color: var(--tinta); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
+body.modo-familia .pie-don { display: none !important; }

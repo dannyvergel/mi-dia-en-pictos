@@ -62,6 +62,7 @@
   <button data-s="escuela" id="tabEsc" hidden>Escuela</button>
   <button data-s="escuelas" id="tabEscs" hidden>Escuelas</button>
   <button data-s="importar" id="tabImp" hidden>Importar</button>
+  <button data-s="registro" id="tabReg" hidden>Registro</button>
   <button data-s="docentes">Docentes</button>
   <button data-s="cuenta">Mi cuenta</button>
 </nav>
@@ -225,6 +226,19 @@
     </div>
   </section>
 
+  <section id="registro">
+    <div class="card">
+      <span class="rotulo">Registro de accesos</span>
+      <p class="muted">Ingresos, intentos fallidos, fichas vistas, exportaciones, bajas y comentarios. Sin datos personales: la cuenta va como código (email cifrado), la red truncada. Se guarda <span id="regPlazo">365</span> días.</p>
+      <div class="fila"><select id="regEvento"><option value="">Todos los eventos</option></select><button type="button" class="big alt chico" id="regCargar" style="width:auto;margin:0;padding:0 14px">Actualizar</button></div>
+      <div id="regLista" style="overflow-x:auto;margin-top:10px"><p class="vacio">Cargando…</p></div>
+    </div>
+    <div class="card" id="fbCard" hidden>
+      <span class="rotulo">Comentarios recibidos</span>
+      <div id="fbLista"><p class="vacio">Cargando…</p></div>
+    </div>
+  </section>
+
   <section id="cuenta">
     <div class="card">
       <span class="rotulo">Cómo entrás</span>
@@ -234,7 +248,8 @@
     <button class="big alt" id="salir">Cerrar sesión</button>
   </section>
 </div></main>
-<footer>Datos de menores protegidos: solo nombre de pila, sin fotos ni diagnósticos.</footer>
+<footer>Datos de menores protegidos: solo nombre de pila, sin fotos ni diagnósticos.<div id="puente-pie" data-feedback="si"></div></footer>
+<script src="pie.js" defer></script>
 <script src="cuenta.js"></script>
 <script src="escuelas.js"></script>
 <script src="importar.js"></script>
@@ -252,6 +267,7 @@ document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
   if (b.dataset.s === "escuela") cargarEscuela();
   if (b.dataset.s === "escuelas") cargarEscuelas();
   if (b.dataset.s === "importar") Importar.iniciar(YO);
+  if (b.dataset.s === "registro") cargarRegistro();
 });
 const abrirTab = s => document.querySelector(`nav button[data-s="${s}"]`)?.click();
 
@@ -266,6 +282,7 @@ const abrirTab = s => document.querySelector(`nav button[data-s="${s}"]`)?.click
   cargarAlumnos();
   if (YO.es_admin) { $("tabEsc").hidden = false; if (location.hash === "#escuela") abrirTab("escuela"); }
   if (YO.es_plataforma) { $("tabEscs").hidden = false; if (location.hash === "#escuelas") abrirTab("escuelas"); }
+  if (YO.es_admin || YO.es_plataforma) { $("tabReg").hidden = false; if (location.hash === "#registro") abrirTab("registro"); }
   if (YO.es_admin || YO.es_plataforma) { $("tabImp").hidden = false; if (location.hash === "#importar") abrirTab("importar"); }
   if (YO.es_admin || YO.es_plataforma) { $("tabSol").hidden = false; await cargarSolicitudes(); if (location.hash === "#solicitudes") abrirTab("solicitudes"); }
 })();
@@ -310,6 +327,17 @@ function filaContacto(c = {}) {
     inv.innerHTML = `<span class="muted">${env ? "Invitación enviada " + esc(fecha(env)) : "Sin invitación enviada"}</span> <button type="button" class="enlace">${env ? "reenviar invitación" : "mandar invitación"}</button>`;
     // El aviso (ej.: «esperá 24 h») va al lado del botón, no al pie de la ficha.
     const avisoInv = t => { let m = inv.querySelector(".inv-msg"); if (!m) { m = document.createElement("span"); m.className = "inv-msg error"; m.setAttribute("role", "status"); inv.appendChild(m); } m.textContent = t; };
+    if (YO.es_admin || YO.es_plataforma) {
+      const bj = document.createElement("button"); bj.type = "button"; bj.className = "enlace"; bj.style.color = "var(--bad)";
+      bj.textContent = "dar de baja a esta familia";
+      bj.onclick = async () => {
+        if (!confirm(`¿Dar de baja a ${c.email}? Se borra su contacto de las fichas de la escuela, su historial de chat y, si no tiene otro alumno, su cuenta. No se puede deshacer.`)) return;
+        try { const r = await api("api/fichas", { method: "POST", body: { accion: "baja_familia", id: actual.id, email: c.email } });
+          if (r.alumno) Object.assign(ALUMNOS.find(a => a.id === actual.id), r.alumno); await cargarAlumnos(actual.id); msg("msgEd", "Familia dada de baja ✓ Sus datos se borraron."); }
+        catch (e) { msg("msgEd", e.message, true); }
+      };
+      inv.appendChild(document.createTextNode(" · ")); inv.appendChild(bj);
+    }
     inv.querySelector("button").onclick = async ev => {
       ev.target.disabled = true;
       try { const r = await api("api/fichas", { method: "POST", body: { accion: "invitar", id: actual.id, email: c.email } });
@@ -340,7 +368,7 @@ function abrir(id) {
   $("consDado").checked = !!c.dado; $("consQuien").value = c.quien || ""; $("consFecha").value = c.fecha || "";
   $("consVia").textContent = c.dado ? (c.via === "familia" ? "La familia lo dio desde Puente." : "Registrado por la escuela.") : (c.retirado ? `La familia lo retiró el ${c.retirado}.` : "");
   $("verFamilia").href = `familia.html?alumno=${actual.id}`;
-  $("borrar").hidden = !YO.es_admin;
+  $("borrar").hidden = !(YO.es_admin || YO.es_plataforma);
   pintarAsignadas();
   $("editor").scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -385,10 +413,34 @@ $("guardar").onclick = async () => {
   } catch (e) { msg("msgEd", e.message, true); }
 };
 $("borrar").onclick = async () => {
-  if (!actual || !confirm(`¿Borrar a ${actual.nombre}, su ficha y los días publicados para su familia? No se puede deshacer.`)) return;
-  try { await api("api/fichas", { method: "POST", body: { accion: "borrar", id: actual.id } }); actual = null; $("editor").hidden = true; cargarAlumnos(); }
+  if (!actual || !confirm(`¿Dar de baja a ${actual.nombre}? Se borra TODO: su ficha, docentes asignadas, invitaciones, historial del chat, los días publicados para su familia y las cuentas de familia que no tengan otro alumno. No se puede deshacer.`)) return;
+  try { const r = await api("api/fichas", { method: "POST", body: { accion: "borrar", id: actual.id } }); actual = null; $("editor").hidden = true; await cargarAlumnos();
+    msg("msgLista", r.aviso || "Alumno dado de baja: se borraron todos sus datos ✓", !!r.aviso); }
   catch (e) { msg("msgEd", e.message, true); }
 };
+
+// ---------- registro de accesos (admins y plataforma) ----------
+const EVENTO_TXT = { login_ok: "Ingreso", login_fallido: "Código incorrecto", ficha_ver: "Vio fichas", fichas_listar: "Listó alumnos", ficha_editar: "Editó ficha",
+  exportacion: "Exportación", baja_alumno: "Baja de alumno", baja_familia: "Baja de familia", feedback: "Comentario", alerta_fallos: "Alerta enviada" };
+async function cargarRegistro() {
+  try {
+    const r = await api("api/auditoria" + ($("regEvento").value ? "?evento=" + encodeURIComponent($("regEvento").value) : ""));
+    $("regPlazo").textContent = r.plazos?.auditoria ?? 365;
+    if ($("regEvento").options.length === 1) r.tipos.forEach(t => $("regEvento").add(new Option(EVENTO_TXT[t] || t, t)));
+    $("regLista").innerHTML = r.eventos.length ? `<table class="tabla"><tr><th>Cuándo</th><th>Evento</th><th>Quién</th><th>Sobre</th><th>Red</th><th>Detalle</th></tr>${r.eventos.map(e => `<tr>
+      <td>${esc(fecha(e.creado))}</td><td>${esc(EVENTO_TXT[e.evento] || e.evento)}</td>
+      <td>${esc(e.actor_tipo || "")}${e.actor_id ? " #" + e.actor_id : ""}${e.cuenta ? ` <span class="muted">${esc(e.cuenta)}</span>` : ""}</td>
+      <td>${e.objeto_tipo ? esc(e.objeto_tipo) + " #" + e.objeto_id : ""}</td><td>${esc(e.ip || "")}</td>
+      <td class="muted">${esc(Object.entries(e.detalle || {}).map(([k, v]) => k + ": " + v).join(", "))}</td></tr>`).join("")}</table>` : `<p class="vacio">Sin eventos todavía.</p>`;
+    if (r.plataforma) {
+      $("fbCard").hidden = false;
+      const f = await api("api/feedback");
+      $("fbLista").innerHTML = f.comentarios.length ? f.comentarios.map(c => `<div class="contacto"><span class="muted">${esc(fecha(c.creado))} · ${esc(c.autor_tipo)} #${c.autor_id}${c.pagina ? " · " + esc(c.pagina) : ""}</span><div style="white-space:pre-wrap">${esc(c.texto)}</div></div>`).join("") : `<p class="vacio">Sin comentarios todavía.</p>`;
+    }
+  } catch (e) { $("regLista").innerHTML = `<p class="error">${esc(e.message)}</p>`; }
+}
+$("regCargar").onclick = cargarRegistro;
+$("regEvento").onchange = cargarRegistro;
 
 // ---------- docentes ----------
 async function cargarDocentes() {
