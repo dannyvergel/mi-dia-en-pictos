@@ -3,6 +3,8 @@
 //  POST accion=crear           { nombre, email, es_admin }  (solo admin; sin contraseña: le llega un mail y entra con código.
 //                                                          Si el email era de una docente desactivada, la reactiva en mi escuela)
 //  POST accion=desactivar      { id }                                  (solo admin, no a sí misma)
+//  POST accion=plataforma      { id, valor }  (solo plataforma) promueve (o saca) a otra docente como admin de la plataforma.
+//                                             La cuenta de ADMIN_EMAIL siempre es de la plataforma.
 const { dbActiva, q, uno } = require("./_lib/db");
 const S = require("./_lib/seguridad");
 const { exigirDocente } = require("./_lib/auth");
@@ -17,11 +19,19 @@ module.exports = async (req, res) => {
     const yo = await exigirDocente(req, res);
     if (!yo) return;
     if (req.method === "GET") {
-      const docentes = await q("SELECT id, nombre, email, es_admin, activo FROM docentes WHERE escuela_id = $1 ORDER BY nombre", [yo.escuela_id]);
-      return res.status(200).json({ docentes, yo: yo.id });
+      const docentes = await q("SELECT id, nombre, email, es_admin, es_plataforma, activo FROM docentes WHERE escuela_id = $1 ORDER BY nombre", [yo.escuela_id]);
+      return res.status(200).json({ docentes: docentes.map(d => ({ ...d, es_plataforma: S.esPlataforma(d) })), yo: yo.id });
     }
     if (req.method !== "POST") return res.status(405).json({ error: "Método no permitido" });
     const b = cuerpo(req);
+    if (b.accion === "plataforma") {
+      if (!S.esPlataforma(yo)) throw errorPublico("Solo la plataforma puede sumar administradoras de la plataforma.", 403);
+      const id = Number(b.id) || 0;
+      if (id === Number(yo.id)) throw errorPublico("No podés cambiar tu propio rol");
+      const d = await uno("UPDATE docentes SET es_plataforma = $2 WHERE id = $1 AND activo RETURNING id, nombre, email, es_plataforma", [id, !!b.valor]);
+      if (!d) throw errorPublico("No encontramos esa docente", 404);
+      return res.status(200).json({ docente: { ...d, es_plataforma: S.esPlataforma(d) } });
+    }
     if (!yo.es_admin) throw errorPublico("Solo una docente administradora puede sumar o quitar docentes.", 403);
     if (b.accion === "crear") {
       const email = S.normEmail(b.email), nombre = String(b.nombre || "").trim().slice(0, 80);

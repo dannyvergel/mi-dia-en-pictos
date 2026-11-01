@@ -42,7 +42,8 @@ async function setup(req, res, b) {
     e = (await padron.escuelaPorCue(cue))?.escuela;
     if (!e) throw errorPublico("No encontramos ese CUE en el padrón. Escribí el nombre de la escuela sin elegirla de la lista.", 404);
   } else e = await uno("INSERT INTO escuelas (nombre) VALUES ($1) RETURNING id", [escuela]);
-  await uno("INSERT INTO docentes (escuela_id, email, nombre, es_admin) VALUES ($1, $2, $3, true) RETURNING id", [e.id, email, nombre]);
+  // La primera cuenta es admin de su escuela y de la plataforma (aprueba directoras de escuelas nuevas).
+  await uno("INSERT INTO docentes (escuela_id, email, nombre, es_admin, es_plataforma) VALUES ($1, $2, $3, true, true) RETURNING id", [e.id, email, nombre]);
   // Sin sesión: el PIN no prueba que el email sea suyo. Entra con el código que llega a ese email.
   res.status(200).json({ ok: true, email, mensaje: "Cuenta creada. Ahora entrá con tu email: te mandamos un código." });
 }

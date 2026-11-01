@@ -19,6 +19,7 @@
   .trampa { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
   .enlace { background: none; border: 0; padding: 0; color: var(--tinta); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
   .opc { font-weight: 400; color: var(--gris); }
+  .check { display: flex; gap: 8px; align-items: center; font-weight: 700; margin-top: 10px; } .check input { width: auto; }
 </style>
 <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
 <script defer src="/_vercel/insights/script.js"></script>
@@ -56,11 +57,13 @@
     <div class="card cinta" id="solicitud" hidden>
       <span class="rotulo">Solicitar acceso</span>
       <form id="fSolicitud">
-        <p class="muted">Contanos quién sos. Una docente administradora revisa el pedido y te avisamos por mail.</p>
+        <p class="muted">Contanos quién sos. Revisamos el pedido y te avisamos por mail.</p>
         <label for="soNombre">Nombre y apellido</label><input id="soNombre" required minlength="2" maxlength="80" autocomplete="name">
         <label for="soEmail">Email</label><input id="soEmail" type="email" required autocomplete="email">
         <label for="soEscuela">Escuela</label><input id="soEscuela" required minlength="2" maxlength="120" aria-describedby="soEscAyuda">
         <p class="muted" id="soEscAyuda" style="margin:2px 0 0">Buscala por nombre, número o localidad. Si no aparece, escribí el nombre.</p>
+        <label class="check"><input type="checkbox" id="soDirector"> Soy director/a de la escuela</label>
+        <p class="muted" style="margin:2px 0 0">Si tu escuela ya usa Puente, tu pedido le llega a su administradora. Si sos director/a o la escuela todavía no está, lo revisa el equipo de Puente.</p>
         <label for="soRol">Rol o grado <span class="opc">(opcional)</span></label><input id="soRol" maxlength="80" placeholder="Ej: seña de 2.º, maestra integradora">
         <label for="soMensaje">Mensaje <span class="opc">(opcional)</span></label><textarea id="soMensaje" maxlength="1000" style="min-height:64px"></textarea>
         <div class="trampa" aria-hidden="true"><label for="soWeb">No completar</label><input id="soWeb" tabindex="-1" autocomplete="off"></div>
@@ -144,6 +147,12 @@ function ocupado(form, si) { form.querySelectorAll("button").forEach(b => b.disa
   if (e.necesita_setup) { $("loginDocente").hidden = true; $("setup").hidden = false; }
   if (location.hash === "#solicitar" && !e.necesita_setup) $("abrirSolicitud").click();
   mostrar(location.search.includes("familia") ? "familia" : "docente");
+  // Link de la invitación por mail: login.html?familia&email=… deja el email escrito.
+  const emailLink = new URLSearchParams(location.search).get("email");
+  if (emailLink && /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,}$/.test(emailLink)) {
+    $(location.search.includes("familia") ? "fEmail" : "dEmail").value = emailLink.trim().toLowerCase();
+    $(location.search.includes("familia") ? "fEmail" : "dEmail").focus();
+  }
 })();
 
 // Ingreso con código por email: el mismo flujo para docentes (prefijo d) y familias (prefijo f).
@@ -196,7 +205,7 @@ $("fSolicitud").onsubmit = async ev => {
   ev.preventDefault(); ocupado(ev.target, true); msg("soMsg", "", false);
   try {
     const r = await api("api/solicitudes", { method: "POST", body: { accion: "crear", nombre: $("soNombre").value, email: $("soEmail").value,
-      escuela: $("soEscuela").value, cue: acSolicitud.seleccion?.cue || "", rol: $("soRol").value, mensaje: $("soMensaje").value, sitio_web: $("soWeb").value } });
+      escuela: $("soEscuela").value, cue: acSolicitud.seleccion?.cue || "", rol: $("soRol").value, mensaje: $("soMensaje").value, es_director: $("soDirector").checked, sitio_web: $("soWeb").value } });
     ev.target.reset(); acSolicitud.limpiar(); ev.target.hidden = true;
     $("soMsg").innerHTML = ""; $("soMsg").className = "ok";
     $("soMsg").append(r.mensaje + " ", Object.assign(document.createElement("button"), { type: "button", className: "enlace", textContent: "Volver a entrar", onclick: () => $("cerrarSolicitud").click() }));

@@ -2,6 +2,7 @@
 // y termina con un plan concreto. Sin API key corre un plan fijo (modo demo).
 const { crearHerramientas } = require("./_lib/tools");
 const { exigirDocente } = require("./_lib/auth");
+const { exigirVisiblePorNombre } = require("./_lib/alumnos");
 const { manejarError } = require("./_lib/http");
 
 const { PRINCIPAL: MODEL, cuerpo } = require("./_lib/modelos");
@@ -116,8 +117,14 @@ module.exports = async (req, res) => {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-Docente-Pin");
   if (req.method === "OPTIONS") return res.status(204).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Usá POST" });
-  try { if (!(await exigirDocente(req, res))) return; } catch (e) { return manejarError(res, e); }
-  const body = typeof req.body === "string" ? JSON.parse(req.body) : (req.body || {});
+  let body;
+  try {
+    const yo = await exigirDocente(req, res);
+    if (!yo) return;
+    body = typeof req.body === "string" ? JSON.parse(req.body) : (req.body || {});
+    // Con cuentas: solo alumnos que la docente puede ver (admin: su escuela; si no, sus asignados).
+    if (body.alumno) await exigirVisiblePorNombre(yo, body.alumno);
+  } catch (e) { return manejarError(res, e); }
   const ctx = { alumno: body.alumno, registros: body.registros || [], ppi: body.ppi || [], perfil: body.perfil || {}, hoy: new Date().toISOString().slice(0, 10) };
   if (!ctx.alumno || !ctx.registros.length) return res.status(400).json({ error: "Faltan alumno o registros" });
 

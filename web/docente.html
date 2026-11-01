@@ -14,6 +14,11 @@
   nav button[data-s="cuenta"] { --tab: #8fbf8a; }
   nav button[data-s="solicitudes"] { --tab: #e8998d; }
   nav button[data-s="escuela"] { --tab: #b9a3d6; }
+  nav button[data-s="escuelas"] { --tab: #f2c46d; }
+  .chip { display: inline-flex; align-items: center; gap: 2px; border: 1px solid var(--borde); border-radius: 14px; padding: 2px 4px 2px 10px; margin: 3px 4px 3px 0; background: #fffef9; font-size: 15px; }
+  .chip .quitar { font-size: 18px; padding: 0 4px; }
+  .inv { font-size: 14px; margin-top: 4px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .enlace { background: none; border: 0; padding: 0; color: var(--tinta); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
   .cuenta-n { display: inline-block; min-width: 20px; padding: 0 6px; border-radius: 10px; background: var(--bad); color: #fff; font-size: 12px; line-height: 20px; margin-left: 4px; }
   .sol { border: 1px solid var(--borde); border-radius: 10px; padding: 10px 12px; margin: 10px 0; background: #fffef9; }
   .sol b { font-family: var(--mano); font-size: 22px; font-weight: 400; }
@@ -43,6 +48,7 @@
   <button class="on" data-s="alumnos">Alumnos</button>
   <button data-s="solicitudes" id="tabSol" hidden>Solicitudes <span class="cuenta-n" id="nSol" hidden></span></button>
   <button data-s="escuela" id="tabEsc" hidden>Escuela</button>
+  <button data-s="escuelas" id="tabEscs" hidden>Escuelas</button>
   <button data-s="docentes">Docentes</button>
   <button data-s="cuenta">Mi cuenta</button>
 </nav>
@@ -66,8 +72,13 @@
       <label for="edNombre">Nombre de pila</label>
       <input id="edNombre" maxlength="40">
 
+      <h3 style="margin-top:16px">Docentes a cargo</h3>
+      <p class="muted">Ven y editan la ficha, cargan sus días y publican para la familia. Las admins de la escuela ven a todos los alumnos.</p>
+      <div id="asignadas"></div>
+      <div class="fila" id="asignarFila"><select id="asignarSel" aria-label="Docente para asignar"></select><button type="button" class="big alt chico" id="asignarBtn" style="width:auto;margin:0;padding:0 16px">Asignar</button></div>
+
       <h3 style="margin-top:16px">Contactos de la familia</h3>
-      <p class="muted">Los emails que cargues acá son los que pueden entrar a Puente como familia de este alumno.</p>
+      <p class="muted">Los emails que cargues acá son los que pueden entrar a Puente como familia de este alumno. Al guardar, a cada email nuevo le mandamos una invitación para entrar.</p>
       <div id="contactos"></div>
       <button type="button" class="big alt chico" id="addContacto">+ Agregar contacto</button>
 
@@ -100,6 +111,14 @@
       <p class="muted" id="msgSol"></p>
     </div>
     <div class="card" id="resueltasCard" hidden><span class="rotulo">Últimas resueltas</span><div id="listaRes"></div></div>
+  </section>
+
+  <section id="escuelas">
+    <div class="card"><span class="rotulo">Escuelas en Puente</span>
+      <p class="muted">Solo la ve la plataforma. Una escuela desactivada no puede entrar (ni sus docentes ni sus familias) y sus pedidos nuevos llegan acá.</p>
+      <div id="listaEscs"><p class="vacio">Cargando…</p></div>
+      <p class="muted" id="msgEscs"></p>
+    </div>
   </section>
 
   <section id="escuela">
@@ -177,7 +196,7 @@
 <script>
 const $ = id => document.getElementById(id);
 const { api, esc } = Puente;
-let YO = null, ALUMNOS = [], APOYOS = {}, actual = null;
+let YO = null, ALUMNOS = [], APOYOS = {}, DOCENTES = [], YO_ID = null, actual = null;
 const msg = (id, t, err) => { $(id).textContent = t; $(id).className = err ? "error" : "muted"; };
 
 document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
@@ -186,6 +205,7 @@ document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
   if (b.dataset.s === "docentes") cargarDocentes();
   if (b.dataset.s === "solicitudes") cargarSolicitudes();
   if (b.dataset.s === "escuela") cargarEscuela();
+  if (b.dataset.s === "escuelas") cargarEscuelas();
 });
 const abrirTab = s => document.querySelector(`nav button[data-s="${s}"]`)?.click();
 
@@ -199,14 +219,15 @@ const abrirTab = s => document.querySelector(`nav button[data-s="${s}"]`)?.click
   $("miEmail").textContent = "Tu email: " + YO.email;
   cargarAlumnos();
   if (YO.es_admin) { $("tabEsc").hidden = false; if (location.hash === "#escuela") abrirTab("escuela"); }
-  if (YO.es_admin) { $("tabSol").hidden = false; await cargarSolicitudes(); if (location.hash === "#solicitudes") abrirTab("solicitudes"); }
+  if (YO.es_plataforma) { $("tabEscs").hidden = false; if (location.hash === "#escuelas") abrirTab("escuelas"); }
+  if (YO.es_admin || YO.es_plataforma) { $("tabSol").hidden = false; await cargarSolicitudes(); if (location.hash === "#solicitudes") abrirTab("solicitudes"); }
 })();
 
 // ---------- alumnos ----------
 async function cargarAlumnos(seleccionar) {
   try {
     const r = await api("api/fichas");
-    ALUMNOS = r.alumnos; APOYOS = r.apoyos;
+    ALUMNOS = r.alumnos; APOYOS = r.apoyos; DOCENTES = r.docentes || []; YO_ID = r.yo;
     pintarLista();
     const id = seleccionar ?? actual?.id;
     if (id && ALUMNOS.find(a => a.id === id)) abrir(id);
@@ -214,9 +235,9 @@ async function cargarAlumnos(seleccionar) {
 }
 function pintarLista() {
   $("lista").innerHTML = ALUMNOS.length ? ALUMNOS.map(a => `<div class="fila-al ${actual?.id === a.id ? "on" : ""}" data-id="${a.id}">
-      <span><b>${esc(a.nombre)}</b> <span class="muted">· ${a.contactos.length} contacto${a.contactos.length === 1 ? "" : "s"} · ${a.objetivos.length} objetivo${a.objetivos.length === 1 ? "" : "s"}</span></span>
+      <span><b>${esc(a.nombre)}</b> <span class="muted">· ${a.contactos.length} contacto${a.contactos.length === 1 ? "" : "s"} · ${a.objetivos.length} objetivo${a.objetivos.length === 1 ? "" : "s"}${YO.es_admin ? " · " + (a.docentes.length ? a.docentes.map(d => esc(d.nombre)).join(", ") : "sin docente asignada") : ""}</span></span>
       <span class="sello ${a.consentimiento?.dado ? "avanzando" : "estancado"}">${a.consentimiento?.dado ? "con consentimiento" : "sin consentimiento"}</span></div>`).join("")
-    : `<p class="vacio">Todavía no cargaste alumnos.</p>`;
+    : `<p class="vacio">${YO.es_admin ? "Todavía no hay alumnos en la escuela." : "Todavía no tenés alumnos. Agregá uno o pedile a la admin de la escuela que te asigne los tuyos."}</p>`;
   $("lista").querySelectorAll(".fila-al").forEach(el => el.onclick = () => abrir(Number(el.dataset.id)));
 }
 $("fNuevo").onsubmit = async ev => {
@@ -232,8 +253,21 @@ function filaContacto(c = {}) {
     <div><label>Vínculo</label><input data-k="vinculo" maxlength="30" placeholder="mamá, papá, abuela…" value="${esc(c.vinculo)}"></div>
     <div><label>Email</label><input data-k="email" type="email" value="${esc(c.email)}"></div>
     <div><label>Teléfono / WhatsApp</label><input data-k="telefono" inputmode="tel" maxlength="30" value="${esc(c.telefono)}"></div></div>
+    <div class="inv"></div>
     <button type="button" class="quitar" title="Quitar contacto">× quitar</button>`;
   d.querySelector(".quitar").onclick = () => d.remove();
+  // Invitación: solo para emails ya guardados en la ficha.
+  const guardado = c.email && actual?.contactos.some(x => x.email === c.email);
+  if (guardado) {
+    const env = actual.invitaciones?.[c.email], inv = d.querySelector(".inv");
+    inv.innerHTML = `<span class="muted">${env ? "Invitación enviada " + esc(fecha(env)) : "Sin invitación enviada"}</span> <button type="button" class="enlace">${env ? "reenviar invitación" : "mandar invitación"}</button>`;
+    inv.querySelector("button").onclick = async ev => {
+      ev.target.disabled = true;
+      try { const r = await api("api/fichas", { method: "POST", body: { accion: "invitar", id: actual.id, email: c.email } });
+        Object.assign(ALUMNOS.find(a => a.id === actual.id), r.alumno); abrir(actual.id); msg("msgEd", `Le mandamos la invitación a ${c.email} ✓`); }
+      catch (e) { msg("msgEd", e.message, true); ev.target.disabled = false; }
+    };
+  }
   $("contactos").appendChild(d);
 }
 function filaObjetivo(t = "") {
@@ -257,8 +291,29 @@ function abrir(id) {
   $("consDado").checked = !!c.dado; $("consQuien").value = c.quien || ""; $("consFecha").value = c.fecha || "";
   $("consVia").textContent = c.dado ? (c.via === "familia" ? "La familia lo dio desde Puente." : "Registrado por la escuela.") : (c.retirado ? `La familia lo retiró el ${c.retirado}.` : "");
   $("verFamilia").href = `familia.html?alumno=${actual.id}`;
+  pintarAsignadas();
   $("editor").scrollIntoView({ behavior: "smooth", block: "start" });
 }
+// ---------- docentes a cargo del alumno ----------
+function pintarAsignadas() {
+  const asig = actual.docentes || [];
+  $("asignadas").innerHTML = asig.length ? asig.map(d => `<span class="chip">${esc(d.nombre)}${YO.es_admin || d.id === YO_ID ? ` <button type="button" class="quitar" data-id="${d.id}" title="${d.id === YO_ID ? "Dejar de tenerlo asignado" : "Quitar"}">×</button>` : ""}</span>`).join("")
+    : `<p class="muted">Ninguna docente asignada: solo lo ven las admins.</p>`;
+  $("asignadas").querySelectorAll("button[data-id]").forEach(b => b.onclick = () => cambiarAsignacion(Number(b.dataset.id), false));
+  const libres = DOCENTES.filter(d => !asig.some(a => a.id === d.id));
+  $("asignarFila").hidden = !libres.length;
+  $("asignarSel").innerHTML = libres.map(d => `<option value="${d.id}">${esc(d.nombre)}${d.id === YO_ID ? " (yo)" : ""}</option>`).join("");
+}
+async function cambiarAsignacion(docenteId, sumar) {
+  if (!sumar && docenteId === YO_ID && !YO.es_admin && !confirm(`Si te quitás, vas a dejar de ver a ${actual.nombre}. ¿Seguro?`)) return;
+  try {
+    const r = await api("api/fichas", { method: "POST", body: { accion: sumar ? "asignar" : "desasignar", id: actual.id, docente_id: docenteId } });
+    if (!r.alumno) { actual = null; $("editor").hidden = true; return cargarAlumnos(); }
+    Object.assign(ALUMNOS.find(a => a.id === actual.id), r.alumno); pintarLista(); pintarAsignadas(); msg("msgEd", "Docentes a cargo actualizadas ✓");
+  } catch (e) { msg("msgEd", e.message, true); }
+}
+$("asignarBtn").onclick = () => $("asignarSel").value && cambiarAsignacion(Number($("asignarSel").value), true);
+
 $("consDado").onchange = () => { if ($("consDado").checked && !$("consFecha").value) $("consFecha").value = new Date().toISOString().slice(0, 10); };
 
 $("guardar").onclick = async () => {
@@ -273,7 +328,10 @@ $("guardar").onclick = async () => {
   try {
     const r = await api("api/fichas", { method: "POST", body: { accion: "guardar", id: actual.id, nombre: $("edNombre").value, contactos, apoyos, objetivos, ...(sinCambioCons ? {} : { consentimiento }) } });
     Object.assign(ALUMNOS.find(a => a.id === actual.id), r.alumno);
-    abrir(actual.id); msg("msgEd", "Ficha guardada ✓");
+    abrir(actual.id);
+    const i = r.invitaciones || {};
+    msg("msgEd", "Ficha guardada ✓" + (i.enviadas?.length ? ` Le mandamos la invitación a ${i.enviadas.join(", ")}.` : "")
+      + (i.fallidas?.length ? ` No pudimos mandar la invitación a ${i.fallidas.join(", ")}: probá con «mandar invitación».` : ""), !!i.fallidas?.length);
   } catch (e) { msg("msgEd", e.message, true); }
 };
 $("borrar").onclick = async () => {
@@ -287,10 +345,16 @@ async function cargarDocentes() {
   try {
     const r = await api("api/docentes");
     $("listaDoc").innerHTML = r.docentes.map(d => `<div class="fila-al" style="cursor:default"><span><b>${esc(d.nombre)}</b> <span class="muted">· ${esc(d.email)}</span></span>
-      <span>${d.es_admin ? '<span class="sello avanzando">admin</span>' : ""} ${!d.activo ? '<span class="sello">inactiva</span>' : (YO.es_admin && d.id !== r.yo ? `<button class="quitar" data-id="${d.id}" style="font-size:14px">desactivar</button>` : "")}</span></div>`).join("");
+      <span>${d.es_plataforma ? '<span class="sello avanzando">plataforma</span>' : ""} ${d.es_admin ? '<span class="sello avanzando">admin</span>' : ""}
+        ${YO.es_plataforma && d.activo && d.id !== r.yo ? `<button class="enlace" data-plat="${d.id}" data-valor="${d.es_plataforma ? "" : "1"}" style="font-size:14px">${d.es_plataforma ? "quitar plataforma" : "hacer plataforma"}</button>` : ""} ${!d.activo ? '<span class="sello">inactiva</span>' : (YO.es_admin && d.id !== r.yo ? `<button class="quitar" data-id="${d.id}" style="font-size:14px">desactivar</button>` : "")}</span></div>`).join("");
     $("listaDoc").querySelectorAll("button[data-id]").forEach(b => b.onclick = async () => {
       if (!confirm("¿Desactivar esta cuenta? No va a poder entrar más.")) return;
       try { await api("api/docentes", { method: "POST", body: { accion: "desactivar", id: Number(b.dataset.id) } }); cargarDocentes(); } catch (e) { alert(e.message); }
+    });
+    $("listaDoc").querySelectorAll("button[data-plat]").forEach(b => b.onclick = async () => {
+      const si = !!b.dataset.valor;
+      if (!confirm(si ? "¿Darle acceso de plataforma? Va a ver todas las escuelas y aprobar directoras." : "¿Quitarle el acceso de plataforma?")) return;
+      try { await api("api/docentes", { method: "POST", body: { accion: "plataforma", id: Number(b.dataset.plat), valor: si } }); cargarDocentes(); } catch (e) { alert(e.message); }
     });
     $("nuevaDoc").hidden = !YO.es_admin;
   } catch (e) { $("listaDoc").textContent = e.message; }
@@ -313,27 +377,29 @@ async function cargarSolicitudes() {
     $("nSol").textContent = r.pendientes.length; $("nSol").hidden = !r.pendientes.length;
     // Por defecto: la escuela de Puente con el mismo CUE; si no existe y eligió del padrón, crearla desde el padrón; si no, la mía.
     const opciones = s => {
+      if (!r.plataforma) return r.escuelas.map(e => `<option value="${e.id}" selected>${esc(e.nombre)} (la mía)</option>`).join("");
       const elegida = s.escuela_cue_id ? String(s.escuela_cue_id) : s.padron ? "padron" : String(r.mi_escuela);
       return (s.padron ? `<option value="padron" selected>Crear desde el padrón: ${esc(Puente.tituloEscuela(s.padron.nombre))} (${esc(Puente.tituloEscuela(s.padron.localidad))})</option>` : "")
         + r.escuelas.map(e => `<option value="${e.id}" ${String(e.id) === elegida ? "selected" : ""}>${esc(e.nombre)}${e.id === r.mi_escuela ? " (la mía)" : ""}${e.cue && e.cue === s.cue ? " · mismo CUE" : ""}</option>`).join("")
         + `<option value="nueva">Escuela nueva…</option>`;
     };
-    $("listaSol").innerHTML = r.pendientes.length ? r.pendientes.map(s => `<div class="sol" data-id="${s.id}">
+    $("listaSol").innerHTML = r.pendientes.length ? r.pendientes.map(s => `<div class="sol" data-id="${s.id}" ${s.es_director && r.plataforma ? 'data-dir="1"' : ""}>
         <b>${esc(s.nombre)}</b> <span class="muted">· ${esc(s.email)} · ${fecha(s.creado)}</span>
+        ${s.es_director ? `<span class="sello avanzando">dice ser director/a</span>` : ""}
         <div>Escuela: <strong>${esc(s.escuela)}</strong>${s.rol ? ` · ${esc(s.rol)}` : ""}</div>
         ${s.cue ? `<div class="muted">La eligió del padrón oficial: CUE ${esc(s.cue)}${s.escuela_cue_id ? " · ya está en Puente" : ""}${s.padron?.modalidad ? " · " + esc(s.padron.modalidad) : ""}</div>` : ""}
         ${s.mensaje ? `<div class="msj">${esc(s.mensaje)}</div>` : ""}
         <label>Escuela en Puente</label><select data-k="escuela">${opciones(s)}</select>
         <input type="text" data-k="nueva" maxlength="120" value="${esc(s.escuela)}" hidden placeholder="Nombre de la escuela nueva">
-        <label class="check"><input type="checkbox" data-k="admin"> También puede administrar (sumar docentes y ver solicitudes)</label>
+        <label class="check"><input type="checkbox" data-k="admin" ${s.es_director ? "checked" : ""}> También puede administrar la escuela (sumar docentes, ver solicitudes y todos los alumnos)</label>
         <div class="fila"><button class="big chico" data-a="aprobar">Aprobar</button><button class="big alt chico" data-a="rechazar" style="color:var(--bad);border-color:var(--bad)">Rechazar</button></div>
       </div>`).join("") : `<p class="vacio">No hay pedidos pendientes.</p>`;
     $("listaSol").querySelectorAll(".sol").forEach(el => {
       const sel = el.querySelector('[data-k="escuela"]'), nueva = el.querySelector('[data-k="nueva"]'), adm = el.querySelector('[data-k="admin"]');
-      sel.onchange = () => { nueva.hidden = sel.value !== "nueva"; if (sel.value === "nueva" || sel.value === "padron") { adm.checked = true; adm.disabled = true; } else adm.disabled = false; };
+      sel.onchange = () => { nueva.hidden = sel.value !== "nueva"; if (sel.value === "nueva" || sel.value === "padron" || el.dataset.dir) { adm.checked = true; adm.disabled = true; } else adm.disabled = false; };
       sel.onchange();
       el.querySelector('[data-a="aprobar"]').onclick = () => resolver(el, "aprobar",
-        sel.value === "nueva" ? { escuela_nueva: nueva.value } : sel.value === "padron" ? { desde_padron: true } : { escuela_id: Number(sel.value) }, adm.checked);
+        sel.value === "nueva" ? { escuela_nueva: nueva.value } : sel.value === "padron" ? { desde_padron: true } : r.plataforma ? { escuela_id: Number(sel.value) } : {}, adm.checked);
       el.querySelector('[data-a="rechazar"]').onclick = () => resolver(el, "rechazar");
     });
     $("resueltasCard").hidden = !r.resueltas.length;
@@ -396,6 +462,26 @@ $("fEscuela").onsubmit = async ev => {
     msg("msgEsc", "Ficha de la escuela guardada ✓" + (r.ficha.cue && !r.en_padron ? " (ese CUE no está en el padrón de Santa Fe: revisalo)" : ""));
   } catch (e) { msg("msgEsc", e.message, true); }
 };
+
+// ---------- escuelas (solo plataforma) ----------
+async function cargarEscuelas() {
+  try {
+    const r = await api("api/escuelas?todas=1");
+    $("listaEscs").innerHTML = r.escuelas.length ? r.escuelas.map(e => `<div class="fila-al" style="cursor:default">
+        <span><b>${esc(e.nombre)}</b> <span class="muted">· ${e.cue ? "CUE " + esc(e.cue) : "sin CUE"}${e.localidad ? " · " + esc(e.localidad) : ""}
+          · ${e.docentes} docente${e.docentes === 1 ? "" : "s"} (${e.admins} admin) · ${e.alumnos} alumno${e.alumnos === 1 ? "" : "s"}</span></span>
+        <span><span class="sello ${e.aval_firmado ? "avanzando" : "estancado"}">${e.aval_firmado ? "con aval" : "sin aval"}</span>
+          ${!e.activa ? '<span class="sello">desactivada</span>' : ""}
+          ${e.id !== r.mi_escuela ? `<button class="enlace" data-esc="${e.id}" data-activa="${e.activa ? "1" : ""}" style="font-size:14px">${e.activa ? "desactivar" : "reactivar"}</button>` : ""}</span></div>`).join("")
+      : `<p class="vacio">Todavía no hay escuelas.</p>`;
+    $("listaEscs").querySelectorAll("button[data-esc]").forEach(b => b.onclick = async () => {
+      const desactivar = !!b.dataset.activa;
+      if (desactivar && !confirm("¿Desactivar esta escuela? Sus docentes y familias no van a poder entrar hasta que la reactives.")) return;
+      try { await api("api/escuelas", { method: "POST", body: { accion: desactivar ? "desactivar_escuela" : "activar_escuela", id: Number(b.dataset.esc) } }); msg("msgEscs", desactivar ? "Escuela desactivada." : "Escuela reactivada ✓"); cargarEscuelas(); }
+      catch (e) { msg("msgEscs", e.message, true); }
+    });
+  } catch (e) { msg("msgEscs", e.message, true); }
+}
 
 $("salir").onclick = Puente.salir;
 </script>

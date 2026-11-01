@@ -24,6 +24,10 @@ const normEmail = e => String(e || "").trim().toLowerCase();
 const emailValido = e => /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,}$/.test(e) && e.length <= 254;
 function ipDe(req) { return String(req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "?").split(",")[0].trim(); }
 
+// Plataforma (superadmin): la cuenta de ADMIN_EMAIL siempre, y las que ella promueva (docentes.es_plataforma).
+const emailPlataforma = () => normEmail(process.env.ADMIN_EMAIL);
+const esPlataforma = d => !!d && (!!d.es_plataforma || (!!emailPlataforma() && normEmail(d.email) === emailPlataforma()));
+
 // ---------- cookies y sesiones ----------
 function leerCookies(req) {
   const out = {};
@@ -50,8 +54,14 @@ async function leerSesion(req) {
   const s = await uno("SELECT tipo, usuario_id FROM sesiones WHERE token_hash = $1 AND expira > now()", [sha256(token)]);
   if (!s) return null;
   if (s.tipo === "docente") {
-    const d = await uno("SELECT id, escuela_id, email, nombre, es_admin FROM docentes WHERE id = $1 AND activo", [s.usuario_id]);
-    return d ? { tipo: "docente", usuario: d } : null;
+    // Docente activa de una escuela activa (la plataforma entra aunque su escuela esté desactivada).
+    const d = await uno(`SELECT d.id, d.escuela_id, d.email, d.nombre, d.es_admin, d.es_plataforma, e.activa AS escuela_activa
+      FROM docentes d JOIN escuelas e ON e.id = d.escuela_id WHERE d.id = $1 AND d.activo`, [s.usuario_id]);
+    if (!d) return null;
+    d.es_plataforma = esPlataforma(d);
+    if (!d.escuela_activa && !d.es_plataforma) return null;
+    delete d.escuela_activa;
+    return { tipo: "docente", usuario: d };
   }
   const f = await uno("SELECT id, email FROM familias WHERE id = $1", [s.usuario_id]);
   return f ? { tipo: "familia", usuario: f } : null;
@@ -87,6 +97,7 @@ function formularioOk(tok, ahora = Date.now()) {
 }
 
 module.exports = {
+  esPlataforma, emailPlataforma,
   tokenFormulario, formularioOk,
   COOKIE, esProduccion, secreto,
   sha256, hmac, igualSeguro, normEmail, emailValido, ipDe, leerCookies,

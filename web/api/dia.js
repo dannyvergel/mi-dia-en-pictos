@@ -9,14 +9,21 @@ async function picto(kw) {
   } catch { return { picto_id: null, picto_url: null }; }
 }
 const { exigirDocente } = require("./_lib/auth");
+const { exigirVisiblePorNombre } = require("./_lib/alumnos");
 const { manejarError } = require("./_lib/http");
 module.exports = async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-Docente-Pin");
   if (req.method === "OPTIONS") return res.status(204).end();
-  try { if (!(await exigirDocente(req, res))) return; } catch (e) { return manejarError(res, e); }
+  let b;
+  try {
+    const yo = await exigirDocente(req, res);
+    if (!yo) return;
+    b = typeof req.body === "string" ? JSON.parse(req.body) : (req.body || {});
+    // Con cuentas: solo alumnos que la docente puede ver (admin: su escuela; si no, sus asignados).
+    await exigirVisiblePorNombre(yo, b.alumno);
+  } catch (e) { return manejarError(res, e); }
   if (!process.env.OPENROUTER_API_KEY) return res.status(503).json({ error: "sin key" });
-  const b = typeof req.body === "string" ? JSON.parse(req.body) : (req.body || {});
   const fecha = b.fecha || new Date().toISOString().slice(0, 10);
   try {
     const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {

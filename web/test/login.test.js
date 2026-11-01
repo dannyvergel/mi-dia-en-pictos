@@ -51,7 +51,7 @@ test("docente entra con código: cookie segura, código hasheado y de un solo us
   const v = await post(c, { accion: "verificar_codigo", tipo: "docente", email: "ana@escuela.edu.ar", codigo: p.body.codigo_dev });
   assert.equal(v.status, 200, JSON.stringify(v.body));
   for (const flag of ["HttpOnly", "Secure", "SameSite=Lax", "Path=/"]) assert.ok(v.headers["set-cookie"].includes(flag), flag);
-  assert.deepEqual((await c.llamar(auth)).body.sesion, { tipo: "docente", nombre: "Ana", email: "ana@escuela.edu.ar", es_admin: true });
+  assert.deepEqual((await c.llamar(auth)).body.sesion, { tipo: "docente", nombre: "Ana", email: "ana@escuela.edu.ar", es_admin: true, es_plataforma: true });
   assert.equal((await post(cliente(), { accion: "verificar_codigo", tipo: "docente", email: "ana@escuela.edu.ar", codigo: p.body.codigo_dev })).status, 401); // ya usado
   const cookieVieja = c.cookie;
   await post(c, { accion: "logout" });
@@ -137,6 +137,8 @@ test("dia y publicar piden sesión de docente (el PIN ya no alcanza)", async () 
   assert.equal((await c.llamar(dia, { method: "POST", body: { alumno: "Juan", texto: "x" }, headers: { "x-docente-pin": "4321" } })).status, 401);
   assert.equal((await c.llamar(familia, { method: "POST", body: { accion: "publicar", alumno: "Juan", registros: [] }, headers: { "x-docente-pin": "4321" } })).status, 401);
   await entrarConCodigo(pg, "ana@escuela.edu.ar", "docente", c);
+  assert.equal((await c.llamar(dia, { method: "POST", body: { alumno: "Juan", texto: "x" } })).status, 404); // Juan no es alumno suyo
+  assert.equal((await c.llamar(require("../api/fichas"), { method: "POST", body: { accion: "crear", nombre: "Juan" } })).status, 200);
   assert.equal((await c.llamar(dia, { method: "POST", body: { alumno: "Juan", texto: "x" } })).status, 503); // autorizada; sin IA
 });
 

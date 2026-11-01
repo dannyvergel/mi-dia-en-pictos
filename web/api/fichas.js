@@ -1,10 +1,15 @@
 // Fichas de familia (una por alumno). Requiere base de datos y sesión.
-// Docente: ve y edita solo los alumnos de su escuela.
-//   GET [?id=]                         → alumnos con su ficha
-//   POST accion=crear   { nombre }
+// Docente: admin de la escuela → todos los alumnos de su escuela; docente no admin → solo los que tiene asignados.
+//   GET [?id=]                         → alumnos con su ficha, docentes asignadas e invitaciones enviadas
+//                                        (+ docentes de la escuela para asignar)
+//   POST accion=crear   { nombre, contactos? }        (quien lo crea queda asignada)
 //   POST accion=guardar { id, nombre, contactos, apoyos, objetivos, consentimiento }
+//                                        Los emails nuevos en contactos reciben una invitación por mail (máx. 1 cada 24 h
+//                                        por email + alumno). Si el mail falla, la ficha se guarda igual.
+//   POST accion=invitar { id, email }  → reenviar invitación (429 si se mandó hace menos de 24 h)
+//   POST accion=asignar | desasignar { id, docente_id }   (asignar: admins y docentes asignadas; quitar a otra: solo admins)
 //   POST accion=borrar  { id }
-// Familia: ve solo los alumnos vinculados a su email (los emails de "contactos" de la ficha).
+// Familia: ve solo los alumnos vinculados a su email (los emails de "contactos" de la ficha), de escuelas activas.
 //   GET                                → sus alumnos con la ficha (solo lectura)
 //   POST accion=consentir   { id, dado }
 //   POST accion=mi_contacto { id, nombre, telefono }   (solo su propio contacto)
@@ -12,6 +17,8 @@ const { dbActiva, q, uno } = require("./_lib/db");
 const { exigirSesion } = require("./_lib/auth");
 const F = require("./_lib/fichas");
 const { borrarFamilia } = require("./_lib/almacen");
+const A = require("./_lib/alumnos");
+const inv = require("./_lib/invitaciones");
 const { cuerpo, consulta, exigirJson, manejarError, errorPublico } = require("./_lib/http");
 
 const SELECT = `SELECT a.id, a.nombre, a.blob_token IS NOT NULL AS publicado, f.contactos, f.apoyos, f.objetivos, f.consentimiento, f.actualizado
@@ -19,13 +26,23 @@ const SELECT = `SELECT a.id, a.nombre, a.blob_token IS NOT NULL AS publicado, f.
 const forma = r => r && ({ id: Number(r.id), nombre: r.nombre, publicado: !!r.publicado, contactos: r.contactos || [], apoyos: r.apoyos || {},
   objetivos: r.objetivos || [], consentimiento: r.consentimiento || { dado: false }, actualizado: r.actualizado });
 
+// Suma a cada alumno sus docentes asignadas y cuándo se invitó a cada email de contacto.
+async function completar(filas) {
+  const ids = filas.map(r => Number(r.id));
+  const [asig, invs] = await Promise.all([A.asignadas(ids), inv.enviadas(ids)]);
+  return filas.map(r => ({ ...forma(r), docentes: asig[Number(r.id)] || [], invitaciones: invs[Number(r.id)] || {} }));
+}
+
 async function alumnoDeDocente(yo, id) {
-  const a = await uno(`${SELECT} WHERE a.id = $1 AND a.escuela_id = $2`, [Number(id) || 0, yo.escuela_id]);
+  const [c, p] = A.condVisible(yo, 2);
+  const a = await uno(`${SELECT} WHERE a.id = $1 AND ${c}`, [Number(id) || 0, ...p]);
   if (!a) throw errorPublico("No encontramos ese alumno", 404);
   return a;
 }
+const unoCompleto = async (yo, id) => (await completar([await alumnoDeDocente(yo, id)]))[0];
 async function alumnoDeFamilia(fam, id) {
-  const a = await uno(`${SELECT} JOIN familia_alumno fa ON fa.alumno_id = a.id WHERE a.id = $1 AND fa.familia_id = $2`, [Number(id) || 0, fam.id]);
+  const a = await uno(`${SELECT} JOIN familia_alumno fa ON fa.alumno_id = a.id JOIN escuelas e ON e.id = a.escuela_id
+    WHERE a.id = $1 AND fa.familia_id = $2 AND e.activa`, [Number(id) || 0, fam.id]);
   if (!a) throw errorPublico("No encontramos ese alumno", 404);
   return a;
 }
@@ -41,18 +58,25 @@ async function sincronizarFamilias(alumnoId, contactos) {
 async function docente(req, res, yo) {
   if (req.method === "GET") {
     const id = consulta(req, "id");
-    if (id) return res.status(200).json({ alumno: forma(await alumnoDeDocente(yo, id)) });
-    const filas = await q(`${SELECT} WHERE a.escuela_id = $1 ORDER BY a.nombre`, [yo.escuela_id]);
-    return res.status(200).json({ alumnos: filas.map(forma), apoyos: F.APOYOS });
+    if (id) return res.status(200).json({ alumno: await unoCompleto(yo, id) });
+    const [c, p] = A.condVisible(yo, 1);
+    const filas = await q(`${SELECT} WHERE ${c} ORDER BY a.nombre`, p);
+    const docentes = await q("SELECT id, nombre, email, es_admin FROM docentes WHERE escuela_id = $1 AND activo ORDER BY nombre", [yo.escuela_id]);
+    return res.status(200).json({ alumnos: await completar(filas), apoyos: F.APOYOS, docentes: docentes.map(d => ({ ...d, id: Number(d.id) })),
+      yo: Number(yo.id), es_admin: !!yo.es_admin });
   }
   const b = cuerpo(req);
   if (b.accion === "crear") {
     const nombre = F.validarNombre(b.nombre);
+    const contactos = F.validarContactos(b.contactos);
     if (await uno("SELECT 1 AS x FROM alumnos WHERE escuela_id = $1 AND lower(nombre) = lower($2)", [yo.escuela_id, nombre]))
-      throw errorPublico(`Ya hay un alumno «${nombre}». Agregale una inicial para distinguirlos (ej: «${nombre} P.»).`, 409);
-    const a = await uno("INSERT INTO alumnos (escuela_id, nombre, creado_por) VALUES ($1, $2, $3) RETURNING id", [yo.escuela_id, nombre, yo.id]);
-    await q("INSERT INTO fichas (alumno_id, actualizado_por) VALUES ($1, $2)", [a.id, yo.email]);
-    return res.status(200).json({ alumno: forma(await alumnoDeDocente(yo, a.id)) });
+      throw errorPublico(`Ya hay un alumno «${nombre}» en la escuela. Agregale una inicial para distinguirlos (ej: «${nombre} P.»).`, 409);
+    const a = await uno("INSERT INTO alumnos (escuela_id, nombre, creado_por) VALUES ($1, $2, $3) RETURNING id, nombre", [yo.escuela_id, nombre, yo.id]);
+    await q("INSERT INTO fichas (alumno_id, contactos, actualizado_por) VALUES ($1, $2::jsonb, $3)", [a.id, JSON.stringify(contactos), yo.email]);
+    await A.asignar(a.id, yo.id, yo.id); // quien lo crea lo tiene asignado
+    await sincronizarFamilias(a.id, contactos);
+    const invitaciones = await inv.invitarNuevos(req, { alumno: a, despues: contactos, docente: yo });
+    return res.status(200).json({ alumno: await unoCompleto(yo, a.id), invitaciones });
   }
   if (b.accion === "guardar") {
     const actual = await alumnoDeDocente(yo, b.id);
@@ -74,7 +98,26 @@ async function docente(req, res, yo) {
         consentimiento = EXCLUDED.consentimiento, actualizado = now(), actualizado_por = EXCLUDED.actualizado_por`,
       [actual.id, JSON.stringify(contactos), JSON.stringify(apoyos), JSON.stringify(objetivos), JSON.stringify(consentimiento), yo.email]);
     await sincronizarFamilias(actual.id, contactos);
-    return res.status(200).json({ alumno: forma(await alumnoDeDocente(yo, actual.id)) });
+    // Ya guardado: las invitaciones van después y nunca hacen fallar el pedido.
+    const invitaciones = await inv.invitarNuevos(req, { alumno: { id: actual.id, nombre }, antes: actual.contactos || [], despues: contactos, docente: yo });
+    return res.status(200).json({ alumno: await unoCompleto(yo, actual.id), invitaciones });
+  }
+  if (b.accion === "invitar") {
+    const a = await alumnoDeDocente(yo, b.id);
+    const email = String(b.email || "").trim().toLowerCase();
+    const c = (a.contactos || []).find(x => x.email && x.email === email);
+    if (!c) throw errorPublico("Ese email no está en los contactos de la ficha. Guardá la ficha primero.", 404);
+    const r = await inv.invitar(req, { alumno: a, email, docente: yo, contacto: c.nombre });
+    if (r === "reciente") throw errorPublico(`Ya le mandamos la invitación a ${email} hace menos de ${inv.HORAS} h. Probá mañana.`, 429);
+    if (r === "fallo") throw errorPublico("No pudimos mandar la invitación. Probá en un rato.", 502);
+    return res.status(200).json({ ok: true, alumno: await unoCompleto(yo, a.id) });
+  }
+  if (b.accion === "asignar" || b.accion === "desasignar") {
+    const a = await alumnoDeDocente(yo, b.id);
+    await A.cambiarAsignacion(yo, a.id, b.docente_id, b.accion === "asignar");
+    // Si se quitó a sí misma (y no es admin) ya no lo ve.
+    const sigue = await A.puedeVer(yo, a.id);
+    return res.status(200).json({ ok: true, alumno: sigue ? await unoCompleto(yo, a.id) : null });
   }
   if (b.accion === "borrar") {
     const a = await alumnoDeDocente(yo, b.id);
@@ -88,7 +131,8 @@ async function docente(req, res, yo) {
 
 async function familia(req, res, fam) {
   if (req.method === "GET") {
-    const filas = await q(`${SELECT} JOIN familia_alumno fa ON fa.alumno_id = a.id WHERE fa.familia_id = $1 ORDER BY a.nombre`, [fam.id]);
+    const filas = await q(`${SELECT} JOIN familia_alumno fa ON fa.alumno_id = a.id JOIN escuelas e ON e.id = a.escuela_id
+      WHERE fa.familia_id = $1 AND e.activa ORDER BY a.nombre`, [fam.id]);
     return res.status(200).json({ alumnos: filas.map(forma), apoyos: F.APOYOS, email: fam.email });
   }
   const b = cuerpo(req);

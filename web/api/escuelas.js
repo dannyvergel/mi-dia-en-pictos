@@ -7,7 +7,10 @@
 //  POST accion=guardar_ficha { nombre, cue?, domicilio, localidad, departamento, modalidad, email, telefono,
 //                              directivo_nombre, directivo_email, responsable_datos_nombre, responsable_datos_email,
 //                              aval_firmado, aval_fecha, aval_por, notas }   (solo admin; siempre su propia escuela)
-const { dbActiva, uno } = require("./_lib/db");
+//  GET ?todas=1           → (plataforma) todas las escuelas de Puente: nombre, CUE, #docentes activas, #admins, #alumnos, aval, activa
+//  POST accion=desactivar_escuela | activar_escuela { id }   (plataforma; no su propia escuela). Desactivada: sus docentes
+//                              y familias no entran, y sus solicitudes nuevas van a la plataforma.
+const { dbActiva, q, uno } = require("./_lib/db");
 const S = require("./_lib/seguridad");
 const padron = require("./_lib/padron");
 const { cuerpo, consulta, exigirJson, manejarError, errorPublico } = require("./_lib/http");
@@ -78,6 +81,25 @@ async function guardarFicha(res, yo, b) {
   res.status(200).json({ ficha: e, en_padron: cue ? !!(await padron.porCue(cue)) : false });
 }
 
+// ---------- plataforma ----------
+async function todas() {
+  const filas = await q(`SELECT e.id, e.nombre, e.cue, e.localidad, e.aval_firmado, e.activa,
+      (SELECT count(*)::int FROM docentes d WHERE d.escuela_id = e.id AND d.activo) AS docentes,
+      (SELECT count(*)::int FROM docentes d WHERE d.escuela_id = e.id AND d.activo AND d.es_admin) AS admins,
+      (SELECT count(*)::int FROM alumnos a WHERE a.escuela_id = e.id) AS alumnos
+    FROM escuelas e ORDER BY e.activa DESC, e.nombre`);
+  return filas.map(e => ({ ...e, id: Number(e.id) }));
+}
+async function cambiarActiva(res, yo, b) {
+  const id = Number(b.id) || 0, activa = b.accion === "activar_escuela";
+  if (!activa && id === Number(yo.escuela_id)) throw errorPublico("No podés desactivar tu propia escuela.");
+  const e = await uno("UPDATE escuelas SET activa = $2, actualizado = now(), actualizado_por = $3 WHERE id = $1 RETURNING id, nombre, activa", [id, activa, yo.email]);
+  if (!e) throw errorPublico("No encontramos esa escuela", 404);
+  // Al desactivar se cortan las sesiones abiertas de sus docentes (la de la plataforma no).
+  if (!activa) await q(`DELETE FROM sesiones WHERE tipo = 'docente' AND usuario_id IN (SELECT id FROM docentes WHERE escuela_id = $1 AND NOT es_plataforma)`, [id]);
+  res.status(200).json({ escuela: { ...e, id: Number(e.id) } });
+}
+
 module.exports = async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
   try {
@@ -97,6 +119,13 @@ module.exports = async (req, res) => {
       if (!p) throw errorPublico("No encontramos ese CUE en el padrón", 404);
       return res.status(200).json({ escuela: p, ficha: padron.fichaDesdePadron(p) });
     }
+    if (S.esPlataforma(yo)) {
+      if (req.method === "GET" && consulta(req, "todas")) return res.status(200).json({ escuelas: await todas(), mi_escuela: Number(yo.escuela_id) });
+      const b = req.method === "POST" ? cuerpo(req) : {};
+      if (b.accion === "desactivar_escuela" || b.accion === "activar_escuela") return await cambiarActiva(res, yo, b);
+    }
+    if ((req.method === "GET" && consulta(req, "todas")) || /^(des)?activar_escuela$/.test(String(cuerpo(req).accion || "")))
+      throw errorPublico("Solo la plataforma ve y administra todas las escuelas.", 403);
     if (!yo.es_admin) throw errorPublico("Solo una docente administradora de la escuela puede ver y editar su ficha.", 403);
     if (req.method === "GET") return res.status(200).json({ ficha: await ficha(yo) });
     if (req.method !== "POST") return res.status(405).json({ error: "Método no permitido" });

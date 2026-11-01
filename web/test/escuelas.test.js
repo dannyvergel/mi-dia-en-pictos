@@ -45,7 +45,7 @@ test("alta inicial: CUE mal escrito o que no está en el padrón no crea nada", 
     assert.equal(noEsta.status, 404);
     assert.equal((await pg.query("SELECT count(*)::int AS n FROM escuelas")).rows[0].n, 1);
   } finally {
-    await pg.query("INSERT INTO docentes (id, escuela_id, email, nombre, es_admin) OVERRIDING SYSTEM VALUE VALUES (1, 1, 'ana@escuela.edu.ar', 'Ana', true), (2, 1, 'beto@escuela.edu.ar', 'Beto', false)");
+    await pg.query("INSERT INTO docentes (id, escuela_id, email, nombre, es_admin, es_plataforma) OVERRIDING SYSTEM VALUE VALUES (1, 1, 'ana@escuela.edu.ar', 'Ana', true, true), (2, 1, 'beto@escuela.edu.ar', 'Beto', false, false)");
   }
 });
 

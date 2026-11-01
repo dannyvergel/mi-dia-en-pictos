@@ -11,6 +11,7 @@ const { leerSesion, ipDe } = require("./_lib/seguridad");
 const { exigirDocente } = require("./_lib/auth");
 const { leerFamilia: leer, guardarFamilia } = require("./_lib/almacen");
 const { objetivosAPpi, apoyosAPerfil } = require("./_lib/fichas");
+const { condVisible } = require("./_lib/alumnos");
 const { cuerpo, consulta, exigirJson, manejarError, errorPublico } = require("./_lib/http");
 
 const tokenOk = t => typeof t === "string" && /^[a-f0-9]{32}$/.test(t);
@@ -80,11 +81,15 @@ async function modoDemo(req, res) {
 }
 
 // ---------- con base de datos: sesiones ----------
-// Una familia ve solo alumnos vinculados; una docente, los de su escuela.
+// Una familia ve solo alumnos vinculados (de escuelas activas); una docente, los que puede ver (admin: su escuela; si no, sus asignados).
 async function alumnoPermitido(s, id) {
   id = Number(id) || 0;
-  if (s.tipo === "docente") return uno("SELECT a.id, a.nombre, a.blob_token, f.objetivos, f.apoyos FROM alumnos a LEFT JOIN fichas f ON f.alumno_id = a.id WHERE a.id = $1 AND a.escuela_id = $2", [id, s.usuario.escuela_id]);
-  return uno("SELECT a.id, a.nombre, a.blob_token FROM alumnos a JOIN familia_alumno fa ON fa.alumno_id = a.id WHERE a.id = $1 AND fa.familia_id = $2", [id, s.usuario.id]);
+  if (s.tipo === "docente") {
+    const [c, p] = condVisible(s.usuario, 2);
+    return uno(`SELECT a.id, a.nombre, a.blob_token, f.objetivos, f.apoyos FROM alumnos a LEFT JOIN fichas f ON f.alumno_id = a.id WHERE a.id = $1 AND ${c}`, [id, ...p]);
+  }
+  return uno(`SELECT a.id, a.nombre, a.blob_token FROM alumnos a JOIN familia_alumno fa ON fa.alumno_id = a.id JOIN escuelas e ON e.id = a.escuela_id
+    WHERE a.id = $1 AND fa.familia_id = $2 AND e.activa`, [id, s.usuario.id]);
 }
 const vacia = a => ({ alumno: a.nombre, actualizado: null, dias: [], objetivos: [], agenda: null, mensaje_docente: null, sin_publicar: true });
 
@@ -106,8 +111,9 @@ async function modoDb(req, res) {
     if (!yo) return;
     if (!Array.isArray(b.registros)) throw errorPublico("Faltan datos");
     let a = b.alumno_id ? await alumnoPermitido({ tipo: "docente", usuario: yo }, b.alumno_id)
-      : await uno("SELECT a.id, a.nombre, a.blob_token, f.objetivos, f.apoyos FROM alumnos a LEFT JOIN fichas f ON f.alumno_id = a.id WHERE a.escuela_id = $1 AND a.nombre = $2", [yo.escuela_id, String(b.alumno || "")]);
-    if (!a) throw errorPublico("Ese alumno no está en tu escuela. Crealo primero en Fichas.", 404);
+      : await (async () => { const [c, p] = condVisible(yo, 2);
+          return uno(`SELECT a.id, a.nombre, a.blob_token, f.objetivos, f.apoyos FROM alumnos a LEFT JOIN fichas f ON f.alumno_id = a.id WHERE a.nombre = $1 AND ${c}`, [String(b.alumno || ""), ...p]); })();
+    if (!a) throw errorPublico("Ese alumno no está entre tus alumnos. Crealo en Fichas o pedile a la admin que te lo asigne.", 404);
     let t = a.blob_token;
     if (!t) { t = crypto.randomBytes(16).toString("hex"); await q("UPDATE alumnos SET blob_token = $1 WHERE id = $2", [t, a.id]); }
     // La ficha manda: objetivos del PPI y perfil salen de la base, no del navegador.

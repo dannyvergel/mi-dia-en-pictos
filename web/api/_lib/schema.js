@@ -114,7 +114,43 @@ const SCHEMA = [
   `ALTER TABLE escuelas ADD COLUMN IF NOT EXISTS actualizado TIMESTAMPTZ`,
   `ALTER TABLE escuelas ADD COLUMN IF NOT EXISTS actualizado_por TEXT`,
   // La seño que pide acceso puede elegir su escuela del padrón: se guarda el CUE para aprobarla en la escuela correcta.
-  `ALTER TABLE solicitudes ADD COLUMN IF NOT EXISTS cue TEXT`
+  `ALTER TABLE solicitudes ADD COLUMN IF NOT EXISTS cue TEXT`,
+  // ---------- Roles ----------
+  // Plataforma (superadmin): aprueba directoras de escuelas nuevas y ve todas las escuelas. ADMIN_EMAIL siempre lo es.
+  `ALTER TABLE docentes ADD COLUMN IF NOT EXISTS es_plataforma BOOLEAN NOT NULL DEFAULT false`,
+  // Una escuela desactivada por la plataforma: sus docentes y familias no entran.
+  `ALTER TABLE escuelas ADD COLUMN IF NOT EXISTS activa BOOLEAN NOT NULL DEFAULT true`,
+  // A quién va cada solicitud: 'escuela' (a las admins de escuela_id) o 'plataforma' (escuela nueva o "soy director/a").
+  `ALTER TABLE solicitudes ADD COLUMN IF NOT EXISTS destino TEXT NOT NULL DEFAULT 'plataforma'`,
+  `ALTER TABLE solicitudes ADD COLUMN IF NOT EXISTS escuela_id BIGINT REFERENCES escuelas(id)`,
+  `ALTER TABLE solicitudes ADD COLUMN IF NOT EXISTS es_director BOOLEAN NOT NULL DEFAULT false`,
+  `CREATE INDEX IF NOT EXISTS solicitudes_destino ON solicitudes (destino, escuela_id, estado)`,
+  // Alumno ↔ docentes asignadas (maestra de grado, integradora, terapeuta…). Las admins de la escuela ven todos igual.
+  `CREATE TABLE IF NOT EXISTS alumno_docentes (
+    alumno_id BIGINT NOT NULL REFERENCES alumnos(id) ON DELETE CASCADE,
+    docente_id BIGINT NOT NULL REFERENCES docentes(id) ON DELETE CASCADE,
+    asignado TIMESTAMPTZ NOT NULL DEFAULT now(),
+    asignado_por BIGINT,
+    PRIMARY KEY (alumno_id, docente_id)
+  )`,
+  `CREATE INDEX IF NOT EXISTS alumno_docentes_docente ON alumno_docentes (docente_id)`,
+  // Migraciones de datos que corren una sola vez (la fila marca que ya se aplicó).
+  `CREATE TABLE IF NOT EXISTS migraciones (nombre TEXT PRIMARY KEY, aplicada TIMESTAMPTZ NOT NULL DEFAULT now())`,
+  // Una vez: los alumnos que ya existían sin asignaciones quedan asignados a todas las docentes activas de su escuela,
+  // así nadie deja de ver lo que veía. Si dos instancias arrancan juntas, solo una inserta la marca y hace la copia.
+  `WITH m AS (INSERT INTO migraciones (nombre) VALUES ('alumno_docentes_inicial') ON CONFLICT DO NOTHING RETURNING nombre)
+   INSERT INTO alumno_docentes (alumno_id, docente_id)
+   SELECT a.id, d.id FROM alumnos a JOIN docentes d ON d.escuela_id = a.escuela_id AND d.activo
+   WHERE EXISTS (SELECT 1 FROM m) AND NOT EXISTS (SELECT 1 FROM alumno_docentes x WHERE x.alumno_id = a.id)
+   ON CONFLICT DO NOTHING`,
+  // Invitaciones por mail a las familias (una por email + alumno; se reenvía como mucho cada 24 h).
+  `CREATE TABLE IF NOT EXISTS invitaciones (
+    alumno_id BIGINT NOT NULL REFERENCES alumnos(id) ON DELETE CASCADE,
+    email TEXT NOT NULL,
+    enviado TIMESTAMPTZ NOT NULL DEFAULT now(),
+    enviado_por BIGINT,
+    PRIMARY KEY (alumno_id, email)
+  )`
 ];
 
 module.exports = { SCHEMA };
