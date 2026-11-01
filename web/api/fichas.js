@@ -12,6 +12,10 @@
 //                                        alumno y los días en Blob (solo admins de escuela; la plataforma, de cualquier escuela)
 //   POST accion=baja_familia { id, email }  Baja de una familia en los alumnos de mi escuela (admins; plataforma: en todos)
 //   GET ?id=&exportar=1                  Exportar la ficha del alumno (JSON). Queda en la auditoría.
+//   POST accion=link_familia { id, nombre?, vinculo?, dias? }  → link de invitación (un solo uso, 7 días) ligado a este alumno,
+//                                        para mandar por WhatsApp. Devuelve la URL una sola vez. Respeta el tope de cupos.
+//   POST accion=link_revocar { id, link_id }   → anula un link pendiente de la familia de este alumno
+//   Piloto: sumar emails nuevos de familia (crear/guardar) respeta el tope de cupos (409 "El piloto está completo").
 //   POST accion=importar_previa | importar_confirmar | importar_enviar   (solo admins de escuela / plataforma)
 //                                        Importación masiva de docentes y alumnos con familias: ver _lib/importacion.js
 // Familia: ve solo los alumnos vinculados a su email (los emails de "contactos" de la ficha), de escuelas activas.
@@ -30,6 +34,8 @@ const S = require("./_lib/seguridad");
 const A = require("./_lib/alumnos");
 const inv = require("./_lib/invitaciones");
 const importacion = require("./_lib/importacion");
+const enlaces = require("./_lib/enlaces");
+const piloto = require("./_lib/piloto");
 const { cuerpo, consulta, exigirJson, manejarError, errorPublico, hoyLocal } = require("./_lib/http");
 
 const SELECT = `SELECT a.id, a.nombre, a.grado, a.blob_token IS NOT NULL AS publicado, f.contactos, f.apoyos, f.objetivos, f.consentimiento, f.actualizado
@@ -40,8 +46,8 @@ const forma = r => r && ({ id: Number(r.id), nombre: r.nombre, grado: r.grado ||
 // Suma a cada alumno sus docentes asignadas y cuándo se invitó a cada email de contacto.
 async function completar(filas) {
   const ids = filas.map(r => Number(r.id));
-  const [asig, invs] = await Promise.all([A.asignadas(ids), inv.enviadas(ids)]);
-  return filas.map(r => ({ ...forma(r), docentes: asig[Number(r.id)] || [], invitaciones: invs[Number(r.id)] || {} }));
+  const [asig, invs, links] = await Promise.all([A.asignadas(ids), inv.enviadas(ids), enlaces.pendientesFamilia(ids)]);
+  return filas.map(r => ({ ...forma(r), docentes: asig[Number(r.id)] || [], invitaciones: invs[Number(r.id)] || {}, links_familia: links[Number(r.id)] || [] }));
 }
 
 async function alumnoDeDocente(yo, id) {
@@ -89,6 +95,7 @@ async function docente(req, res, yo) {
   if (b.accion === "crear") {
     const nombre = F.validarNombre(b.nombre);
     const contactos = F.validarContactos(b.contactos);
+    await piloto.exigirCupo((await piloto.familiasNuevas(contactos.map(c => c.email))).length);
     if (await uno("SELECT 1 AS x FROM alumnos WHERE escuela_id = $1 AND lower(nombre) = lower($2)", [yo.escuela_id, nombre]))
       throw errorPublico(`Ya hay un alumno «${nombre}» en la escuela. Agregale una inicial para distinguirlos (ej: «${nombre} P.»).`, 409);
     const a = await uno("INSERT INTO alumnos (escuela_id, nombre, creado_por) VALUES ($1, $2, $3) RETURNING id, nombre", [yo.escuela_id, nombre, yo.id]);
@@ -102,6 +109,9 @@ async function docente(req, res, yo) {
     const actual = await alumnoDeDocente(yo, b.id);
     const nombre = b.nombre != null ? F.validarNombre(b.nombre) : actual.nombre;
     const contactos = F.validarContactos(b.contactos), apoyos = F.validarApoyos(b.apoyos), objetivos = F.validarObjetivos(b.objetivos);
+    // Piloto: cada email nuevo de familia es una cuenta (un cupo). Se corta antes de guardar nada.
+    const previos = new Set((actual.contactos || []).map(x => x.email).filter(Boolean));
+    await piloto.exigirCupo((await piloto.familiasNuevas(contactos.map(c => c.email).filter(e => e && !previos.has(e)))).length);
     let consentimiento = actual.consentimiento || { dado: false };
     if (b.consentimiento !== undefined) {
       const c = F.validarConsentimiento({ ...b.consentimiento, via: "docente" });
@@ -135,6 +145,17 @@ async function docente(req, res, yo) {
     const r = await inv.invitar(req, { alumno: a, email, docente: yo, contacto: c.nombre });
     if (r === "reciente") throw errorPublico(`Ya le mandamos la invitación a ${email} hace menos de ${inv.HORAS} h. Probá mañana.`, 429);
     if (r === "fallo") throw errorPublico("No pudimos mandar la invitación. Probá en un rato.", 502);
+    return res.status(200).json({ ok: true, alumno: await unoCompleto(yo, a.id) });
+  }
+  if (b.accion === "link_familia") {
+    const a = await alumnoDeDocente(yo, b.id);
+    return res.status(200).json({ enlace: await enlaces.crearFamilia(req, yo, a.id, b), alumno: await unoCompleto(yo, a.id) });
+  }
+  if (b.accion === "link_revocar") {
+    const a = await alumnoDeDocente(yo, b.id);
+    const l = await uno("SELECT id FROM enlaces WHERE id = $1 AND alumno_id = $2", [Number(b.link_id) || 0, a.id]);
+    if (!l) throw errorPublico("No encontramos ese link", 404);
+    await enlaces.revocar(req, yo, l.id);
     return res.status(200).json({ ok: true, alumno: await unoCompleto(yo, a.id) });
   }
   if (b.accion === "asignar" || b.accion === "desasignar") {

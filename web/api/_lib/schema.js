@@ -186,7 +186,32 @@ const SCHEMA = [
     estado TEXT NOT NULL DEFAULT 'nuevo' CHECK (estado IN ('nuevo', 'leido')),
     creado TIMESTAMPTZ NOT NULL DEFAULT now()
   )`,
-  `CREATE INDEX IF NOT EXISTS feedback_creado ON feedback (creado DESC)`
+  `CREATE INDEX IF NOT EXISTS feedback_creado ON feedback (creado DESC)`,
+  // ---------- Piloto cerrado: links de invitación ----------
+  // Solo se guarda el hash (SHA-256) del token: el link completo se ve una sola vez, al crearlo.
+  // tipo 'docente' (para una seño o directiva de escuela_id) o 'familia' (ligado a alumno_id). Por defecto 1 uso y 7 días.
+  `CREATE TABLE IF NOT EXISTS enlaces (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    token_hash TEXT NOT NULL UNIQUE,
+    tipo TEXT NOT NULL CHECK (tipo IN ('docente', 'familia')),
+    escuela_id BIGINT NOT NULL REFERENCES escuelas(id) ON DELETE CASCADE,
+    alumno_id BIGINT REFERENCES alumnos(id) ON DELETE CASCADE,
+    es_admin BOOLEAN NOT NULL DEFAULT false,
+    etiqueta TEXT NOT NULL DEFAULT '',
+    vinculo TEXT NOT NULL DEFAULT '',
+    usos_max INT NOT NULL DEFAULT 1,
+    usos INT NOT NULL DEFAULT 0,
+    expira TIMESTAMPTZ NOT NULL,
+    creado TIMESTAMPTZ NOT NULL DEFAULT now(),
+    creado_por BIGINT REFERENCES docentes(id) ON DELETE SET NULL,
+    usado TIMESTAMPTZ,
+    usado_por_tipo TEXT,
+    usado_por BIGINT,
+    revocado TIMESTAMPTZ,
+    revocado_por BIGINT
+  )`,
+  `CREATE INDEX IF NOT EXISTS enlaces_escuela ON enlaces (escuela_id, creado DESC)`,
+  `CREATE INDEX IF NOT EXISTS enlaces_alumno ON enlaces (alumno_id) WHERE alumno_id IS NOT NULL`
 ];
 
 module.exports = { SCHEMA };

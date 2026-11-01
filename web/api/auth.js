@@ -8,6 +8,11 @@
 //  POST accion=pedir_codigo       { email, tipo: "docente"|"familia" (por defecto familia) }
 //  POST accion=verificar_codigo   { email, codigo, tipo }
 //  POST accion=logout
+//  Piloto cerrado (links de invitación, ver _lib/enlaces.js). El token viaja en el cuerpo, nunca en la URL:
+//  POST accion=invitacion_info          { token } → a qué escuela (y alumno) invita, si sigue vigente y si el piloto está completo
+//  POST accion=invitacion_pedir_codigo  { token, email } → manda el código al email (aunque todavía no tenga cuenta)
+//  POST accion=invitacion_verificar     { token, email, codigo, nombre } → usa el link, crea la cuenta aprobada y abre la sesión
+//  GET también devuelve solo_invitacion (PILOTO_SOLO_INVITACION): con true, login.html oculta "Solicitar acceso".
 //  (login_docente y cambiar_password con contraseña quedaron fuera de uso: responden 410.)
 const { dbActiva, uno } = require("./_lib/db");
 const S = require("./_lib/seguridad");
@@ -15,6 +20,8 @@ const { pinOk } = require("./_lib/pin");
 const codigos = require("./_lib/codigos");
 const padron = require("./_lib/padron");
 const { datosSesion, metodos } = require("./_lib/identidad");
+const enlaces = require("./_lib/enlaces");
+const piloto = require("./_lib/piloto");
 const { cuerpo, exigirJson, manejarError, errorPublico } = require("./_lib/http");
 
 const VENTANA = 15;
@@ -58,6 +65,7 @@ module.exports = async (req, res) => {
     if (req.method === "GET") {
       const s = await S.leerSesion(req);
       return res.status(200).json({ modo: "db", sesion: s ? datosSesion(s.tipo, s.usuario) : null, necesita_setup: !(await hayDocentes()), metodos: metodos(),
+        solo_invitacion: piloto.soloInvitacion(),
         ...(s ? {} : { formulario: S.tokenFormulario() }) });
     }
     if (req.method !== "POST") return res.status(405).json({ error: "Método no permitido" });
@@ -70,6 +78,9 @@ module.exports = async (req, res) => {
       case "login_docente":
       case "cambiar_password":
         return res.status(410).json({ error: "Puente ya no usa contraseñas: entrá con tu email y te mandamos un código." });
+      case "invitacion_info": return res.status(200).json(await enlaces.info(req, b.token));
+      case "invitacion_pedir_codigo": return res.status(200).json(await enlaces.pedirCodigo(req, b.token, b.email));
+      case "invitacion_verificar": return res.status(200).json({ ok: true, sesion: await enlaces.verificar(req, res, b) });
       case "logout": await S.cerrarSesion(req, res); return res.status(200).json({ ok: true });
       default: return res.status(400).json({ error: "Acción desconocida" });
     }

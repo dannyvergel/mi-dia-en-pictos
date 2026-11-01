@@ -43,6 +43,7 @@ async function bajaAlumno(req, yo, alumnoId) {
     ["DELETE FROM invitaciones WHERE alumno_id = $1", [a.id]],
     ["DELETE FROM alumno_docentes WHERE alumno_id = $1", [a.id]],
     ["DELETE FROM familia_alumno WHERE alumno_id = $1", [a.id]],
+    ["DELETE FROM enlaces WHERE alumno_id = $1", [a.id]], // links de invitación de su familia
     ["DELETE FROM fichas WHERE alumno_id = $1", [a.id]],
     ["DELETE FROM alumnos WHERE id = $1", [a.id]]
   ]);

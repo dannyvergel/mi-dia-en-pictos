@@ -20,6 +20,7 @@ const inv = require("./invitaciones");
 const avisos = require("./avisos");
 const { modoCorreo } = require("./correo");
 const { errorPublico } = require("./http");
+const piloto = require("./piloto");
 
 const MAX_FILAS = 500;                 // docentes + alumnos, sin contar filas vacías
 const MAX_BYTES = 2 * 1024 * 1024;     // tamaño del pedido (JSON)
@@ -274,6 +275,14 @@ async function analizar(entrada, escuelaId, yo) {
   for (const r of alumnos) { resumen.alumnos[r.estado]++; if (r.estado !== "error" && r.invitar) resumen.invitaciones += r.invitar.length; }
   const errores = [...td.errores.map(e => "Docentes: " + e), ...ta.errores.map(e => "Alumnos: " + e)];
   const avisosG = [...td.avisos.map(e => "Docentes: " + e), ...ta.avisos.map(e => "Alumnos: " + e)];
+  // Piloto: tope de cupos. Cuentas nuevas = docentes nuevas o reactivadas + emails de familia que hoy no tienen cuenta (filas válidas).
+  const nDoc = docentes.filter(r => r.estado === "nuevo" || (r.estado === "actualiza" && r.reactiva)).length;
+  const nFam = (await piloto.familiasNuevas(alumnos.filter(r => r.estado !== "error" && r.estado !== "duplicado").flatMap(r => r.invitar || []))).length;
+  const cu = await piloto.cupos();
+  const excede = !cu.sin_tope && cu.usados + nDoc + nFam > cu.max;
+  resumen.cupos = { usados: cu.usados, max: cu.max, nuevas: nDoc + nFam, libres: cu.libres, excede };
+  if (excede) errores.push(cu.completo ? piloto.textoCompleto(cu)
+    : `El piloto está completo para esta planilla: suma ${nDoc + nFam} cuentas nuevas (${nDoc} docentes, ${nFam} familias) y quedan ${cu.libres} de ${cu.max} cupos. Sacá filas y volvé a previsualizar.`);
   const hayErrores = errores.length > 0 || resumen.docentes.error > 0 || resumen.alumnos.error > 0;
   // La huella resume lo que se leyó de la planilla: confirmar exige la misma (lo que la persona vio en la vista previa).
   const huella = crypto.createHash("sha256").update(JSON.stringify([escuelaId, td.filas, ta.filas])).digest("base64url").slice(0, 32);
@@ -422,6 +431,7 @@ async function manejar(req, res, yo, b) {
 
   // importar_confirmar
   if (!b.huella || b.huella !== a.huella) return res.status(409).json({ error: "Los datos cambiaron desde la vista previa. Volvé a previsualizar antes de confirmar.", ...informe(a, escuela) });
+  if (a.resumen.cupos?.excede) return res.status(409).json({ error: a.errores[a.errores.length - 1], completo: true, ...informe(a, escuela), escrito: false });
   if (a.errores.length) return res.status(409).json({ error: "La planilla tiene errores de formato: no se importó nada.", ...informe(a, escuela), escrito: false });
   const omitir = b.omitir_errores === true;
   if (a.hay_errores && !omitir) return res.status(409).json({ error: "Hay filas con errores: no se importó nada. Corregilas, o elegí importar solo las filas válidas.", ...informe(a, escuela), escrito: false });

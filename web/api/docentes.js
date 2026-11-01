@@ -5,11 +5,20 @@
 //  POST accion=desactivar      { id }                                  (solo admin, no a sí misma)
 //  POST accion=plataforma      { id, valor }  (solo plataforma) promueve (o saca) a otra docente como admin de la plataforma.
 //                                             La cuenta de ADMIN_EMAIL siempre es de la plataforma.
+// Piloto cerrado (links de invitación, _lib/enlaces.js) y cupos (_lib/piloto.js):
+//  GET                         → también { cupos: { usados, max, libres, completo } } para admins y plataforma
+//  GET ?invitaciones=1         → { enlaces, cupos, escuelas } links de mi escuela (plataforma: todos) (admins y plataforma)
+//  POST accion=invitacion_crear   { escuela_id? | cue? (plataforma), es_admin?, etiqueta?, dias? (7), usos? (1) }
+//                                 → link para una seño (la admin de escuela, solo para la suya). Devuelve la URL una sola vez.
+//  POST accion=invitacion_revocar { id }   (admins de esa escuela, plataforma, o la docente que ve al alumno en links de familia)
+//  "crear" respeta el tope de cupos.
 const { dbActiva, q, uno } = require("./_lib/db");
 const S = require("./_lib/seguridad");
 const { exigirDocente } = require("./_lib/auth");
 const avisos = require("./_lib/avisos");
-const { cuerpo, exigirJson, manejarError, errorPublico } = require("./_lib/http");
+const enlaces = require("./_lib/enlaces");
+const piloto = require("./_lib/piloto");
+const { cuerpo, consulta, exigirJson, manejarError, errorPublico } = require("./_lib/http");
 
 module.exports = async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
@@ -18,12 +27,23 @@ module.exports = async (req, res) => {
     if (!exigirJson(req, res)) return;
     const yo = await exigirDocente(req, res);
     if (!yo) return;
+    const admin = yo.es_admin || S.esPlataforma(yo);
+    if (req.method === "GET" && consulta(req, "invitaciones") === "1") {
+      if (!admin) throw errorPublico("Solo la dirección de la escuela (o la plataforma) ve los links de invitación.", 403);
+      const escuelas = S.esPlataforma(yo) ? await q("SELECT id, nombre, cue FROM escuelas WHERE activa ORDER BY nombre")
+        : await q("SELECT id, nombre, cue FROM escuelas WHERE id = $1", [yo.escuela_id]);
+      return res.status(200).json({ enlaces: await enlaces.listar(yo), cupos: await piloto.cupos(), escuelas: escuelas.map(e => ({ ...e, id: Number(e.id) })),
+        mi_escuela: Number(yo.escuela_id), plataforma: S.esPlataforma(yo) });
+    }
     if (req.method === "GET") {
       const docentes = await q("SELECT id, nombre, email, rol, es_admin, es_plataforma, activo FROM docentes WHERE escuela_id = $1 ORDER BY nombre", [yo.escuela_id]);
-      return res.status(200).json({ docentes: docentes.map(d => ({ ...d, es_plataforma: S.esPlataforma(d) })), yo: yo.id });
+      return res.status(200).json({ docentes: docentes.map(d => ({ ...d, es_plataforma: S.esPlataforma(d) })), yo: yo.id,
+        ...(admin ? { cupos: await piloto.cupos() } : {}) });
     }
     if (req.method !== "POST") return res.status(405).json({ error: "Método no permitido" });
     const b = cuerpo(req);
+    if (b.accion === "invitacion_crear") return res.status(200).json({ enlace: await enlaces.crearDocente(req, yo, b), cupos: await piloto.cupos() });
+    if (b.accion === "invitacion_revocar") return res.status(200).json({ enlace: await enlaces.revocar(req, yo, b.id) });
     if (b.accion === "plataforma") {
       if (!S.esPlataforma(yo)) throw errorPublico("Solo la plataforma puede sumar administradoras de la plataforma.", 403);
       const id = Number(b.id) || 0;
@@ -39,6 +59,7 @@ module.exports = async (req, res) => {
       if (!S.emailValido(email)) throw errorPublico("Revisá el email");
       const existe = await uno("SELECT id, activo FROM docentes WHERE email = $1", [email]);
       if (existe?.activo) throw errorPublico("Ya hay una docente con ese email", 409);
+      await piloto.exigirCupo(1);
       const d = existe
         ? await uno("UPDATE docentes SET activo = true, escuela_id = $2, nombre = $3, es_admin = $4 WHERE id = $1 RETURNING id, nombre, email, es_admin, activo", [existe.id, yo.escuela_id, nombre, !!b.es_admin])
         : await uno("INSERT INTO docentes (escuela_id, email, nombre, es_admin) VALUES ($1, $2, $3, $4) RETURNING id, nombre, email, es_admin, activo", [yo.escuela_id, email, nombre, !!b.es_admin]);

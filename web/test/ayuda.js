@@ -3,7 +3,10 @@ const { PGlite } = require("@electric-sql/pglite");
 const db = require("../api/_lib/db");
 const almacen = require("../api/_lib/almacen");
 
+// Piloto cerrado: los tests de antes prueban el flujo abierto y sin tope. test/piloto-invitaciones.test.js los fija a mano.
 async function baseNueva() {
+  if (!("PILOTO_SOLO_INVITACION" in process.env)) process.env.PILOTO_SOLO_INVITACION = "0";
+  if (!("PILOTO_MAX_USUARIOS" in process.env)) process.env.PILOTO_MAX_USUARIOS = "0";
   const pg = new PGlite();
   db.usarBaseDePrueba(pg);
   pg.blobs = almacen.usarAlmacenDePrueba(true);
