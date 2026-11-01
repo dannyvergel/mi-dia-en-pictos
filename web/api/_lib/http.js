@@ -18,6 +18,10 @@ function manejarError(res, e) {
   console.error(e);
   res.status(500).json({ error: "Algo falló, probá de nuevo en un rato." });
 }
+// Fecha de hoy (AAAA-MM-DD) en la hora de Argentina: con UTC, después de las 21 h ya sería "mañana".
+const ZONA = process.env.PUENTE_ZONA || "America/Argentina/Buenos_Aires";
+function hoyLocal(d = new Date()) { return new Intl.DateTimeFormat("en-CA", { timeZone: ZONA, year: "numeric", month: "2-digit", day: "2-digit" }).format(d); }
+
 const errorPublico = (msg, status = 400) => Object.assign(new Error(msg), { publico: true, status });
 
 // URL pública para links en emails. No se arma con el Host del pedido (se podría falsear),
@@ -31,4 +35,4 @@ function urlPublica(req) {
   return "http://" + (String(req?.headers?.host || "").replace(/[^a-z0-9.:-]/gi, "") || "localhost:3000");
 }
 
-module.exports = { cuerpo, consulta, exigirJson, manejarError, errorPublico, urlPublica };
+module.exports = { cuerpo, consulta, exigirJson, manejarError, errorPublico, urlPublica, hoyLocal };

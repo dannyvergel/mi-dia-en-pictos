@@ -231,7 +231,7 @@ async function demo(alumno, texto) {
   for (const a of actividades) Object.assign(a, await picto(a.palabra_clave));
   const dificiles = actividades.filter(a => a.estado === "dificil");
   return {
-    alumno, fecha: new Date().toISOString().slice(0, 10), actividades,
+    alumno, fecha: new Date().toLocaleDateString("en-CA"), actividades,
     animo_general: dificiles.length ? "tranquilo" : "contento",
     logros: [], alertas: dificiles.map(a => ({ tipo: "conducta", detalle: a.actividad, nivel: "medio" })),
     resumen_familia: `Hoy ${alumno} tuvo un día con ${actividades.length} momentos. ${texto}`,

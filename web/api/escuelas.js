@@ -13,7 +13,7 @@
 const { dbActiva, q, uno } = require("./_lib/db");
 const S = require("./_lib/seguridad");
 const padron = require("./_lib/padron");
-const { cuerpo, consulta, exigirJson, manejarError, errorPublico } = require("./_lib/http");
+const { cuerpo, consulta, exigirJson, manejarError, errorPublico, hoyLocal } = require("./_lib/http");
 
 const LIM = { docente: [120, 10], ip: [40, 10], ipDia: [300, 24 * 60] };
 const limpio = (s, max) => String(s ?? "").replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, "").trim().slice(0, max);
@@ -60,7 +60,7 @@ async function guardarFicha(res, yo, b) {
   d.aval_firmado = !!b.aval_firmado;
   const fecha = String(b.aval_fecha || "").trim();
   if (fecha && !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) throw errorPublico("Revisá la fecha del aval");
-  d.aval_fecha = d.aval_firmado ? (fecha || new Date().toISOString().slice(0, 10)) : null;
+  d.aval_fecha = d.aval_firmado ? (fecha || hoyLocal()) : null;
   if (!d.aval_firmado) d.aval_por = "";
   if (cue) {
     const otra = await uno("SELECT id FROM escuelas WHERE cue = $1 AND id <> $2", [cue, yo.escuela_id]);

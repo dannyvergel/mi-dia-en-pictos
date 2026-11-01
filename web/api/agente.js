@@ -3,7 +3,7 @@
 const { crearHerramientas } = require("./_lib/tools");
 const { exigirDocente } = require("./_lib/auth");
 const { exigirVisiblePorNombre } = require("./_lib/alumnos");
-const { manejarError } = require("./_lib/http");
+const { manejarError, hoyLocal } = require("./_lib/http");
 
 const { PRINCIPAL: MODEL, cuerpo } = require("./_lib/modelos");
 const MAX_PASOS = 8;
@@ -125,7 +125,7 @@ module.exports = async (req, res) => {
     // Con cuentas: solo alumnos que la docente puede ver (admin: su escuela; si no, sus asignados).
     if (body.alumno) await exigirVisiblePorNombre(yo, body.alumno);
   } catch (e) { return manejarError(res, e); }
-  const ctx = { alumno: body.alumno, registros: body.registros || [], ppi: body.ppi || [], perfil: body.perfil || {}, hoy: new Date().toISOString().slice(0, 10) };
+  const ctx = { alumno: body.alumno, registros: body.registros || [], ppi: body.ppi || [], perfil: body.perfil || {}, hoy: hoyLocal() };
   if (!ctx.alumno || !ctx.registros.length) return res.status(400).json({ error: "Faltan alumno o registros" });
 
   const t0 = Date.now();

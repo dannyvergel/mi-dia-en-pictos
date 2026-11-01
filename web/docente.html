@@ -40,6 +40,10 @@
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
   .objetivo { display: flex; gap: 6px; margin: 6px 0; } .objetivo input { flex: 1; }
   .quitar { border: 0; background: none; color: var(--bad); font-size: 22px; cursor: pointer; padding: 0 6px; }
+  .contacto > .quitar { font-family: var(--texto); font-size: 14px; font-weight: 700; padding: 4px 0; margin-top: 4px; }
+  .inv-msg { display: block; font-size: 14px; margin-top: 2px; }
+  .inv-msg.error { color: var(--bad); font-weight: 700; }
+  #impEscuelaFila { align-items: center; }
   .check { display: flex; gap: 8px; align-items: center; font-weight: 700; } .check input { width: auto; }
   .barra { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
   .barra a { color: var(--tinta); font-weight: 700; }
@@ -304,11 +308,13 @@ function filaContacto(c = {}) {
   if (guardado) {
     const env = actual.invitaciones?.[c.email], inv = d.querySelector(".inv");
     inv.innerHTML = `<span class="muted">${env ? "Invitación enviada " + esc(fecha(env)) : "Sin invitación enviada"}</span> <button type="button" class="enlace">${env ? "reenviar invitación" : "mandar invitación"}</button>`;
+    // El aviso (ej.: «esperá 24 h») va al lado del botón, no al pie de la ficha.
+    const avisoInv = t => { let m = inv.querySelector(".inv-msg"); if (!m) { m = document.createElement("span"); m.className = "inv-msg error"; m.setAttribute("role", "status"); inv.appendChild(m); } m.textContent = t; };
     inv.querySelector("button").onclick = async ev => {
       ev.target.disabled = true;
       try { const r = await api("api/fichas", { method: "POST", body: { accion: "invitar", id: actual.id, email: c.email } });
         Object.assign(ALUMNOS.find(a => a.id === actual.id), r.alumno); abrir(actual.id); msg("msgEd", `Le mandamos la invitación a ${c.email} ✓`); }
-      catch (e) { msg("msgEd", e.message, true); ev.target.disabled = false; }
+      catch (e) { avisoInv(e.message); ev.target.disabled = false; }
     };
   }
   $("contactos").appendChild(d);
@@ -358,7 +364,7 @@ async function cambiarAsignacion(docenteId, sumar) {
 }
 $("asignarBtn").onclick = () => $("asignarSel").value && cambiarAsignacion(Number($("asignarSel").value), true);
 
-$("consDado").onchange = () => { if ($("consDado").checked && !$("consFecha").value) $("consFecha").value = new Date().toISOString().slice(0, 10); };
+$("consDado").onchange = () => { if ($("consDado").checked && !$("consFecha").value) $("consFecha").value = new Date().toLocaleDateString("en-CA"); };
 
 $("guardar").onclick = async () => {
   if (!actual) return;
@@ -494,7 +500,7 @@ async function cargarEscuela() {
   try { pintarEscuela((await api("api/escuelas?ficha=1")).ficha || {}); msg("msgEsc", ""); }
   catch (e) { msg("msgEsc", e.message, true); }
 }
-$("feAval").onchange = () => { if ($("feAval").checked && !$("feAvalFecha").value) $("feAvalFecha").value = new Date().toISOString().slice(0, 10); };
+$("feAval").onchange = () => { if ($("feAval").checked && !$("feAvalFecha").value) $("feAvalFecha").value = new Date().toLocaleDateString("en-CA"); };
 $("fEscuela").onsubmit = async ev => {
   ev.preventDefault();
   const body = { accion: "guardar_ficha", aval_firmado: $("feAval").checked };

@@ -80,6 +80,7 @@ textarea { min-height: 120px; line-height: 32px; background-image: repeating-lin
   box-shadow: 0 3px 0 var(--pizarron-2);
 }
 .big:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--pizarron-2); }
+.big:disabled { opacity: .5; cursor: not-allowed; transform: none; }
 .big.alt { background: #fff; color: var(--tinta); border: 1.5px solid var(--tinta); box-shadow: 0 3px 0 #23364f33; }
 .big.chico { font-size: 14px; padding: 10px; }
 .big.rec { background: var(--bad); color: #fff; box-shadow: 0 3px 0 #7d2e1f; animation: pulso 1.2s infinite; }
@@ -164,6 +165,8 @@ footer a { color: var(--gris); }
 /* Pantalla de PIN */
 .gate { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 20px; background: #2f4a3ef2; }
 .gate[hidden] { display: none; }
+/* El atributo hidden tiene que ganarle a .big, .fila, .cuenta-n… (si no, se ven botones ocultos como «Borrar alumno»). */
+[hidden] { display: none !important; }
 .gate .card { width: 100%; max-width: 380px; }
 .gate form { display: flex; gap: 8px; } .gate form .big { width: auto; margin: 0; padding: 0 18px; }
 

@@ -22,7 +22,7 @@ const { borrarFamilia } = require("./_lib/almacen");
 const A = require("./_lib/alumnos");
 const inv = require("./_lib/invitaciones");
 const importacion = require("./_lib/importacion");
-const { cuerpo, consulta, exigirJson, manejarError, errorPublico } = require("./_lib/http");
+const { cuerpo, consulta, exigirJson, manejarError, errorPublico, hoyLocal } = require("./_lib/http");
 
 const SELECT = `SELECT a.id, a.nombre, a.grado, a.blob_token IS NOT NULL AS publicado, f.contactos, f.apoyos, f.objetivos, f.consentimiento, f.actualizado
   FROM alumnos a LEFT JOIN fichas f ON f.alumno_id = a.id`;
@@ -146,8 +146,8 @@ async function familia(req, res, fam) {
   const yo = contactos.find(c => c.email === fam.email);
   if (b.accion === "consentir") {
     const consentimiento = b.dado
-      ? { dado: true, fecha: new Date().toISOString().slice(0, 10), quien: yo ? `${yo.nombre}${yo.vinculo ? " (" + yo.vinculo + ")" : ""} · ${fam.email}` : fam.email, via: "familia" }
-      : { dado: false, retirado: new Date().toISOString().slice(0, 10), quien_retiro: fam.email };
+      ? { dado: true, fecha: hoyLocal(), quien: yo ? `${yo.nombre}${yo.vinculo ? " (" + yo.vinculo + ")" : ""} · ${fam.email}` : fam.email, via: "familia" }
+      : { dado: false, retirado: hoyLocal(), quien_retiro: fam.email };
     await q("UPDATE fichas SET consentimiento = $1::jsonb, actualizado = now(), actualizado_por = $2 WHERE alumno_id = $3", [JSON.stringify(consentimiento), fam.email, a.id]);
     return res.status(200).json({ alumno: forma(await alumnoDeFamilia(fam, a.id)) });
   }

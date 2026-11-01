@@ -141,7 +141,7 @@ async function modoDb(req, res) {
     if (r.en_tema && r.modo === "ia") await chat.guardarTurno(cuenta, Number(a.id), pregunta, r.respuesta);
     return res.status(200).json({ respuesta: r.respuesta, modo: r.modo });
   }
-  if (b.accion === "verificar_pin") return res.status(400).json({ error: "Con cuentas activas, la docente entra con email y contraseña.", login: "/login.html" });
+  if (b.accion === "verificar_pin") return res.status(400).json({ error: "Con cuentas activas, la docente entra con su email y un código.", login: "/login.html" });
   res.status(400).json({ error: "Acción desconocida" });
 }
 

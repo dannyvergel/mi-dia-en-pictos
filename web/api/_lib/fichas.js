@@ -1,6 +1,6 @@
 // Validación y forma de la "ficha de familia" de cada alumno.
 // Privacidad: solo nombre de pila (o con inicial), sin fotos, sin diagnósticos.
-const { errorPublico } = require("./http");
+const { errorPublico, hoyLocal } = require("./http");
 const { normEmail, emailValido } = require("./seguridad");
 
 const APOYOS = {
@@ -53,7 +53,7 @@ function validarObjetivos(lista) {
   return out;
 }
 
-const hoyISO = () => new Date().toISOString().slice(0, 10);
+const hoyISO = () => hoyLocal();
 function validarConsentimiento(c) {
   if (!c || !c.dado) return { dado: false };
   const quien = txt(c.quien, 120);

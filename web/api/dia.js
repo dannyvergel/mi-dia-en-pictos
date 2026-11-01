@@ -10,7 +10,7 @@ async function picto(kw) {
 }
 const { exigirDocente } = require("./_lib/auth");
 const { exigirVisiblePorNombre } = require("./_lib/alumnos");
-const { manejarError } = require("./_lib/http");
+const { manejarError, hoyLocal } = require("./_lib/http");
 module.exports = async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-Docente-Pin");
@@ -24,7 +24,7 @@ module.exports = async (req, res) => {
     await exigirVisiblePorNombre(yo, b.alumno);
   } catch (e) { return manejarError(res, e); }
   if (!process.env.OPENROUTER_API_KEY) return res.status(503).json({ error: "sin key" });
-  const fecha = b.fecha || new Date().toISOString().slice(0, 10);
+  const fecha = b.fecha || hoyLocal();
   try {
     const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
