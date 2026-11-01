@@ -4,10 +4,10 @@
 // la docente publica con su sesión. Los días siguen guardados en Vercel Blob (uno por alumno).
 const crypto = require("crypto");
 const { crearHerramientas, diaSemana } = require("./_lib/tools");
-const { PRINCIPAL: MODEL, cuerpo: cuerpoLLM } = require("./_lib/modelos");
+const chat = require("./_lib/chat");
 const { exigirPin } = require("./_lib/pin");
 const { dbActiva, q, uno } = require("./_lib/db");
-const { leerSesion } = require("./_lib/seguridad");
+const { leerSesion, ipDe } = require("./_lib/seguridad");
 const { exigirDocente } = require("./_lib/auth");
 const { leerFamilia: leer, guardarFamilia } = require("./_lib/almacen");
 const { objetivosAPpi, apoyosAPerfil } = require("./_lib/fichas");
@@ -33,39 +33,6 @@ function vistaFamilia(d) {
     agenda: d.agenda || null,
     mensaje_docente: d.mensaje_docente || null
   };
-}
-
-function contextoChat(d) {
-  return (d.registros || []).slice().sort((a, b) => a.fecha.localeCompare(b.fecha)).map(r =>
-    `${r.fecha} (${diaSemana(r.fecha)}) · ánimo ${r.animo_general}\n` +
-    (r.actividades || []).map(a => `  - ${a.hora || "?"} ${a.actividad} [${a.estado}]`).join("\n") +
-    (r.logros?.length ? `\n  Logros: ${r.logros.join("; ")}` : "") +
-    (r.alertas?.length ? `\n  Alertas: ${r.alertas.map(a => a.detalle).join("; ")}` : "")
-  ).join("\n");
-}
-
-const SISTEMA_CHAT = (d) => `Sos Puente, el puente entre la escuela y la familia de ${d.alumno}. Respondés preguntas de su familia.
-Reglas:
-- Respondé SOLO con lo que está en los registros de abajo. Si no está, decí con calidez que no lo tenés registrado y sugerí preguntarle a la docente.
-- Español rioplatense, cálido, simple, sin tecnicismos. Máximo 5 oraciones.
-- Mencioná fechas o días concretos cuando ayuden ("el martes 27...").
-- Nunca des diagnósticos ni consejos médicos. Si preguntan algo de salud, derivá a la docente o al profesional que lo atiende.
-- Si sirve, terminá con una idea concreta para hacer en casa.
-${d.perfil?.le_gusta ? `Le gusta: ${d.perfil.le_gusta}.` : ""}${d.perfil?.lo_calma ? ` Lo calma: ${d.perfil.lo_calma}.` : ""}
-
-Registros de la escuela:
-${contextoChat(d)}`;
-
-async function preguntar(d, pregunta, historial = []) {
-  if (!process.env.OPENROUTER_API_KEY) return { respuesta: "Ahora no puedo responder preguntas. Mientras tanto, podés ver sus días acá arriba o escribirle a la docente.", modo: "demo" };
-  const messages = [{ role: "system", content: SISTEMA_CHAT(d) }, ...(Array.isArray(historial) ? historial : []).slice(-6).map(m => ({ role: m.rol === "familia" ? "user" : "assistant", content: String(m.texto).slice(0, 800) })), { role: "user", content: String(pregunta).slice(0, 500) }];
-  const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: { Authorization: "Bearer " + process.env.OPENROUTER_API_KEY, "Content-Type": "application/json", "HTTP-Referer": "https://puente-pictos.vercel.app", "X-Title": "Puente" },
-    body: JSON.stringify(cuerpoLLM("chat", { temperature: 0.3, messages }))
-  });
-  if (!r.ok) throw new Error("OpenRouter " + r.status);
-  return { respuesta: (await r.json()).choices[0].message.content.trim(), modo: "ia" };
 }
 
 function armarDatos(b, nombre, extra = {}) {
@@ -99,10 +66,15 @@ async function modoDemo(req, res) {
     return res.status(200).json({ token: t, dias: datos.registros.length });
   }
   if (b.accion === "preguntar") {
-    if (!tokenOk(b.token) || !b.pregunta) return res.status(400).json({ error: "Faltan datos" });
+    const pregunta = typeof b.pregunta === "string" ? b.pregunta.trim() : "";
+    if (!tokenOk(b.token) || !pregunta) return res.status(400).json({ error: "Faltan datos" });
     const d = await leer(b.token);
     if (!d) return res.status(404).json({ error: "No encontramos este espacio" });
-    return res.status(200).json(await preguntar(d, b.pregunta, b.historial));
+    const limite = chat.limiteMemoria(b.token, ipDe(req));
+    if (limite) return res.status(429).json({ error: limite });
+    // Modo demo: una sola vuelta. El historial que mande el navegador se ignora.
+    const { respuesta, modo } = await chat.preguntar(d, pregunta, { quien: "demo" });
+    return res.status(200).json({ respuesta, modo });
   }
   res.status(400).json({ error: "Acción desconocida" });
 }
@@ -148,12 +120,20 @@ async function modoDb(req, res) {
   if (b.accion === "preguntar") {
     const s = await leerSesion(req);
     if (!s) return res.status(401).json({ error: "Iniciá sesión", login: "/login.html?familia" });
-    if (!b.pregunta) throw errorPublico("Faltan datos");
+    const pregunta = typeof b.pregunta === "string" ? b.pregunta.trim() : "";
+    if (!pregunta) throw errorPublico("Faltan datos");
     const a = await alumnoPermitido(s, b.alumno_id);
     if (!a) throw errorPublico("No encontramos este espacio", 404);
+    const cuenta = { tipo: s.tipo, id: Number(s.usuario.id) };
+    const limite = await chat.limiteDb(cuenta, ipDe(req));
+    if (limite) return res.status(429).json({ error: limite });
     const d = a.blob_token ? await leer(a.blob_token) : null;
     if (!d) return res.status(200).json({ respuesta: `Todavía no hay días de ${a.nombre} cargados. Apenas la escuela publique, vas a poder preguntarme.`, modo: "vacio" });
-    return res.status(200).json(await preguntar({ ...d, alumno: a.nombre }, b.pregunta, b.historial));
+    // El historial sale de la base (por cuenta + alumno), nunca del navegador.
+    const historial = await chat.leerHistorial(cuenta, Number(a.id));
+    const r = await chat.preguntar({ ...d, alumno: a.nombre }, pregunta, { historial, quien: `${cuenta.tipo}#${cuenta.id}` });
+    if (r.en_tema && r.modo === "ia") await chat.guardarTurno(cuenta, Number(a.id), pregunta, r.respuesta);
+    return res.status(200).json({ respuesta: r.respuesta, modo: r.modo });
   }
   if (b.accion === "verificar_pin") return res.status(400).json({ error: "Con cuentas activas, la docente entra con email y contraseña.", login: "/login.html" });
   res.status(400).json({ error: "Acción desconocida" });

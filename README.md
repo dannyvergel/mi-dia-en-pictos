@@ -39,6 +39,15 @@ Cada alumno tiene un link privado (`familia.html?t=…`, token de 128 bits). La 
 - logros recientes,
 - **Preguntale a Puente**: chat que responde solo con los registros de la escuela, sin diagnósticos.
 
+### Chat "Preguntale a Puente": protecciones
+El chat solo habla del alumno en la escuela: sus días, lo registrado, su ánimo, actividades, objetivos del PPI, apoyos e ideas para casa relacionadas. Todo lo demás recibe una negativa fija: *"Solo puedo contarte sobre el día de <alumno> en la escuela. Para otras cosas, escribile a la docente."* (`api/_lib/chat.js`).
+1. **Prefiltro sin IA**: frases obvias de inyección (*"ignorá las instrucciones"*, *"system prompt"*, *"actuá como"*, *"modo desarrollador"*, marcas de rol tipo `<|im_start|>`) y pedidos ajenos (código, poemas, cuentos, *"haceme la tarea"*, traducciones) se frenan antes de llamar al modelo. Las reglas están pensadas para no frenar preguntas normales (*"¿actuaron en el acto?"*, *"¿hace la tarea en clase?"*).
+2. **El modelo clasifica**: responde solo JSON `{"en_tema": bool, "respuesta": string}` (`response_format: json_object`, 400 tokens). Si `en_tema` es falso o el JSON no es válido → negativa fija. El prompt trata el texto de la familia como dato (va entre `<pregunta_familia>…</pregunta_familia>`), prohíbe revelar instrucciones o cambiar de rol.
+3. **Post-chequeo**: se sacan URLs, dominios, bloques de código, HTML y markdown; máximo 700 caracteres; si la respuesta repite partes de las instrucciones, negativa.
+4. **Historial del lado del servidor**: el navegador ya no lo manda (si lo manda, se ignora). Con base, se guarda en la tabla `chat_turnos` por cuenta + alumno (solo preguntas en tema con su respuesta), se usan los últimos 6 mensajes y se borra a los 30 días. En modo demo cada pregunta es independiente.
+5. **Límites**: con base, 5 preguntas cada 10 min y 20 por día por cuenta, y 10 cada 10 min / 60 por día por IP (tabla `limites`). En modo demo, lo mismo por link + IP y por IP, en memoria de cada instancia. Responde 429 con un mensaje amable. Las negativas también cuentan.
+6. **Monitoreo**: cada negativa deja en los logs `[puente] chat negativa motivo=… quien=familia#id` (o `demo`), sin el nombre del alumno ni el texto de la pregunta.
+
 Se actualiza solo cada vez que la docente carga un día o corre el agente. Datos en Vercel Blob (store privado `puente-datos`); no se publican las notas internas del legajo.
 
 ## 🔐 Cuentas y fichas de familia
@@ -55,7 +64,7 @@ Con una base de datos conectada, Puente deja el PIN y los links y pasa a cuentas
 
 **Modo demo**: si no hay `DATABASE_URL` (ni `POSTGRES_URL`), todo sigue como antes: PIN de docente y link privado por alumno. Así producción no se rompe hasta conectar la base. Con base conectada, el PIN solo sirve para crear la primera cuenta y los links viejos (`familia.html?t=…`) mandan al login.
 
-**Migración desde contraseñas**: las tablas se actualizan solas (`pass_hash` pasa a ser opcional y queda sin uso; `codigos` suma la columna `tipo`; se crea `solicitudes`). Las docentes que ya existían entran igual, con su email y código. Las sesiones abiertas siguen valiendo. `login_docente` y `cambiar_password` responden 410.
+**Migración desde contraseñas**: las tablas se actualizan solas (`pass_hash` pasa a ser opcional y queda sin uso; `codigos` suma la columna `tipo`; se crean `solicitudes` y `chat_turnos`). Las docentes que ya existían entran igual, con su email y código. Las sesiones abiertas siguen valiendo. `login_docente` y `cambiar_password` responden 410.
 
 ### Puesta en marcha en Vercel
 1. **Base**: Vercel → Storage → *Create Database* → **Neon** (Marketplace) → conectarla al proyecto. Eso crea `DATABASE_URL` (o `POSTGRES_URL`; sirven las dos). Las tablas se crean solas en el primer pedido (`CREATE TABLE IF NOT EXISTS`); también se puede correr a mano: `cd web && DATABASE_URL=... npm run migrar`.
@@ -69,7 +78,6 @@ Con una base de datos conectada, Puente deja el PIN y los links y pasa a cuentas
 | `ADMIN_EMAIL` | Si está, la primera cuenta solo se puede crear con ese email. También recibe el aviso de cada solicitud de acceso | Recomendada |
 | `RESEND_API_KEY` | Envía los códigos de ingreso (docentes y familias) y los avisos de solicitudes por email ([resend.com](https://resend.com)) | Sí en producción |
 | `RESEND_FROM` | Remitente, ej. `Puente <hola@tudominio.com>` (dominio verificado en Resend) | Recomendada (por defecto `onboarding@resend.dev`, que solo manda a tu propio email) |
-
 | `PUENTE_URL` | Base de los links en los mails, ej. `https://puente-pictos.vercel.app`. Si falta se usa el dominio de producción de Vercel (o la URL de la rama en *preview*) | Opcional |
 
    Sin `RESEND_API_KEY`: en local el código aparece en pantalla; en *preview* solo en los logs de Vercel; en producción se muestra un error claro. Los avisos (solicitudes, acceso aprobado) sin Resend van a los logs y no frenan nada.
@@ -89,7 +97,7 @@ web/            PWA (HTML + JS puro): pestañas Docente, Alumno, Familia y Progr
 web/api/        Funciones de Vercel: agente.js (Agente de Progreso), dia.js (registro diario), familia.js (espacio de familias),
                 auth.js (ingreso con código, alta inicial), solicitudes.js (pedidos de acceso), fichas.js (fichas de familia), docentes.js
 web/api/_lib/   db.js + schema.js (Postgres/Neon), identidad.js (cuentas y proveedores de ingreso), codigos.js (código por email),
-                seguridad.js (sesiones, límites), correo.js + avisos.js (Resend), almacen.js (Blob)
+                seguridad.js (sesiones, límites), chat.js (chat de la familia: filtros, historial, límites), correo.js + avisos.js (Resend), almacen.js (Blob)
 web/familia.html Vista de la familia (con sesión, o con link en modo demo)
 web/login.html  Entrar con código por email (docente o familia) y *Solicitar acceso*
 web/docente.html Panel docente: alumnos, fichas, solicitudes (admin), docentes, mi cuenta

@@ -89,7 +89,20 @@ const SCHEMA = [
     docente_id BIGINT REFERENCES docentes(id)
   )`,
   `CREATE INDEX IF NOT EXISTS solicitudes_estado ON solicitudes (estado, creado DESC)`,
-  `CREATE INDEX IF NOT EXISTS solicitudes_email ON solicitudes (email)`
+  `CREATE INDEX IF NOT EXISTS solicitudes_email ON solicitudes (email)`,
+  // Chat de la familia: historial del lado del servidor (el navegador ya no lo manda). Se borra a los 30 días.
+  // Solo turnos en tema (pregunta + respuesta); usuario = cuenta de familia (o docente que prueba la vista).
+  `CREATE TABLE IF NOT EXISTS chat_turnos (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    usuario_tipo TEXT NOT NULL CHECK (usuario_tipo IN ('docente', 'familia')),
+    usuario_id BIGINT NOT NULL,
+    alumno_id BIGINT NOT NULL REFERENCES alumnos(id) ON DELETE CASCADE,
+    rol TEXT NOT NULL CHECK (rol IN ('familia', 'puente')),
+    texto TEXT NOT NULL,
+    creado TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS chat_turnos_cuenta ON chat_turnos (usuario_tipo, usuario_id, alumno_id, id DESC)`,
+  `CREATE INDEX IF NOT EXISTS chat_turnos_creado ON chat_turnos (creado)`
 ];
 
 module.exports = { SCHEMA };
