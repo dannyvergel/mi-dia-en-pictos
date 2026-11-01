@@ -1,0 +1,39 @@
+\usepackage{amssymb}
+\usepackage{newunicodechar}
+\newunicodechar{☐}{\raisebox{-0.1ex}{\large$\square$}}
+\newunicodechar{≥}{\ensuremath{\geq}}
+\newunicodechar{≤}{\ensuremath{\leq}}
+\newunicodechar{−}{\ensuremath{-}}
+\newunicodechar{→}{\ensuremath{\rightarrow}}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\setlist{itemsep=1pt,topsep=3pt}
+\newcommand{\borr}{\footnotesize\textcolor{red!70!black}{\textbf{BORRADOR --- revisar con un abogado antes de usar}}}
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.3pt}
+\fancyhead[L]{\borr}
+\fancyhead[R]{\footnotesize Puente · piloto}
+\fancyfoot[C]{\footnotesize Página \thepage\ de \pageref{LastPage}}
+\fancypagestyle{plain}{\fancyhf{}\fancyhead[L]{\borr}\fancyhead[R]{\footnotesize Puente · piloto}\fancyfoot[C]{\footnotesize Página \thepage\ de \pageref{LastPage}}}
+\setlength{\parskip}{4pt}
+\usepackage{titlesec}
+\titleformat{\section}{\normalfont\large\bfseries}{}{0pt}{}
+\titleformat{\subsection}{\normalfont\normalsize\bfseries}{}{0pt}{}
+\titlespacing*{\section}{0pt}{10pt}{3pt}
+\titlespacing*{\subsection}{0pt}{7pt}{2pt}
+\hyphenpenalty=10000
+\exhyphenpenalty=10000
+\AtBeginDocument{\raggedright\setlength{\parindent}{0pt}}
+\usepackage{etoolbox}
+\newcommand{\tablefont}{\small}
+\AtBeginEnvironment{longtable}{\tablefont}
+\usepackage{titling}
+\setlength{\droptitle}{-4em}
+\posttitle{\par\end{center}\vspace{-1.5em}}
+\predate{}\postdate{}
+\newunicodechar{ }{\quad}
+\renewcommand{\ttdefault}{pcr}
