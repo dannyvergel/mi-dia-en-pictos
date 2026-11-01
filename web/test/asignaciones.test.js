@@ -107,3 +107,9 @@ test("migración: alumnos sin asignar quedan asignados una sola vez a las docent
   assert.deepEqual(await nombres(beto), ["Luz"]);
   await pg.query("UPDATE docentes SET activo = true WHERE email = 'caro@e.edu.ar'");
 });
+
+test("solo la dirección (admin) puede borrar un alumno, aunque la docente lo tenga asignado", async () => {
+  const r = await post(beto, fichas, { accion: "borrar", id: luzId });
+  assert.equal(r.status, 403);
+  assert.equal((await beto.llamar(fichas, { query: { id: String(luzId) } })).status, 200);
+});

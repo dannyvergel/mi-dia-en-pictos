@@ -99,7 +99,7 @@
       <p class="muted" id="consVia"></p>
 
       <button class="big" id="guardar">Guardar ficha</button>
-      <div class="fila"><a class="big alt chico" id="verFamilia" target="_blank" style="text-align:center;text-decoration:none">Ver como familia</a><button class="big alt chico" id="borrar" style="color:var(--bad);border-color:var(--bad)">Borrar alumno</button></div>
+      <div class="fila"><a class="big alt chico" id="verFamilia" target="_blank" style="text-align:center;text-decoration:none">Ver como familia</a><button class="big alt chico" id="borrar" hidden style="color:var(--bad);border-color:var(--bad)">Borrar alumno</button></div>
       <p id="msgEd" class="muted"></p>
     </div>
   </section>
@@ -291,6 +291,7 @@ function abrir(id) {
   $("consDado").checked = !!c.dado; $("consQuien").value = c.quien || ""; $("consFecha").value = c.fecha || "";
   $("consVia").textContent = c.dado ? (c.via === "familia" ? "La familia lo dio desde Puente." : "Registrado por la escuela.") : (c.retirado ? `La familia lo retiró el ${c.retirado}.` : "");
   $("verFamilia").href = `familia.html?alumno=${actual.id}`;
+  $("borrar").hidden = !YO.es_admin;
   pintarAsignadas();
   $("editor").scrollIntoView({ behavior: "smooth", block: "start" });
 }

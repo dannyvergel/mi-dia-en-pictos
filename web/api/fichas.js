@@ -121,6 +121,7 @@ async function docente(req, res, yo) {
   }
   if (b.accion === "borrar") {
     const a = await alumnoDeDocente(yo, b.id);
+    if (!yo.es_admin) throw errorPublico("Solo la dirección de la escuela puede borrar un alumno.", 403);
     const { blob_token } = await uno("SELECT blob_token FROM alumnos WHERE id = $1", [a.id]);
     await q("DELETE FROM alumnos WHERE id = $1", [a.id]);
     if (blob_token) await borrarFamilia(blob_token); // también sus días publicados
