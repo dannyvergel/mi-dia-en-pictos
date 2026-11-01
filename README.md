@@ -53,12 +53,29 @@ Se actualiza solo cada vez que la docente carga un día o corre el agente. Datos
 ## 🔐 Cuentas y fichas de familia
 Con una base de datos conectada, Puente deja el PIN y los links y pasa a cuentas. **Nadie usa contraseña** (por ahora; más adelante se suma SSO):
 - **Docentes**: entran en `/login.html` → *Soy docente* con su email y un **código de 6 números** que les llega por mail (vence a los 10 min, se guarda hasheado, máximo 5 intentos; hasta 3 códigos por email y 10 por IP cada 15 min, 30 verificaciones por IP). Solo reciben código las docentes **activas**; la respuesta es siempre la misma, exista o no el email. Sesión con cookie `HttpOnly; Secure; SameSite=Lax`, firmada con HMAC y guardada en la tabla `sesiones`. En `/docente.html` cargan alumnos y sus fichas; una docente admin suma, aprueba o desactiva docentes.
-- **Solicitar acceso**: una seño nueva toca *Solicitar acceso* en el login (nombre, email, escuela, rol/grado y mensaje opcionales). Queda **pendiente** y les llega un mail a `ADMIN_EMAIL` y a todas las docentes admin con el link a `docente.html#solicitudes`. Ahí la admin la **aprueba** (en su escuela, en otra existente o en una escuela nueva; puede hacerla admin) o la **rechaza** (con un mail amable opcional). Al aprobar se crea (o se reactiva) la cuenta y le llega *"Ya tenés acceso a Puente"* con el link al login.
+- **Solicitar acceso**: una seño nueva toca *Solicitar acceso* en el login (nombre, email, escuela, *Soy director/a*, rol/grado y mensaje opcionales). Queda **pendiente** y se rutea (ver *Roles* abajo): a las admins de su escuela o a la plataforma, con un mail con el link a `docente.html#solicitudes`. Ahí se **aprueba** o se **rechaza** (con un mail amable opcional). Al aprobar se crea (o se reactiva) la cuenta y le llega *"Ya tenés acceso a Puente"* con el link al login.
   - Protecciones del formulario público: solo JSON, campo trampa oculto para bots (se responde igual y no se guarda), 5 pedidos por IP por hora y 3 por email por día, respuesta siempre genérica (*"Recibimos tu pedido, te avisamos por mail"*) aunque el email ya tenga cuenta o ya haya pedido (si ya hay una pendiente se actualiza, sin volver a avisar). Todo lo que escribe la persona se escapa en los mails y en el panel.
 - **Familias**: el mismo código por email. Pueden entrar los emails que la docente cargó en *Contactos* de la ficha; si un email se borra de la ficha, pierde el acceso. Un código pedido como docente no sirve como familia, ni al revés.
+- **Invitación a la familia**: cuando la docente suma un email en *Contactos* (al crear o editar la ficha), le llega por Resend *"<docente> te sumó a Puente para seguir el día de <nombre>"*, con el botón a `login.html?familia&email=…` (pestaña familia y email ya escritos) y la explicación del ingreso por código y del consentimiento. Máximo **una por email + alumno cada 24 h** (tabla `invitaciones`); en la ficha se ve cuándo se mandó y está el botón **reenviar invitación** (responde que espere si fue hace menos de 24 h). Todo lo que escribió una persona va escapado. Si el mail falla, la ficha se guarda igual y la docente ve el aviso para reenviar.
 - **Ficha de familia** (una por alumno): nombre de pila, contactos (nombre, vínculo, email, teléfono/WhatsApp), apoyos y sensibilidades (comunicación, sensoriales, qué lo calma, alimentación, qué le gusta, otros), objetivos del PPI (los usa el Agente de Progreso) y consentimiento (quién y cuándo). La familia la ve en su espacio, puede dar o retirar el consentimiento y actualizar su propio teléfono.
-- **Privacidad**: solo nombre de pila, sin fotos, sin campo de diagnóstico. Cada API verifica la sesión: una docente ve solo los alumnos de su escuela; una familia, solo los alumnos vinculados a su email.
+- **Privacidad**: solo nombre de pila, sin fotos, sin campo de diagnóstico. Cada API verifica la sesión: una admin de escuela ve los alumnos de su escuela; una docente, solo los que tiene asignados; una familia, solo los alumnos vinculados a su email (de escuelas activas).
 - Los **días** siguen en Vercel Blob (uno por alumno); la base guarda cuentas, fichas, vínculos y solicitudes.
+
+### 👥 Roles
+```
+Plataforma (ADMIN_EMAIL y quien ella promueva)
+  └─ aprueba directoras / escuelas nuevas, ve todas las escuelas y puede desactivarlas
+     Admin de escuela (directora o quien ella haga admin)
+       └─ aprueba e invita a las docentes de SU escuela, ve y asigna todos sus alumnos
+          Docente
+            └─ ve solo los alumnos que tiene asignados, carga contactos de familias
+               Familia (invitada por mail) → entra con código, da su consentimiento
+```
+- **Plataforma** (`docentes.es_plataforma`; la cuenta de `ADMIN_EMAIL` siempre lo es, y la primera cuenta del alta inicial también). Desde *Panel → Docentes* puede promover a otra cuenta (*hacer plataforma*). Ve **todas** las solicitudes y la pestaña **Escuelas**: nombre, CUE, cantidad de docentes (y admins) y alumnos, aval sí/no, y **desactivar/reactivar** cada escuela. Una escuela desactivada no entra: se cortan las sesiones de sus docentes, sus docentes y familias no reciben código y sus pedidos nuevos van a la plataforma.
+- **Ruteo de solicitudes**: si la seño elige del padrón una escuela que **ya está en Puente** (mismo CUE), activa y con al menos una admin, el pedido va **solo a las admins de esa escuela** (el mail también). Si la escuela no está en Puente, no tiene admins, no eligió del padrón, o marcó **Soy director/a**, va a la **plataforma**. Al aprobar una directora o una escuela nueva, la plataforma crea la escuela desde el padrón (si hace falta) y la deja **admin**.
+- **Admin de escuela**: ve solo los pedidos de su escuela y aprueba solo en su escuela (no puede elegir otra ni crear escuelas). Suma docentes desde *Docentes*, ve **todos** los alumnos de su escuela y les asigna docentes.
+- **Docente**: ve y edita solo los **alumnos asignados** (tabla `alumno_docentes`): ficha, *Cuaderno del día* (`/api/dia`), Agente de Progreso, publicar para la familia y la vista previa del chat. Quien crea un alumno queda asignada. Una docente asignada puede sumar a otra de su escuela (maestra integradora, terapeuta…; puede haber varias); quitar a otra solo lo hace una admin, y cada una se puede quitar a sí misma.
+- **Migración**: se aplica sola. Columnas nuevas idempotentes (`es_plataforma`, `escuelas.activa`, `solicitudes.destino/escuela_id/es_director`) y, **una sola vez** (tabla `migraciones`), cada alumno que ya existía sin asignaciones queda asignado a todas las docentes activas de su escuela, así nadie deja de ver lo que veía. Las solicitudes pendientes de antes quedan para la plataforma.
 
 **SSO más adelante**: `api/_lib/identidad.js` separa *probar que la persona controla un email* (el proveedor: hoy `_lib/codigos.js`) de *qué cuenta de Puente le toca* (`cuentaPara` / `entrar`, con las reglas de docente activa y familia vinculada). Un proveedor SSO (Google Workspace, Microsoft, OIDC) solo tiene que conseguir un email verificado, llamar a `entrar(res, "docente", email, "sso:google")` y sumarse en `metodos()` (que `/login.html` recibe en `GET /api/auth`).
 
@@ -83,13 +100,13 @@ Con una base de datos conectada, Puente deja el PIN y los links y pasa a cuentas
 | `DATABASE_URL` / `POSTGRES_URL` | Postgres de Neon. Sin esto: modo demo | Sí, para cuentas |
 | `SESSION_SECRET` | Firma las cookies de sesión y los códigos. 32+ caracteres al azar (`openssl rand -base64 32`) | Sí en producción (sin esto da error) |
 | `DOCENTE_PIN` | Protege la creación de la primera docente (y el modo demo) | Sí en producción para el alta inicial |
-| `ADMIN_EMAIL` | Si está, la primera cuenta solo se puede crear con ese email. También recibe el aviso de cada solicitud de acceso | Recomendada |
-| `RESEND_API_KEY` | Envía los códigos de ingreso (docentes y familias) y los avisos de solicitudes por email ([resend.com](https://resend.com)) | Sí en producción |
+| `ADMIN_EMAIL` | Cuenta de la **plataforma** (superadmin). Si está, la primera cuenta solo se puede crear con ese email. Recibe los avisos de solicitudes de escuelas nuevas y de directoras | Recomendada |
+| `RESEND_API_KEY` | Envía los códigos de ingreso (docentes y familias), los avisos de solicitudes y las invitaciones a familias ([resend.com](https://resend.com)) | Sí en producción |
 | `RESEND_FROM` | Remitente, ej. `Puente <hola@tudominio.com>` (dominio verificado en Resend) | Recomendada (por defecto `onboarding@resend.dev`, que solo manda a tu propio email) |
 | `PUENTE_URL` | Base de los links en los mails, ej. `https://puente-pictos.vercel.app`. Si falta se usa el dominio de producción de Vercel (o la URL de la rama en *preview*) | Opcional |
 
    Sin `RESEND_API_KEY`: en local el código aparece en pantalla; en *preview* solo en los logs de Vercel; en producción se muestra un error claro. Los avisos (solicitudes, acceso aprobado) sin Resend van a los logs y no frenan nada.
-3. **Primera docente**: abrir `/login.html`, completar *Primera vez en Puente* con el `DOCENTE_PIN` (y el email de `ADMIN_EMAIL` si está). Se crea la cuenta admin **sin contraseña** y en el momento le llega un código a ese email para entrar. Después suma a las demás desde *Panel → Docentes* o aprobando sus pedidos en *Panel → Solicitudes*.
+3. **Primera cuenta (plataforma)**: abrir `/login.html`, completar *Primera vez en Puente* con el `DOCENTE_PIN` (y el email de `ADMIN_EMAIL` si está). Se crea la cuenta admin de su escuela y de la plataforma, **sin contraseña**, y en el momento le llega un código a ese email para entrar. Después aprueba a las directoras en *Panel → Solicitudes*, y cada directora suma a sus docentes.
 4. Cargar alumnos y fichas en `/docente.html`, con los emails de las familias. El *Cuaderno del día* (`/`) publica solo al espacio de la familia.
 
 ### Probar en local
@@ -106,10 +123,12 @@ web/api/        Funciones de Vercel: agente.js (Agente de Progreso), dia.js (reg
                 auth.js (ingreso con código, alta inicial), solicitudes.js (pedidos de acceso), fichas.js (fichas de familia), docentes.js,
                 escuelas.js (búsqueda en el padrón y ficha de escuela)
 web/api/_lib/   db.js + schema.js (Postgres/Neon), identidad.js (cuentas y proveedores de ingreso), codigos.js (código por email),
-                padron.js (padrón de escuelas en Postgres y búsqueda), seguridad.js (sesiones, límites), chat.js (chat de la familia: filtros, historial, límites), correo.js + avisos.js (Resend), almacen.js (Blob)
+                padron.js (padrón de escuelas en Postgres y búsqueda), alumnos.js (qué alumnos ve cada docente, asignaciones),
+                invitaciones.js (invitación a familias, 1 cada 24 h), seguridad.js (sesiones, límites), chat.js (chat de la familia: filtros, historial, límites), correo.js + avisos.js (Resend), almacen.js (Blob)
 web/familia.html Vista de la familia (con sesión, o con link en modo demo)
 web/login.html  Entrar con código por email (docente o familia) y *Solicitar acceso*
-web/docente.html Panel docente: alumnos, fichas, solicitudes (admin), escuela (admin), docentes, mi cuenta
+web/docente.html Panel docente: alumnos (con docentes a cargo e invitaciones), fichas, solicitudes (admin/plataforma), escuela (admin),
+                escuelas (plataforma), docentes, mi cuenta
 web/escuelas.js Buscador de escuelas accesible (combobox) que usan login.html y docente.html
 web/data/       escuelas-santa-fe.json: Padrón Oficial filtrado (lo genera web/scripts/padron.js)
 web/test/       Tests (node --test)
@@ -143,10 +162,10 @@ cd web && python3 -m http.server 8080
 - Envío directo por WhatsApp Cloud API.
 - Pasar también los días de Blob a Postgres.
 - SSO para docentes (Google Workspace / Microsoft) sobre `_lib/identidad.js`.
-- Solicitudes por escuela: hoy cualquier admin ve todos los pedidos pendientes (pensado para una instalación por escuela o red).
+- Reasignar una docente a otra escuela desde la plataforma (hoy: desactivar y volver a aprobar).
 
 ## Privacidad
-Datos de menores: solo nombre de pila, sin fotos ni diagnósticos, consentimiento de la familia registrado en la ficha. Con cuentas, cada API exige sesión y verifica que el alumno sea de la escuela de la docente o esté vinculado a la familia.
+Datos de menores: solo nombre de pila, sin fotos ni diagnósticos, consentimiento de la familia registrado en la ficha. Con cuentas, cada API exige sesión y verifica que el alumno sea de la escuela de la admin, esté asignado a la docente o esté vinculado a la familia.
 
 ## Créditos
 Escuelas: Padrón Oficial de Establecimientos Educativos, Ministerio de Educación de la Nación (actualización 07/09/2026; CC BY 4.0 en datos.gob.ar).

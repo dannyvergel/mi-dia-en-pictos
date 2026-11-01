@@ -6,7 +6,7 @@ Estado: ☐ pendiente · ☑ hecho
 
 ## 1. Para la hackatón (datos ficticios)
 - ☐ Mergear PR #1 (login, fichas, solicitudes de acceso, chat blindado: commit 786cdae) a `main`.
-- ☐ Prueba de punta a punta en producción: setup del admin → solicitud de una seño → aprobación → ficha → publicación → familia entra por código → chat.
+- ☐ Prueba de punta a punta en producción: setup del admin (plataforma) → solicitud de una directora → aprobación → solicitud de una seño de esa escuela (le llega a la directora) → aprobación → ficha con email de familia (le llega la invitación) → asignar docente → publicación → familia entra por código y da consentimiento → chat.
 - ☐ Cargar solo alumnos y familias ficticios. Nada real en producción hasta cerrar la sección 3.
 - ☐ Firewall: pasar Bot Protection y AI Bots de *log* a *challenge/deny* después de revisar lo registrado.
 - ☐ Rotar el token de Vercel (se compartió por chat).
@@ -19,7 +19,7 @@ Estado: ☐ pendiente · ☑ hecho
 - ☐ Backups de Neon activados (point-in-time restore) y una prueba de restauración.
 - ☐ Revisar región de Neon, Vercel y Blob y documentarla (los datos se alojan fuera de Argentina: hay que decirlo en el consentimiento).
 - ☐ Resolver `npm audit` (4 vulnerabilidades altas heredadas).
-- ☐ Separar las solicitudes de acceso por escuela si hay más de una escuela.
+- ☑ Separar las solicitudes de acceso por escuela: van a las admins de la escuela (por CUE) o a la plataforma (escuela nueva o directora).
 
 ## 3. IA y terceros
 - ☐ OpenRouter: limitar a proveedores que **no entrenan con los datos y no los retienen** (configuración de privacidad de datos en OpenRouter) o usar un proveedor con acuerdo de no retención.
@@ -34,6 +34,7 @@ Estado: ☐ pendiente · ☑ hecho
 - ☐ Evaluar inscripción de la base en el Registro Nacional de Bases de Datos (AAIP).
 - ☐ Definir responsable del tratamiento (¿la escuela? ¿Puente?) y un contacto para reclamos.
 - ☐ Acuerdo de confidencialidad para docentes que usan la plataforma.
+- ☐ Revisar el texto de la invitación a familias (qué se comparte, consentimiento) con la escuela antes de mandar invitaciones reales.
 
 ## 5. Operación del piloto
 - ☐ Una sola escuela piloto, pocos alumnos, plazo definido.
@@ -46,4 +47,6 @@ Estado: ☐ pendiente · ☑ hecho
 ## 6. Después del piloto
 - ☐ SSO para docentes (la capa `api/_lib/identidad.js` ya está lista).
 - ☐ Pasar los días de Blob a Postgres.
-- ☐ Invitaciones por mail y multi-escuela completo.
+- ☑ Invitaciones por mail a las familias (1 cada 24 h, reenviar desde la ficha).
+- ☑ Multi-escuela: plataforma → admin de escuela → docentes con alumnos asignados; la plataforma puede desactivar escuelas.
+- ☐ Reasignar docentes entre escuelas desde la plataforma.
