@@ -16,6 +16,13 @@
   nav button[data-s="escuela"] { --tab: #b9a3d6; }
   nav button[data-s="escuelas"] { --tab: #f2c46d; }
   nav button[data-s="importar"] { --tab: #9ccfc4; }
+  nav button[data-s="invitaciones"] { --tab: #f4a6c0; }
+  .cupos { font-weight: 700; } .cupos.lleno { color: var(--bad); }
+  .link-nuevo { border: 2px dashed var(--lapiz); border-radius: 10px; padding: 10px 12px; margin: 10px 0; background: #fffef9; }
+  .link-nuevo input { font-size: 14px; }
+  .link-acciones { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+  .link-acciones .big { width: auto; margin: 0; padding: 0 14px; }
+  .enl { display: flex; justify-content: space-between; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--renglon); font-size: 15px; flex-wrap: wrap; }
   .imp-tabla { overflow-x: auto; margin: 10px 0; }
   .imp-tabla table { border-collapse: collapse; width: 100%; font-size: 14px; }
   .imp-tabla th, .imp-tabla td { text-align: left; vertical-align: top; padding: 5px 8px; border-bottom: 1px solid var(--renglon); }
@@ -62,6 +69,7 @@
   <button data-s="escuela" id="tabEsc" hidden>Escuela</button>
   <button data-s="escuelas" id="tabEscs" hidden>Escuelas</button>
   <button data-s="importar" id="tabImp" hidden>Importar</button>
+  <button data-s="invitaciones" id="tabInv" hidden>Invitaciones</button>
   <button data-s="registro" id="tabReg" hidden>Registro</button>
   <button data-s="docentes">Docentes</button>
   <button data-s="cuenta">Mi cuenta</button>
@@ -95,6 +103,17 @@
       <p class="muted">Los emails que cargues acá son los que pueden entrar a Puente como familia de este alumno. Al guardar, a cada email nuevo le mandamos una invitación para entrar.</p>
       <div id="contactos"></div>
       <button type="button" class="big alt chico" id="addContacto">+ Agregar contacto</button>
+      <details id="linkFam" style="margin-top:10px">
+        <summary><b>Link de invitación para la familia</b> <span class="muted">(para mandar por WhatsApp)</span></summary>
+        <p class="muted">Sirve una sola vez y vence a los 7 días. La familia lo abre, pone su email y el código que le llega, y queda sumada a los contactos de este alumno.</p>
+        <div class="grid2">
+          <div><label for="lfNombre">Nombre <span class="muted">(opcional)</span></label><input id="lfNombre" maxlength="60" placeholder="Ej: Laura"></div>
+          <div><label for="lfVinculo">Vínculo <span class="muted">(opcional)</span></label><input id="lfVinculo" maxlength="30" placeholder="mamá, papá, abuela…"></div>
+        </div>
+        <button type="button" class="big alt chico" id="lfCrear">Crear link</button>
+        <div id="lfNuevo"></div>
+        <div id="lfPend"></div>
+      </details>
 
       <h3 style="margin-top:16px">Apoyos y sensibilidades</h3>
       <div id="apoyos"></div>
@@ -211,8 +230,30 @@
     </div>
   </section>
 
+  <section id="invitaciones">
+    <div class="card">
+      <span class="rotulo">Piloto cerrado</span>
+      <p>Se entra solo con link de invitación. <span class="cupos" id="invCupos"></span></p>
+      <p class="muted">Cuentan las cuentas activas de docentes, directivos y familias (no la de la plataforma). Dar de baja o desactivar una cuenta libera su cupo.</p>
+    </div>
+    <div class="card cinta">
+      <span class="rotulo">Invitar a una seño</span>
+      <form id="fInv">
+        <div id="invEscFila" hidden><label for="invEscuela">Escuela</label><select id="invEscuela"></select></div>
+        <label for="invEtiqueta">Para quién <span class="muted">(opcional, para reconocer el link)</span></label>
+        <input id="invEtiqueta" maxlength="80" placeholder="Ej: Seño Laura, 3.º B">
+        <label class="check" style="margin-top:8px"><input type="checkbox" id="invAdmin"> Es directivo/a (puede sumar docentes)</label>
+        <p class="muted">El link sirve una sola vez y vence a los 7 días. Copialo apenas lo creás: por seguridad, después no se puede volver a ver (sí anular).</p>
+        <button class="big">Crear link de invitación</button>
+      </form>
+      <div id="invNuevo"></div>
+      <p class="muted" id="msgInv"></p>
+    </div>
+    <div class="card"><span class="rotulo">Links creados</span><div id="invLista"><p class="vacio">Cargando…</p></div></div>
+  </section>
+
   <section id="docentes">
-    <div class="card"><span class="rotulo">Docentes de la escuela</span><div id="listaDoc"><p class="vacio">Cargando…</p></div></div>
+    <div class="card"><span class="rotulo">Docentes de la escuela</span><p class="cupos" id="docCupos" hidden></p><div id="listaDoc"><p class="vacio">Cargando…</p></div></div>
     <div class="card" id="nuevaDoc" hidden>
       <span class="rotulo">Sumar una docente</span>
       <form id="fDoc">
@@ -268,6 +309,7 @@ document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
   if (b.dataset.s === "escuelas") cargarEscuelas();
   if (b.dataset.s === "importar") Importar.iniciar(YO);
   if (b.dataset.s === "registro") cargarRegistro();
+  if (b.dataset.s === "invitaciones") cargarInvitaciones();
 });
 const abrirTab = s => document.querySelector(`nav button[data-s="${s}"]`)?.click();
 
@@ -283,6 +325,7 @@ const abrirTab = s => document.querySelector(`nav button[data-s="${s}"]`)?.click
   if (YO.es_admin) { $("tabEsc").hidden = false; if (location.hash === "#escuela") abrirTab("escuela"); }
   if (YO.es_plataforma) { $("tabEscs").hidden = false; if (location.hash === "#escuelas") abrirTab("escuelas"); }
   if (YO.es_admin || YO.es_plataforma) { $("tabReg").hidden = false; if (location.hash === "#registro") abrirTab("registro"); }
+  if (YO.es_admin || YO.es_plataforma) { $("tabInv").hidden = false; if (location.hash === "#invitaciones") abrirTab("invitaciones"); }
   if (YO.es_admin || YO.es_plataforma) { $("tabImp").hidden = false; if (location.hash === "#importar") abrirTab("importar"); }
   if (YO.es_admin || YO.es_plataforma) { $("tabSol").hidden = false; await cargarSolicitudes(); if (location.hash === "#solicitudes") abrirTab("solicitudes"); }
 })();
@@ -369,9 +412,72 @@ function abrir(id) {
   $("consVia").textContent = c.dado ? (c.via === "familia" ? "La familia lo dio desde Puente." : "Registrado por la escuela.") : (c.retirado ? `La familia lo retiró el ${c.retirado}.` : "");
   $("verFamilia").href = `familia.html?alumno=${actual.id}`;
   $("borrar").hidden = !(YO.es_admin || YO.es_plataforma);
+  $("lfNuevo").innerHTML = ""; pintarLinksFamilia();
   pintarAsignadas();
   $("editor").scrollIntoView({ behavior: "smooth", block: "start" });
 }
+// ---------- links de invitación (piloto cerrado) ----------
+const ESTADOS = { pendiente: "pendiente", usado: "usado", vencido: "vencido", revocado: "anulado" };
+const textoCupos = c => c ? (c.sin_tope ? `${c.usados} cuentas (sin tope)` : `${c.usados} de ${c.max} cupos usados${c.completo ? " · el piloto está completo" : ""}`) : "";
+// Caja con el link recién creado: copiar y compartir por WhatsApp (el link completo se ve solo esta vez).
+function cajaLink(el, l) {
+  el.innerHTML = `<div class="link-nuevo"><b>Link listo</b> <span class="muted">· vence ${esc(fecha(l.expira))} · ${l.usos_max === 1 ? "un solo uso" : l.usos_max + " usos"}</span>
+    <input readonly value="${esc(l.url)}" aria-label="Link de invitación">
+    <div class="link-acciones"><button type="button" class="big chico" data-copiar>Copiar link</button>
+    <a class="big alt chico" href="${esc(l.whatsapp)}" target="_blank" rel="noopener" style="text-decoration:none;text-align:center">Compartir por WhatsApp</a></div>
+    <p class="muted" style="margin:6px 0 0">Copialo ahora: después no se puede volver a ver.</p></div>`;
+  const inp = el.querySelector("input");
+  inp.onfocus = () => inp.select();
+  el.querySelector("[data-copiar]").onclick = async ev => {
+    try { await navigator.clipboard.writeText(l.url); } catch { inp.select(); document.execCommand("copy"); }
+    ev.target.textContent = "Copiado ✓";
+  };
+}
+function filaEnlace(l, conRevocar) {
+  const quien = l.tipo === "familia" ? `Familia de ${esc(l.alumno || "?")}${l.etiqueta ? " · " + esc(l.etiqueta) : ""}` : `${l.es_admin ? "Directivo/a" : "Docente"}${l.etiqueta ? " · " + esc(l.etiqueta) : ""}`;
+  return `<div class="enl"><span><b>${quien}</b> <span class="muted">· ${esc(l.escuela || "")} · creado ${esc(fecha(l.creado))}${l.creado_por ? " por " + esc(l.creado_por) : ""} · ${l.estado === "pendiente" ? "vence " + esc(fecha(l.expira)) : ESTADOS[l.estado]}</span></span>
+    <span>${l.estado === "pendiente" ? '<span class="sello avanzando">pendiente</span>' : `<span class="sello">${ESTADOS[l.estado]}</span>`}
+    ${conRevocar && l.estado === "pendiente" ? `<button type="button" class="quitar" data-revocar="${l.id}" style="font-size:14px">anular</button>` : ""}</span></div>`;
+}
+async function cargarInvitaciones() {
+  try {
+    const r = await api("api/docentes?invitaciones=1");
+    $("invCupos").textContent = textoCupos(r.cupos); $("invCupos").classList.toggle("lleno", !!r.cupos?.completo);
+    $("invEscFila").hidden = !r.plataforma;
+    if (r.plataforma && !$("invEscuela").options.length) $("invEscuela").innerHTML = r.escuelas.map(e => `<option value="${e.id}" ${e.id === r.mi_escuela ? "selected" : ""}>${esc(e.nombre)}</option>`).join("");
+    $("invLista").innerHTML = r.enlaces.length ? r.enlaces.map(l => filaEnlace(l, true)).join("") : '<p class="vacio">Todavía no creaste links.</p>';
+    $("invLista").querySelectorAll("[data-revocar]").forEach(b => b.onclick = async () => {
+      if (!confirm("¿Anular este link? Nadie va a poder usarlo.")) return;
+      try { await api("api/docentes", { method: "POST", body: { accion: "invitacion_revocar", id: Number(b.dataset.revocar) } }); cargarInvitaciones(); } catch (e) { alert(e.message); }
+    });
+  } catch (e) { $("invLista").innerHTML = `<p class="error">${esc(e.message)}</p>`; }
+}
+$("fInv").onsubmit = async ev => {
+  ev.preventDefault(); msg("msgInv", "");
+  try {
+    const r = await api("api/docentes", { method: "POST", body: { accion: "invitacion_crear", etiqueta: $("invEtiqueta").value, es_admin: $("invAdmin").checked,
+      ...(!$("invEscFila").hidden && $("invEscuela").value ? { escuela_id: Number($("invEscuela").value) } : {}) } });
+    cajaLink($("invNuevo"), r.enlace); ev.target.reset(); cargarInvitaciones();
+  } catch (e) { $("invNuevo").innerHTML = ""; msg("msgInv", e.message, true); }
+};
+function pintarLinksFamilia() {
+  const pend = actual?.links_familia || [];
+  $("lfPend").innerHTML = pend.length ? `<p class="muted" style="margin-bottom:0">Links pendientes:</p>` + pend.map(l => filaEnlace(l, true)).join("") : "";
+  $("lfPend").querySelectorAll("[data-revocar]").forEach(b => b.onclick = async () => {
+    if (!confirm("¿Anular este link? Nadie va a poder usarlo.")) return;
+    try { const r = await api("api/fichas", { method: "POST", body: { accion: "link_revocar", id: actual.id, link_id: Number(b.dataset.revocar) } });
+      Object.assign(ALUMNOS.find(a => a.id === actual.id), r.alumno); pintarLinksFamilia(); } catch (e) { msg("msgEd", e.message, true); }
+  });
+}
+$("lfCrear").onclick = async () => {
+  if (!actual) return;
+  try {
+    const r = await api("api/fichas", { method: "POST", body: { accion: "link_familia", id: actual.id, nombre: $("lfNombre").value, vinculo: $("lfVinculo").value } });
+    Object.assign(ALUMNOS.find(a => a.id === actual.id), r.alumno);
+    cajaLink($("lfNuevo"), r.enlace); $("lfNombre").value = ""; $("lfVinculo").value = ""; pintarLinksFamilia();
+  } catch (e) { $("lfNuevo").innerHTML = `<p class="error">${esc(e.message)}</p>`; }
+};
+
 // ---------- docentes a cargo del alumno ----------
 function pintarAsignadas() {
   const asig = actual.docentes || [];
@@ -446,6 +552,7 @@ $("regEvento").onchange = cargarRegistro;
 async function cargarDocentes() {
   try {
     const r = await api("api/docentes");
+    $("docCupos").hidden = !r.cupos; $("docCupos").textContent = "Piloto: " + textoCupos(r.cupos); $("docCupos").classList.toggle("lleno", !!r.cupos?.completo);
     $("listaDoc").innerHTML = r.docentes.map(d => `<div class="fila-al" style="cursor:default"><span><b>${esc(d.nombre)}</b> <span class="muted">· ${esc(d.email)}</span></span>
       <span>${d.es_plataforma ? '<span class="sello avanzando">plataforma</span>' : ""} ${d.es_admin ? '<span class="sello avanzando">admin</span>' : ""}
         ${YO.es_plataforma && d.activo && d.id !== r.yo ? `<button class="enlace" data-plat="${d.id}" data-valor="${d.es_plataforma ? "" : "1"}" style="font-size:14px">${d.es_plataforma ? "quitar plataforma" : "hacer plataforma"}</button>` : ""} ${!d.activo ? '<span class="sello">inactiva</span>' : (YO.es_admin && d.id !== r.yo ? `<button class="quitar" data-id="${d.id}" style="font-size:14px">desactivar</button>` : "")}</span></div>`).join("");
