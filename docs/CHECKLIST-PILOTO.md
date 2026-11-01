@@ -4,6 +4,8 @@ Puente maneja datos de menores con discapacidad o necesidades de apoyo. En Argen
 
 Estado: ☐ pendiente · ☑ hecho
 
+**Decisión (Danny, 1/11/2026):** el piloto queda abierto a **15 usuarios en total** (seños, directivos y familias juntos), se entra **solo con link de invitación** y dura 6 a 8 semanas. Responsable del tratamiento: **Puente** (persona física o asociación civil, a confirmar con el abogado); cada familia firma el consentimiento con Puente y cada seño necesita el aval de su dirección.
+
 Última actualización: 1/11/2026 (rama `feat/piloto`). Lo marcado ☑ en código está en esa rama hasta que se mergee.
 
 ## 1. Para la hackatón (datos ficticios)
@@ -41,13 +43,16 @@ Estado: ☐ pendiente · ☑ hecho
 - ☐ Consentimiento informado firmado por cada familia/tutor: qué datos, para qué, quién los ve, dónde se guardan, uso de IA, cuánto tiempo, cómo pedir acceso, corrección o borrado.
 - ☐ Política de privacidad y términos de uso publicados en la app. **Borrador** listo (`privacidad.html`, `terminos.html`, link en el pie de todas las páginas, el consentimiento de la familia linkea y guarda la versión). Falta: revisión legal, completar `[CONTACTO]`, `[RESPONSABLE]` y `[REGIÓN]`, y subir `VERSION_PRIVACIDAD` al publicar el texto final.
 - ☐ Evaluar inscripción de la base en el Registro Nacional de Bases de Datos (AAIP).
-- ☐ Definir responsable del tratamiento (¿la escuela? ¿Puente?) y un contacto para reclamos.
+- ◐ Responsable del tratamiento: **Puente** (decidido 1/11/2026). ☐ Falta: confirmar con el abogado si es persona física o asociación civil, y definir un contacto para reclamos. Documentos de `docs/piloto/` ajustados (borradores).
+- ☐ Aval de la dirección de **cada** seño que participe (puede haber más de una escuela).
 - ☐ Acuerdo de confidencialidad para docentes que usan la plataforma.
 - ☐ Revisar el texto de la invitación a familias (qué se comparte, consentimiento) con la escuela antes de mandar invitaciones reales.
 - ☐ Antes de importar una planilla real: que la escuela confirme que tiene el consentimiento de esas familias para cargar sus emails y teléfonos, y que la planilla tiene solo nombre de pila (sin apellidos, diagnósticos ni datos de salud). Borrar la planilla de la compu después de importar.
 
 ## 5. Operación del piloto
-- ☐ Una sola escuela piloto, pocos alumnos, plazo definido.
+- ☐ Piloto de **15 usuarios en total** (seños, directivos y familias), solo con **link de invitación**, 6 a 8 semanas. Repartir los cupos entre seños antes de invitar.
+- ☑ Links de invitación (seño y familia; un solo uso, 7 días, copiar/WhatsApp/anular, solo hash del token, auditoría), modo solo invitación (`PILOTO_SOLO_INVITACION`) y tope de cupos (`PILOTO_MAX_USUARIOS`, panel *X de 15*, importación incluida). Tests en `test/piloto-invitaciones.test.js`.
+- ☐ Probar en Preview el flujo completo de invitación (seño y familia) y el tope con un `PILOTO_MAX_USUARIOS` bajo.
 - ☑ Importación masiva de docentes y alumnos con familias (CSV/XLSX, vista previa, todo o nada, idempotente, mails solo al confirmar).
 - ☐ Verificar el límite de envíos de Resend del plan contratado antes de importar muchas familias juntas (hoy: tandas de 20 con pausa).
 - ☑ Procedimiento para dar de baja a una familia o alumno y borrar sus datos (incluye días en Blob e historial de chat): *Borrar alumno* (admin/plataforma), *dar de baja a esta familia* (admin) y *Pedir la baja* (familia). Cada baja queda registrada (quién, cuándo, cuánto) sin datos personales.
@@ -65,6 +70,7 @@ Estado: ☐ pendiente · ☑ hecho
 
 ## 7. Variables nuevas a cargar en Vercel (rama `feat/piloto`)
 - ☐ `CRON_SECRET` (Producción; en Preview opcional).
+- ☐ (opcionales, tienen default) `PILOTO_SOLO_INVITACION` (1 con base) y `PILOTO_MAX_USUARIOS` (15). No hace falta cargarlas para el piloto; sirven para cambiar el tope o reabrir el formulario.
 - ☐ (opcionales, tienen default) `CHAT_RETENCION_DIAS`, `DIAS_PUBLICADOS_RETENCION`, `FICHAS_RETENCION_DIAS`, `AUDITORIA_RETENCION_DIAS`, `FEEDBACK_RETENCION_DIAS`, `AUDITORIA_ALERTA_FALLOS`.
 - ☑ `DONACIONES_INTL_URL` y `DONACIONES_AR_URL` (cargadas por Danny el 1/11/2026).
 - ☐ Con el dominio: `PUENTE_URL` y `RESEND_FROM`.

@@ -1,5 +1,5 @@
 #!/bin/bash
-cd /workspace/work/puente-piloto-docs
+cd "$(dirname "$0")/.."  # docs/piloto (antes apuntaba a una carpeta de trabajo fuera del repo)
 for f in ${@:-consentimiento-familias aval-escuela confidencialidad-docentes plan-incidentes guia-piloto registro-aaip}; do
   pandoc "$f.md" -o "pdf/$f.pdf" --pdf-engine=pdflatex \
     -H _build/header.tex -V fontfamily=helvet \

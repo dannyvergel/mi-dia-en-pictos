@@ -1,11 +1,11 @@
 ---
 title: "Consentimiento informado para familias"
-subtitle: "Piloto de Puente en [ESCUELA] (CUE [CUE])"
+subtitle: "Piloto cerrado de Puente (hasta 15 usuarios, con invitación) · Escuela de la seño: [ESCUELA] (CUE [CUE])"
 ---
 
 > **BORRADOR — revisar con un abogado antes de usar.**
 
-Este documento lo firma la madre, el padre o la persona tutora del alumno o alumna. Leelo con tiempo. Si algo no se entiende, preguntá a la escuela antes de firmar. Firmar o no firmar es una decisión tuya, y **no participar no cambia en nada la escolaridad de tu hijo o hija**.
+Este documento lo firma la familia **con Puente**, que es quien responde por los datos en este piloto. Lo firma la madre, el padre o la persona tutora del alumno o alumna. Leelo con tiempo. Si algo no se entiende, preguntá a la escuela antes de firmar. Firmar o no firmar es una decisión tuya, y **no participar no cambia en nada la escolaridad de tu hijo o hija**.
 
 # 1. ¿Qué es Puente?
 
@@ -19,13 +19,13 @@ Cómo funciona:
 - En ese espacio hay un **chat** para preguntar sobre el día escolar. El chat solo responde sobre la escuela y lo registrado; no da diagnósticos ni consejos médicos.
 - Hay un **agente de progreso** con inteligencia artificial (IA) que ayuda a la seño a ver patrones, seguir los objetivos del PPI y preparar apoyos visuales.
 
-El piloto dura [PLAZO DEL PILOTO] a partir de [FECHA].
+El piloto es **cerrado**: participan hasta **15 personas en total**, entre seños y adultos de las familias, que entran solo con un **link de invitación** personal (sirve una sola vez y vence a los 7 días). Dura **6 a 8 semanas** ([PLAZO DEL PILOTO]) a partir de [FECHA]. Cuando firmes, la seño te manda el link por WhatsApp o una invitación por mail.
 
 # 2. ¿Quién es responsable de los datos?
 
-- **Responsable del tratamiento:** [RESPONSABLE DEL TRATAMIENTO], con domicilio en [DOMICILIO DEL RESPONSABLE].
+- **Responsable del tratamiento:** **Puente** — [NOMBRE DEL RESPONSABLE: persona física o asociación civil, a confirmar con el abogado] —, con domicilio en [DOMICILIO DEL RESPONSABLE]. Este consentimiento se firma con Puente.
 - **Contacto para dudas, pedidos y reclamos:** [CONTACTO].
-- **Escuela:** [ESCUELA], CUE [CUE].
+- **Escuela de la seño:** [ESCUELA], CUE [CUE]. La dirección dio su aval para que la seño use Puente con sus alumnos; no es la responsable de la base.
 - **Sitio de Puente:** [DOMINIO].
 
 # 3. ¿Qué datos se guardan?
@@ -164,7 +164,7 @@ Aclaración (nombre y apellido): \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\
 
 DNI: \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_ Lugar y fecha: Rosario, \_\_\_\_\_ / \_\_\_\_\_ / \_\_\_\_\_\_\_\_
 
-*Recibió por la escuela (firma y sello):* \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
+*Recibió por Puente (o por la escuela en nombre de Puente):* \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
 
 La familia se queda con una copia de este documento.
 
