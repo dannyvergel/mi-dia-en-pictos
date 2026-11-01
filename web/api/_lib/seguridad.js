@@ -74,7 +74,20 @@ async function registrarIntento(clave) {
 }
 async function limpiarIntentos(clave) { await q("DELETE FROM limites WHERE clave = $1", [clave]); }
 
+// ---------- token de formulario público ----------
+// GET /api/auth lo entrega a quien no tiene sesión. Habilita usar /api/escuelas desde "Solicitar acceso" y "Primera vez"
+// sin abrir la búsqueda a cualquiera que llame la API sin pasar por el login. Vence a las 2 horas.
+const VIDA_FORMULARIO = 2 * 3600e3;
+function tokenFormulario(ahora = Date.now()) { const t = String(ahora); return `${t}.${hmac("formulario:" + t)}`; }
+function formularioOk(tok, ahora = Date.now()) {
+  const [t, firma] = String(tok || "").split(".");
+  if (!/^\d{10,16}$/.test(t || "") || !firma || !igualSeguro(firma, hmac("formulario:" + t))) return false;
+  const edad = ahora - Number(t);
+  return edad >= -60e3 && edad <= VIDA_FORMULARIO;
+}
+
 module.exports = {
+  tokenFormulario, formularioOk,
   COOKIE, esProduccion, secreto,
   sha256, hmac, igualSeguro, normEmail, emailValido, ipDe, leerCookies,
   crearSesion, leerSesion, cerrarSesion, superaLimite, registrarIntento, limpiarIntentos

@@ -59,7 +59,8 @@
         <p class="muted">Contanos quién sos. Una docente administradora revisa el pedido y te avisamos por mail.</p>
         <label for="soNombre">Nombre y apellido</label><input id="soNombre" required minlength="2" maxlength="80" autocomplete="name">
         <label for="soEmail">Email</label><input id="soEmail" type="email" required autocomplete="email">
-        <label for="soEscuela">Escuela</label><input id="soEscuela" required minlength="2" maxlength="120" placeholder="Ej: Escuela Especial N.º 2001">
+        <label for="soEscuela">Escuela</label><input id="soEscuela" required minlength="2" maxlength="120" aria-describedby="soEscAyuda">
+        <p class="muted" id="soEscAyuda" style="margin:2px 0 0">Buscala por nombre, número o localidad. Si no aparece, escribí el nombre.</p>
         <label for="soRol">Rol o grado <span class="opc">(opcional)</span></label><input id="soRol" maxlength="80" placeholder="Ej: seña de 2.º, maestra integradora">
         <label for="soMensaje">Mensaje <span class="opc">(opcional)</span></label><textarea id="soMensaje" maxlength="1000" style="min-height:64px"></textarea>
         <div class="trampa" aria-hidden="true"><label for="soWeb">No completar</label><input id="soWeb" tabindex="-1" autocomplete="off"></div>
@@ -73,7 +74,8 @@
       <span class="rotulo">Primera vez en Puente</span>
       <p class="muted">Creá la cuenta de la primera docente (va a poder sumar a las demás). Necesitás el PIN de docente que está configurado en Vercel. Después entrás con un código que te llega a ese email.</p>
       <form id="fSetup">
-        <label for="sEscuela">Escuela</label><input id="sEscuela" placeholder="Ej: Escuela Especial N.º 2001" maxlength="120">
+        <label for="sEscuela">Escuela</label><input id="sEscuela" maxlength="120" aria-describedby="sEscAyuda">
+        <p class="muted" id="sEscAyuda" style="margin:2px 0 0">Buscala en el padrón oficial por nombre, número o localidad. Si no aparece, escribí el nombre.</p>
         <label for="sNombre">Tu nombre</label><input id="sNombre" required maxlength="80" autocomplete="name">
         <label for="sEmail">Tu email</label><input id="sEmail" type="email" required autocomplete="email">
         <label for="sPin">PIN de docente</label><input id="sPin" type="password" inputmode="numeric" required>
@@ -114,9 +116,15 @@
 </div></main>
 <footer>Datos de menores protegidos: solo nombre de pila, sin fotos ni diagnósticos.<br>Pictogramas: Sergio Palao. Origen: <a href="https://arasaac.org">ARASAAC</a>. Licencia CC BY-NC-SA. Propiedad: Gobierno de Aragón.</footer>
 <script src="cuenta.js"></script>
+<script src="escuelas.js"></script>
 <script>
 const $ = id => document.getElementById(id);
 const { api } = Puente;
+// Token que da GET /api/auth sin sesión: habilita buscar escuelas del padrón desde estos formularios públicos.
+let FORMULARIO = null;
+const renovar = async () => { try { FORMULARIO = (await Puente.estado()).formulario || null; } catch {} };
+const acSetup = Puente.autocompletarEscuela($("sEscuela"), { formulario: () => FORMULARIO, renovar });
+const acSolicitud = Puente.autocompletarEscuela($("soEscuela"), { formulario: () => FORMULARIO, renovar });
 function mostrar(s) {
   document.querySelectorAll("section").forEach(x => x.classList.toggle("on", x.id === s));
   document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.s === s));
@@ -130,6 +138,7 @@ function ocupado(form, si) { form.querySelectorAll("button").forEach(b => b.disa
   let e;
   try { e = await Puente.estado(); } catch { $("cargando").textContent = "No pudimos conectar. Probá de nuevo en un rato."; return; }
   $("cargando").remove();
+  FORMULARIO = e.formulario || null;
   if (e.modo === "demo") { $("tabs").hidden = true; return mostrar("demo"); }
   if (e.sesion) return ir(e.sesion);
   if (e.necesita_setup) { $("loginDocente").hidden = true; $("setup").hidden = false; }
@@ -168,7 +177,7 @@ flujoCodigo("f", "familia");
 $("fSetup").onsubmit = async ev => {
   ev.preventDefault(); ocupado(ev.target, true);
   try {
-    const r = await api("api/auth", { method: "POST", body: { accion: "setup", escuela: $("sEscuela").value, nombre: $("sNombre").value, email: $("sEmail").value, pin: $("sPin").value } });
+    const r = await api("api/auth", { method: "POST", body: { accion: "setup", escuela: $("sEscuela").value, cue: acSetup.seleccion?.cue || "", nombre: $("sNombre").value, email: $("sEmail").value, pin: $("sPin").value } });
     $("setup").hidden = true; $("loginDocente").hidden = false; $("dPie").hidden = false;
     $("dEmail").value = r.email;
     try { await pedirDocente(r.email); } catch (e) { msg("dMsg", e.message); }
@@ -187,8 +196,8 @@ $("fSolicitud").onsubmit = async ev => {
   ev.preventDefault(); ocupado(ev.target, true); msg("soMsg", "", false);
   try {
     const r = await api("api/solicitudes", { method: "POST", body: { accion: "crear", nombre: $("soNombre").value, email: $("soEmail").value,
-      escuela: $("soEscuela").value, rol: $("soRol").value, mensaje: $("soMensaje").value, sitio_web: $("soWeb").value } });
-    ev.target.reset(); ev.target.hidden = true;
+      escuela: $("soEscuela").value, cue: acSolicitud.seleccion?.cue || "", rol: $("soRol").value, mensaje: $("soMensaje").value, sitio_web: $("soWeb").value } });
+    ev.target.reset(); acSolicitud.limpiar(); ev.target.hidden = true;
     $("soMsg").innerHTML = ""; $("soMsg").className = "ok";
     $("soMsg").append(r.mensaje + " ", Object.assign(document.createElement("button"), { type: "button", className: "enlace", textContent: "Volver a entrar", onclick: () => $("cerrarSolicitud").click() }));
   } catch (e) { msg("soMsg", e.message); }

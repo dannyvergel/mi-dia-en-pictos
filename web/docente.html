@@ -13,6 +13,7 @@
   nav button[data-s="docentes"] { --tab: #7fb3d5; }
   nav button[data-s="cuenta"] { --tab: #8fbf8a; }
   nav button[data-s="solicitudes"] { --tab: #e8998d; }
+  nav button[data-s="escuela"] { --tab: #b9a3d6; }
   .cuenta-n { display: inline-block; min-width: 20px; padding: 0 6px; border-radius: 10px; background: var(--bad); color: #fff; font-size: 12px; line-height: 20px; margin-left: 4px; }
   .sol { border: 1px solid var(--borde); border-radius: 10px; padding: 10px 12px; margin: 10px 0; background: #fffef9; }
   .sol b { font-family: var(--mano); font-size: 22px; font-weight: 400; }
@@ -41,6 +42,7 @@
 <nav>
   <button class="on" data-s="alumnos">Alumnos</button>
   <button data-s="solicitudes" id="tabSol" hidden>Solicitudes <span class="cuenta-n" id="nSol" hidden></span></button>
+  <button data-s="escuela" id="tabEsc" hidden>Escuela</button>
   <button data-s="docentes">Docentes</button>
   <button data-s="cuenta">Mi cuenta</button>
 </nav>
@@ -100,6 +102,51 @@
     <div class="card" id="resueltasCard" hidden><span class="rotulo">Últimas resueltas</span><div id="listaRes"></div></div>
   </section>
 
+  <section id="escuela">
+    <div class="card cinta">
+      <span class="rotulo">Ficha de la escuela</span>
+      <p class="muted">Solo la ven y la editan las docentes administradoras de esta escuela. Buscala en el Padrón Oficial para completar los datos institucionales; si no aparece, cargalos a mano.</p>
+      <label for="feBuscar">Buscar en el padrón oficial <span class="muted">(Santa Fe)</span></label>
+      <input id="feBuscar" maxlength="80">
+      <form id="fEscuela">
+        <div class="grid2">
+          <div><label for="feNombre">Nombre de la escuela</label><input id="feNombre" required minlength="2" maxlength="120"></div>
+          <div><label for="feCue">CUE + anexo <span class="muted">(9 números)</span></label><input id="feCue" inputmode="numeric" pattern="\d{9}" maxlength="9" placeholder="Ej: 820060800"></div>
+          <div><label for="feDomicilio">Domicilio</label><input id="feDomicilio" maxlength="200"></div>
+          <div><label for="feLocalidad">Localidad</label><input id="feLocalidad" maxlength="100"></div>
+          <div><label for="feDepartamento">Departamento</label><input id="feDepartamento" maxlength="100"></div>
+          <div><label for="feModalidad">Modalidad y niveles</label><input id="feModalidad" maxlength="300" placeholder="Ej: Educación Especial (inicial, primario)"></div>
+        </div>
+        <h3 style="margin-top:16px">Contacto institucional</h3>
+        <div class="grid2">
+          <div><label for="feEmail">Email de la escuela</label><input id="feEmail" type="email"></div>
+          <div><label for="feTelefono">Teléfono</label><input id="feTelefono" inputmode="tel" maxlength="60"></div>
+        </div>
+        <h3 style="margin-top:16px">Directivo responsable</h3>
+        <div class="grid2">
+          <div><label for="feDirNombre">Nombre</label><input id="feDirNombre" maxlength="120" placeholder="Ej: Directora Laura Pérez"></div>
+          <div><label for="feDirEmail">Email</label><input id="feDirEmail" type="email"></div>
+        </div>
+        <h3 style="margin-top:16px">Responsable del tratamiento de datos</h3>
+        <p class="muted">Quién responde por los datos de alumnos y familias que se cargan en Puente (Ley 25.326).</p>
+        <div class="grid2">
+          <div><label for="feResNombre">Nombre y cargo</label><input id="feResNombre" maxlength="160"></div>
+          <div><label for="feResEmail">Email</label><input id="feResEmail" type="email"></div>
+        </div>
+        <h3 style="margin-top:16px">Aval de la escuela</h3>
+        <label class="check"><input type="checkbox" id="feAval"> La escuela firmó el aval para usar Puente</label>
+        <div class="grid2">
+          <div><label for="feAvalFecha">Fecha</label><input id="feAvalFecha" type="date"></div>
+          <div><label for="feAvalPor">Quién lo firmó</label><input id="feAvalPor" maxlength="120" placeholder="Ej: Laura Pérez (directora)"></div>
+        </div>
+        <label for="feNotas">Notas</label><textarea id="feNotas" maxlength="2000" style="min-height:64px"></textarea>
+        <button class="big">Guardar ficha de la escuela</button>
+      </form>
+      <p class="muted">Fuente de la búsqueda: Padrón Oficial de Establecimientos Educativos, Ministerio de Educación de la Nación (actualizado el 07/09/2026).</p>
+      <p class="muted" id="msgEsc"></p>
+    </div>
+  </section>
+
   <section id="docentes">
     <div class="card"><span class="rotulo">Docentes de la escuela</span><div id="listaDoc"><p class="vacio">Cargando…</p></div></div>
     <div class="card" id="nuevaDoc" hidden>
@@ -126,6 +173,7 @@
 </div></main>
 <footer>Datos de menores protegidos: solo nombre de pila, sin fotos ni diagnósticos.</footer>
 <script src="cuenta.js"></script>
+<script src="escuelas.js"></script>
 <script>
 const $ = id => document.getElementById(id);
 const { api, esc } = Puente;
@@ -137,6 +185,7 @@ document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
   document.querySelectorAll("section").forEach(s => s.classList.toggle("on", s.id === b.dataset.s));
   if (b.dataset.s === "docentes") cargarDocentes();
   if (b.dataset.s === "solicitudes") cargarSolicitudes();
+  if (b.dataset.s === "escuela") cargarEscuela();
 });
 const abrirTab = s => document.querySelector(`nav button[data-s="${s}"]`)?.click();
 
@@ -149,6 +198,7 @@ const abrirTab = s => document.querySelector(`nav button[data-s="${s}"]`)?.click
   $("quien").textContent = `${YO.nombre} · ${YO.email}`;
   $("miEmail").textContent = "Tu email: " + YO.email;
   cargarAlumnos();
+  if (YO.es_admin) { $("tabEsc").hidden = false; if (location.hash === "#escuela") abrirTab("escuela"); }
   if (YO.es_admin) { $("tabSol").hidden = false; await cargarSolicitudes(); if (location.hash === "#solicitudes") abrirTab("solicitudes"); }
 })();
 
@@ -261,20 +311,29 @@ async function cargarSolicitudes() {
   try {
     const r = await api("api/solicitudes");
     $("nSol").textContent = r.pendientes.length; $("nSol").hidden = !r.pendientes.length;
-    const opciones = r.escuelas.map(e => `<option value="${e.id}" ${e.id === r.mi_escuela ? "selected" : ""}>${esc(e.nombre)}${e.id === r.mi_escuela ? " (la mía)" : ""}</option>`).join("") + `<option value="nueva">Escuela nueva…</option>`;
+    // Por defecto: la escuela de Puente con el mismo CUE; si no existe y eligió del padrón, crearla desde el padrón; si no, la mía.
+    const opciones = s => {
+      const elegida = s.escuela_cue_id ? String(s.escuela_cue_id) : s.padron ? "padron" : String(r.mi_escuela);
+      return (s.padron ? `<option value="padron" selected>Crear desde el padrón: ${esc(Puente.tituloEscuela(s.padron.nombre))} (${esc(Puente.tituloEscuela(s.padron.localidad))})</option>` : "")
+        + r.escuelas.map(e => `<option value="${e.id}" ${String(e.id) === elegida ? "selected" : ""}>${esc(e.nombre)}${e.id === r.mi_escuela ? " (la mía)" : ""}${e.cue && e.cue === s.cue ? " · mismo CUE" : ""}</option>`).join("")
+        + `<option value="nueva">Escuela nueva…</option>`;
+    };
     $("listaSol").innerHTML = r.pendientes.length ? r.pendientes.map(s => `<div class="sol" data-id="${s.id}">
         <b>${esc(s.nombre)}</b> <span class="muted">· ${esc(s.email)} · ${fecha(s.creado)}</span>
         <div>Escuela: <strong>${esc(s.escuela)}</strong>${s.rol ? ` · ${esc(s.rol)}` : ""}</div>
+        ${s.cue ? `<div class="muted">La eligió del padrón oficial: CUE ${esc(s.cue)}${s.escuela_cue_id ? " · ya está en Puente" : ""}${s.padron?.modalidad ? " · " + esc(s.padron.modalidad) : ""}</div>` : ""}
         ${s.mensaje ? `<div class="msj">${esc(s.mensaje)}</div>` : ""}
-        <label>Escuela en Puente</label><select data-k="escuela">${opciones}</select>
+        <label>Escuela en Puente</label><select data-k="escuela">${opciones(s)}</select>
         <input type="text" data-k="nueva" maxlength="120" value="${esc(s.escuela)}" hidden placeholder="Nombre de la escuela nueva">
         <label class="check"><input type="checkbox" data-k="admin"> También puede administrar (sumar docentes y ver solicitudes)</label>
         <div class="fila"><button class="big chico" data-a="aprobar">Aprobar</button><button class="big alt chico" data-a="rechazar" style="color:var(--bad);border-color:var(--bad)">Rechazar</button></div>
       </div>`).join("") : `<p class="vacio">No hay pedidos pendientes.</p>`;
     $("listaSol").querySelectorAll(".sol").forEach(el => {
       const sel = el.querySelector('[data-k="escuela"]'), nueva = el.querySelector('[data-k="nueva"]'), adm = el.querySelector('[data-k="admin"]');
-      sel.onchange = () => { nueva.hidden = sel.value !== "nueva"; if (sel.value === "nueva") { adm.checked = true; adm.disabled = true; } else adm.disabled = false; };
-      el.querySelector('[data-a="aprobar"]').onclick = () => resolver(el, "aprobar", sel.value === "nueva" ? { escuela_nueva: nueva.value } : { escuela_id: Number(sel.value) }, adm.checked);
+      sel.onchange = () => { nueva.hidden = sel.value !== "nueva"; if (sel.value === "nueva" || sel.value === "padron") { adm.checked = true; adm.disabled = true; } else adm.disabled = false; };
+      sel.onchange();
+      el.querySelector('[data-a="aprobar"]').onclick = () => resolver(el, "aprobar",
+        sel.value === "nueva" ? { escuela_nueva: nueva.value } : sel.value === "padron" ? { desde_padron: true } : { escuela_id: Number(sel.value) }, adm.checked);
       el.querySelector('[data-a="rechazar"]').onclick = () => resolver(el, "rechazar");
     });
     $("resueltasCard").hidden = !r.resueltas.length;
@@ -302,6 +361,41 @@ async function resolver(el, accion, escuela = {}, esAdmin = false) {
     await cargarSolicitudes();
   } catch (e) { msg("msgSol", e.message, true); el.querySelectorAll("button").forEach(b => b.disabled = false); }
 }
+
+// ---------- ficha de la escuela (solo admin) ----------
+const CAMPOS_ESC = { feNombre: "nombre", feCue: "cue", feDomicilio: "domicilio", feLocalidad: "localidad", feDepartamento: "departamento",
+  feModalidad: "modalidad", feEmail: "email", feTelefono: "telefono", feDirNombre: "directivo_nombre", feDirEmail: "directivo_email",
+  feResNombre: "responsable_datos_nombre", feResEmail: "responsable_datos_email", feAvalFecha: "aval_fecha", feAvalPor: "aval_por", feNotas: "notas" };
+const acEscuela = Puente.autocompletarEscuela($("feBuscar"), {
+  alElegir: async e => {
+    try {
+      const r = await api("api/escuelas?cue=" + encodeURIComponent(e.cue));
+      for (const [id, k] of Object.entries(CAMPOS_ESC)) if (k in r.ficha) $(id).value = k === "nombre" ? Puente.tituloEscuela(r.ficha[k]) : r.ficha[k] || "";
+      msg("msgEsc", "Completamos los datos del padrón. Revisalos, sumá el directivo y el responsable de datos, y guardá.");
+    } catch (err) { msg("msgEsc", err.message, true); }
+  }
+});
+function pintarEscuela(f) {
+  for (const [id, k] of Object.entries(CAMPOS_ESC)) $(id).value = f[k] || "";
+  $("feAval").checked = !!f.aval_firmado;
+  $("feBuscar").value = "";
+}
+async function cargarEscuela() {
+  try { pintarEscuela((await api("api/escuelas?ficha=1")).ficha || {}); msg("msgEsc", ""); }
+  catch (e) { msg("msgEsc", e.message, true); }
+}
+$("feAval").onchange = () => { if ($("feAval").checked && !$("feAvalFecha").value) $("feAvalFecha").value = new Date().toISOString().slice(0, 10); };
+$("fEscuela").onsubmit = async ev => {
+  ev.preventDefault();
+  const body = { accion: "guardar_ficha", aval_firmado: $("feAval").checked };
+  for (const [id, k] of Object.entries(CAMPOS_ESC)) body[k] = $(id).value.trim();
+  msg("msgEsc", "Guardando…");
+  try {
+    const r = await api("api/escuelas", { method: "POST", body });
+    pintarEscuela(r.ficha); acEscuela.limpiar();
+    msg("msgEsc", "Ficha de la escuela guardada ✓" + (r.ficha.cue && !r.en_padron ? " (ese CUE no está en el padrón de Santa Fe: revisalo)" : ""));
+  } catch (e) { msg("msgEsc", e.message, true); }
+};
 
 $("salir").onclick = Puente.salir;
 </script>

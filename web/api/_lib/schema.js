@@ -102,7 +102,19 @@ const SCHEMA = [
     creado TIMESTAMPTZ NOT NULL DEFAULT now()
   )`,
   `CREATE INDEX IF NOT EXISTS chat_turnos_cuenta ON chat_turnos (usuario_tipo, usuario_id, alumno_id, id DESC)`,
-  `CREATE INDEX IF NOT EXISTS chat_turnos_creado ON chat_turnos (creado)`
+  `CREATE INDEX IF NOT EXISTS chat_turnos_creado ON chat_turnos (creado)`,
+  // Ficha de escuela (la editan las docentes admin de esa escuela). cue = CUE + anexo del Padrón Oficial (9 dígitos), si se eligió de ahí.
+  `ALTER TABLE escuelas ADD COLUMN IF NOT EXISTS cue TEXT`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS escuelas_cue ON escuelas (cue) WHERE cue IS NOT NULL`,
+  ...["domicilio", "localidad", "departamento", "modalidad", "email", "telefono", "directivo_nombre", "directivo_email",
+    "responsable_datos_nombre", "responsable_datos_email", "aval_por", "notas"]
+    .map(c => `ALTER TABLE escuelas ADD COLUMN IF NOT EXISTS ${c} TEXT NOT NULL DEFAULT ''`),
+  `ALTER TABLE escuelas ADD COLUMN IF NOT EXISTS aval_firmado BOOLEAN NOT NULL DEFAULT false`,
+  `ALTER TABLE escuelas ADD COLUMN IF NOT EXISTS aval_fecha DATE`,
+  `ALTER TABLE escuelas ADD COLUMN IF NOT EXISTS actualizado TIMESTAMPTZ`,
+  `ALTER TABLE escuelas ADD COLUMN IF NOT EXISTS actualizado_por TEXT`,
+  // La seño que pide acceso puede elegir su escuela del padrón: se guarda el CUE para aprobarla en la escuela correcta.
+  `ALTER TABLE solicitudes ADD COLUMN IF NOT EXISTS cue TEXT`
 ];
 
 module.exports = { SCHEMA };

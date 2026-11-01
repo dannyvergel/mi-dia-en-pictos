@@ -66,6 +66,14 @@ Con una base de datos conectada, Puente deja el PIN y los links y pasa a cuentas
 
 **Migración desde contraseñas**: las tablas se actualizan solas (`pass_hash` pasa a ser opcional y queda sin uso; `codigos` suma la columna `tipo`; se crean `solicitudes` y `chat_turnos`). Las docentes que ya existían entran igual, con su email y código. Las sesiones abiertas siguen valiendo. `login_docente` y `cambiar_password` responden 410.
 
+### 🏫 Ficha de escuela y Padrón Oficial
+- **Buscar la escuela**: en *Primera vez en Puente*, en *Solicitar acceso* y en la ficha de la escuela hay un buscador (desde 3 letras, 300 ms después de la última tecla, navegable con flechas/Enter/Escape) contra nuestra propia API `GET /api/escuelas?q=`. Encuentra por nombre, número (*"escuela 2085"*, *"2085"*), CUE o localidad, sin importar tildes ni mayúsculas; devuelve hasta 10 y pone primero el número exacto y las escuelas con **Educación Especial**. Si la escuela no aparece, se escribe el nombre a mano.
+- **Quién puede buscar**: docentes con sesión (120 búsquedas cada 10 min) y los dos formularios públicos del login, con un token firmado que entrega `GET /api/auth` a quien no tiene sesión (vence a las 2 h; 40 búsquedas cada 10 min y 300 por día por IP). Desde el formulario público solo se devuelve lo necesario para elegir (sin teléfono ni email).
+- **Ficha de escuela** (*Panel → Escuela*, solo docentes admin de esa escuela): CUE + anexo, nombre, domicilio, localidad, departamento, modalidad y niveles, contacto institucional (email, teléfono), directivo responsable (nombre, email), responsable del tratamiento de datos (nombre y cargo, email), aval firmado (sí/no, fecha, quién lo firmó) y notas. Elegir la escuela del padrón completa los datos institucionales. Un CUE solo puede estar en una escuela de Puente.
+- **Alta y solicitudes con CUE**: la primera docente que elige su escuela del padrón crea la escuela con esos datos. La seño que pide acceso y elige su escuela deja guardado el CUE; al aprobar, por defecto entra en la escuela de Puente con ese CUE, o se crea desde el padrón (y entonces queda como admin). La admin siempre puede elegir otra escuela.
+- **Datos**: `web/data/escuelas-santa-fe.json` (≈1,1 MB, 5044 establecimientos activos de Santa Fe, 154 con Educación Especial) se genera con `cd web && npm run padron` (baja el XLSX oficial; también acepta un archivo: `npm run padron -- padron.xlsx`). Solo datos institucionales públicos: CUE + anexo, nombre, número, domicilio, localidad, departamento, código postal, teléfono y email institucional, sector, ámbito y ofertas (común/especial/adultos/hospitalaria por nivel). El padrón no trae coordenadas. Se carga en la tabla `padron_escuelas` sola en la primera búsqueda (o con `npm run migrar`), por lotes e idempotente; si el archivo cambia de fecha se actualiza y se sacan las escuelas que ya no figuran. Usa `pg_trgm` si la base lo tiene (Neon sí); si no, busca igual con texto normalizado.
+- **Fuente y atribución**: [Padrón Oficial de Establecimientos Educativos](https://www.argentina.gob.ar/educacion/evaluacion-e-informacion-educativa/padron-oficial-de-establecimientos-educativos), Ministerio de Educación de la Nación (Dirección de Información Educativa), archivo actualizado el **07/09/2026**. También publicado en [datos.gob.ar](https://datos.gob.ar) bajo licencia CC BY 4.0. Para actualizar: cambiar `PADRON_URL` (o pasar la nueva URL) y correr `npm run padron`. No se usa Nominatim (su política no permite autocompletar).
+
 ### Puesta en marcha en Vercel
 1. **Base**: Vercel → Storage → *Create Database* → **Neon** (Marketplace) → conectarla al proyecto. Eso crea `DATABASE_URL` (o `POSTGRES_URL`; sirven las dos). Las tablas se crean solas en el primer pedido (`CREATE TABLE IF NOT EXISTS`); también se puede correr a mano: `cd web && DATABASE_URL=... npm run migrar`.
 2. **Variables** (Settings → Environment Variables):
@@ -95,12 +103,15 @@ npm run local      # http://localhost:3000 con base PGlite en memoria (DEMO=1 pa
 ```
 web/            PWA (HTML + JS puro): pestañas Docente, Alumno, Familia y Progreso
 web/api/        Funciones de Vercel: agente.js (Agente de Progreso), dia.js (registro diario), familia.js (espacio de familias),
-                auth.js (ingreso con código, alta inicial), solicitudes.js (pedidos de acceso), fichas.js (fichas de familia), docentes.js
+                auth.js (ingreso con código, alta inicial), solicitudes.js (pedidos de acceso), fichas.js (fichas de familia), docentes.js,
+                escuelas.js (búsqueda en el padrón y ficha de escuela)
 web/api/_lib/   db.js + schema.js (Postgres/Neon), identidad.js (cuentas y proveedores de ingreso), codigos.js (código por email),
-                seguridad.js (sesiones, límites), chat.js (chat de la familia: filtros, historial, límites), correo.js + avisos.js (Resend), almacen.js (Blob)
+                padron.js (padrón de escuelas en Postgres y búsqueda), seguridad.js (sesiones, límites), chat.js (chat de la familia: filtros, historial, límites), correo.js + avisos.js (Resend), almacen.js (Blob)
 web/familia.html Vista de la familia (con sesión, o con link en modo demo)
 web/login.html  Entrar con código por email (docente o familia) y *Solicitar acceso*
-web/docente.html Panel docente: alumnos, fichas, solicitudes (admin), docentes, mi cuenta
+web/docente.html Panel docente: alumnos, fichas, solicitudes (admin), escuela (admin), docentes, mi cuenta
+web/escuelas.js Buscador de escuelas accesible (combobox) que usan login.html y docente.html
+web/data/       escuelas-santa-fe.json: Padrón Oficial filtrado (lo genera web/scripts/padron.js)
 web/test/       Tests (node --test)
 web/seed.js     3 semanas de datos ficticios para la demo
 prompts/        Prompt de registro diario e informe mensual
@@ -138,4 +149,5 @@ cd web && python3 -m http.server 8080
 Datos de menores: solo nombre de pila, sin fotos ni diagnósticos, consentimiento de la familia registrado en la ficha. Con cuentas, cada API exige sesión y verifica que el alumno sea de la escuela de la docente o esté vinculado a la familia.
 
 ## Créditos
+Escuelas: Padrón Oficial de Establecimientos Educativos, Ministerio de Educación de la Nación (actualización 07/09/2026; CC BY 4.0 en datos.gob.ar).
 Pictogramas: Sergio Palao. Origen: [ARASAAC](https://arasaac.org). Licencia CC BY-NC-SA. Propiedad: Gobierno de Aragón (España).

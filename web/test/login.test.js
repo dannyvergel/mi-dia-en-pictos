@@ -18,7 +18,9 @@ const SETUP = { accion: "setup", escuela: "Escuela 2001", nombre: "Ana", email: 
 
 test("estado inicial: modo db, sin sesión, falta setup, métodos de ingreso", async () => {
   const r = await cliente().llamar(auth);
-  assert.deepEqual(r.body, { modo: "db", sesion: null, necesita_setup: true, metodos: { docente: ["codigo"], familia: ["codigo"] } });
+  const { formulario, ...resto } = r.body;
+  assert.deepEqual(resto, { modo: "db", sesion: null, necesita_setup: true, metodos: { docente: ["codigo"], familia: ["codigo"] } });
+  assert.match(formulario, /^\d+\.[\w-]+$/); // token para buscar escuelas desde los formularios públicos
 });
 
 test("setup: PIN incorrecto → 401; ADMIN_EMAIL obliga ese email", async () => {
