@@ -153,7 +153,40 @@ const SCHEMA = [
   )`,
   // Importación masiva: grado del alumno ("3° B", "Sala de 5") y grado/rol de la docente ("Maestra de 3° B", "Integradora").
   `ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS grado TEXT NOT NULL DEFAULT ''`,
-  `ALTER TABLE docentes ADD COLUMN IF NOT EXISTS rol TEXT NOT NULL DEFAULT ''`
+  `ALTER TABLE docentes ADD COLUMN IF NOT EXISTS rol TEXT NOT NULL DEFAULT ''`,
+  // ---------- Piloto: auditoría, bajas, retención, feedback ----------
+  // Registro de accesos y acciones sensibles. Sin datos personales: email solo como HMAC (email_hash), IP truncada
+  // (/24 en IPv4, /48 en IPv6), ids numéricos y un detalle chico sin nombres. Se borra a los AUDITORIA_RETENCION_DIAS.
+  `CREATE TABLE IF NOT EXISTS auditoria (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    evento TEXT NOT NULL,
+    actor_tipo TEXT,
+    actor_id BIGINT,
+    email_hash TEXT,
+    escuela_id BIGINT,
+    objeto_tipo TEXT,
+    objeto_id BIGINT,
+    ip TEXT,
+    detalle JSONB NOT NULL DEFAULT '{}',
+    creado TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS auditoria_creado ON auditoria (creado DESC)`,
+  `CREATE INDEX IF NOT EXISTS auditoria_escuela ON auditoria (escuela_id, creado DESC)`,
+  `CREATE INDEX IF NOT EXISTS auditoria_email ON auditoria (email_hash, evento, creado DESC)`,
+  // Última publicación para la familia (para medir inactividad de la ficha en la retención).
+  `ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS publicado TIMESTAMPTZ`,
+  // Comentarios de docentes y familias ("Enviar comentario"). Se borra a los FEEDBACK_RETENCION_DIAS.
+  `CREATE TABLE IF NOT EXISTS feedback (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    autor_tipo TEXT NOT NULL CHECK (autor_tipo IN ('docente', 'familia')),
+    autor_id BIGINT NOT NULL,
+    escuela_id BIGINT,
+    pagina TEXT NOT NULL DEFAULT '',
+    texto TEXT NOT NULL,
+    estado TEXT NOT NULL DEFAULT 'nuevo' CHECK (estado IN ('nuevo', 'leido')),
+    creado TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS feedback_creado ON feedback (creado DESC)`
 ];
 
 module.exports = { SCHEMA };

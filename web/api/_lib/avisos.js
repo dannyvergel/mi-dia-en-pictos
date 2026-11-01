@@ -81,4 +81,30 @@ async function invitacionFamilia(req, { email, alumno, docente, contacto }) {
   });
 }
 
-module.exports = { nuevaSolicitud, accesoAprobado, solicitudRechazada, invitacionFamilia, destinatariosAdmin, destinatariosPlataforma, destinatariosEscuela };
+// Alerta a la plataforma: muchos códigos incorrectos para una misma cuenta (posible intento de entrar a la fuerza).
+// No lleva el email completo (va enmascarado) ni datos del alumno.
+async function alertaFallos(req, { cuenta, tipo, intentos, minutos, ip }) {
+  const link = urlPublica(req) + "/docente.html#registro";
+  return intentar({
+    to: await destinatariosPlataforma(),
+    subject: `Puente: ${intentos} códigos incorrectos para una cuenta`,
+    text: `Hola!\n\nHubo ${intentos} intentos de código incorrectos en los últimos ${minutos} minutos para la cuenta ${cuenta} (${tipo}), desde la red ${ip}.\n`
+      + `Cada código vence a los 10 minutos y admite 5 intentos, así que no debería poder adivinarse, pero conviene mirarlo.\n\nRegistro de accesos: ${link}\n\n${PIE}`,
+    html: envolver(`<p>Hola!</p><p>Hubo <b>${escHtml(intentos)}</b> intentos de código incorrectos en los últimos ${escHtml(minutos)} minutos para la cuenta <b>${escHtml(cuenta)}</b> (${escHtml(tipo)}), desde la red ${escHtml(ip)}.</p>
+      <p>Cada código vence a los 10 minutos y admite 5 intentos, así que no debería poder adivinarse, pero conviene mirarlo.</p>
+      <p><a href="${escHtml(link)}">Ver el registro de accesos</a></p>`)
+  });
+}
+
+// Comentario nuevo (botón "Enviar comentario"). El texto va escapado; de quién, solo tipo y número de cuenta.
+async function nuevoFeedback(req, { autor_tipo, autor_id, pagina, texto }) {
+  return intentar({
+    to: await destinatariosPlataforma(),
+    subject: `Puente: comentario nuevo de ${autor_tipo === "familia" ? "una familia" : "una docente"}`,
+    text: `Hola!\n\nLlegó un comentario (${autor_tipo} #${autor_id}, página ${linea(pagina, 60) || "?"}):\n\n${linea(texto, 2000)}\n\n${PIE}`,
+    html: envolver(`<p>Hola!</p><p>Llegó un comentario (${escHtml(autor_tipo)} #${escHtml(autor_id)}, página ${escHtml(pagina || "?")}):</p>
+      <blockquote style="white-space:pre-wrap;border-left:3px solid #ccc;margin:0;padding-left:12px">${escHtml(texto)}</blockquote>`)
+  });
+}
+
+module.exports = { alertaFallos, nuevoFeedback, nuevaSolicitud, accesoAprobado, solicitudRechazada, invitacionFamilia, destinatariosAdmin, destinatariosPlataforma, destinatariosEscuela };

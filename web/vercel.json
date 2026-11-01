@@ -1,0 +1,3 @@
+{
+  "crons": [{ "path": "/api/auditoria?accion=limpieza", "schedule": "30 7 * * *" }]
+}
