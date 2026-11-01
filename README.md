@@ -31,6 +31,10 @@ Sin API key corre el mismo circuito con un plan fijo (modo demo), así la demo n
 
 **Activar IA:** en Vercel → Settings → Environment Variables → `OPENROUTER_API_KEY` (y opcional `OPENROUTER_MODEL`, por defecto `deepseek/deepseek-v4-flash`). Con eso también `/api/dia` estructura el día con IA.
 
+**IA sin retención** (`api/_lib/modelos.js`): toda llamada a OpenRouter (día, agente, chat) manda `provider: { data_collection: "deny", zdr: true }`: solo proveedores que no guardan ni entrenan con los datos y endpoints con *Zero Data Retention*. Modelos permitidos (todos con endpoints ZDR según `https://openrouter.ai/api/v1/endpoints/zdr`, revisado el 1/11/2026): `deepseek/deepseek-v4-flash`, `google/gemma-4-31b-it`, `nvidia/nemotron-3.5-lightning`. Las variantes gratuitas (`:free`) y `openrouter/free` **no** tienen endpoints ZDR y quedaron afuera. Si ningún proveedor cumple, OpenRouter da error y cada función cae a su modo sin IA. Recomendado además: en openrouter.ai → Settings → Privacy, activar ZDR y desactivar proveedores que entrenan (a nivel cuenta).
+
+**Minimización** (`api/_lib/minimizar.js`): a la IA va solo el nombre de pila y lo mínimo. Del perfil, solo comunicación, sensibilidades, qué lo calma y qué le gusta (nunca alimentación, otros apoyos ni observaciones); en el agente, la ficha de la base manda sobre lo que mande el navegador; en el chat, las alertas de salud/medicación se reemplazan por un aviso sin detalle; emails, teléfonos y números tipo DNI se tapan en el relato del día, la pregunta de la familia y lo que se guarda en el historial. Tests: `test/ia-privacidad.test.js`.
+
 ## 🌉 Espacio de la familia
 Cada alumno tiene un link privado (`familia.html?t=…`, token de 128 bits). La familia ve a demanda:
 - sus últimos días con ánimo y pictogramas (toca y escucha),
@@ -105,6 +109,17 @@ Plataforma (ADMIN_EMAIL y quien ella promueva)
 - **Datos**: `web/data/escuelas-santa-fe.json` (≈1,1 MB, 5044 establecimientos activos de Santa Fe, 154 con Educación Especial) se genera con `cd web && npm run padron` (baja el XLSX oficial; también acepta un archivo: `npm run padron -- padron.xlsx`). Solo datos institucionales públicos: CUE + anexo, nombre, número, domicilio, localidad, departamento, código postal, teléfono y email institucional, sector, ámbito y ofertas (común/especial/adultos/hospitalaria por nivel). El padrón no trae coordenadas. Se carga en la tabla `padron_escuelas` sola en la primera búsqueda (o con `npm run migrar`), por lotes e idempotente; si el archivo cambia de fecha se actualiza y se sacan las escuelas que ya no figuran. Usa `pg_trgm` si la base lo tiene (Neon sí); si no, busca igual con texto normalizado.
 - **Fuente y atribución**: [Padrón Oficial de Establecimientos Educativos](https://www.argentina.gob.ar/educacion/evaluacion-e-informacion-educativa/padron-oficial-de-establecimientos-educativos), Ministerio de Educación de la Nación (Dirección de Información Educativa), archivo actualizado el **07/09/2026**. También publicado en [datos.gob.ar](https://datos.gob.ar) bajo licencia CC BY 4.0. Para actualizar: cambiar `PADRON_URL` (o pasar la nueva URL) y correr `npm run padron`. No se usa Nominatim (su política no permite autocompletar).
 
+### 🛡️ Piloto: bajas, retención, auditoría, feedback y legales
+- **Baja de un alumno** (*Borrar alumno* en la ficha; admins de su escuela, la plataforma en cualquiera): en una transacción se borran ficha, asignaciones, invitaciones, historial de chat y vínculos; después, las cuentas de familia que no tengan otro alumno (con sus sesiones, códigos e invitaciones) y los días en Vercel Blob (se verifica con `head` que ya no estén; si falla, se avisa en pantalla y en los logs). Queda en la auditoría como `baja_alumno` con contadores, sin nombres.
+- **Baja de una familia**: la familia, desde su espacio (*Pedir la baja y borrar mis datos*, `accion=baja`), o una admin desde el contacto de la ficha (*dar de baja a esta familia*, `accion=baja_familia`, en los alumnos de su escuela). Se saca su contacto de las fichas, se retira su consentimiento, se borra su chat, vínculos, sesiones y códigos, y la cuenta si no le queda otro alumno. Si la docente saca un email de la ficha y esa familia queda sin alumnos, la cuenta también se borra.
+- **Derecho de acceso**: la familia descarga sus datos en JSON (*Descargar mis datos*, `GET /api/fichas?exportar=1`); la docente puede exportar una ficha (`?id=&exportar=1`). Las dos quedan en la auditoría.
+- **Retención** (`api/_lib/retencion.js`, todo configurable): chat 30 días, días publicados 365 (se filtran al leer y al publicar), auditoría y comentarios 365, fichas inactivas 730 (solo se cuentan para revisar, nunca se borran solas). Limpieza perezosa en pedidos normales y un **cron diario** (`web/vercel.json`, 07:30 UTC) que llama a `/api/auditoria?accion=limpieza` con `Authorization: Bearer CRON_SECRET`.
+- **Registro de accesos** (tabla `auditoria`): `login_ok`, `login_fallido`, `ficha_ver`, `fichas_listar`, `ficha_editar`, `exportacion`, `baja_alumno`, `baja_familia`, `feedback`, `alerta_fallos`. Email como HMAC (con `SESSION_SECRET`), IP truncada (/24 o /48), ids y contadores. Pestaña *Panel → Registro* (admins: su escuela; plataforma: todo). Con `AUDITORIA_ALERTA_FALLOS` (5) códigos incorrectos para una cuenta en 30 min, llega un mail a la plataforma con el email enmascarado (máx. 1 por hora por cuenta).
+- **Enviar comentario**: en el pie de las páginas con sesión (docentes y familias). Se guarda en `feedback` y avisa por mail a la plataforma (como mucho 1 mail cada 10 min por cuenta; 3 comentarios cada 10 min y 10 por día). La plataforma los ve en *Panel → Registro*.
+- **Legales y aviso**: `privacidad.html` y `terminos.html` (**borrador, pendiente de revisión legal**, con `[CONTACTO]` para completar). Pie común (`web/pie.js`) en todas las páginas: aviso **BETA**, links legales y crédito ARASAAC completo. El consentimiento de la familia linkea a la política y guarda la versión aceptada (`api/_lib/legal.js`: cambiar `VERSION_PRIVACIDAD` cada vez que cambie el texto).
+- **Donaciones** («Apoyá Puente»): dos botones de texto en el pie (no en el espacio de la familia, ni en el login cuando está en «Soy familia», ni en el chat; nunca como pedido a las familias): **Doná desde Argentina** (`DONACIONES_AR_URL`) y **Donate from abroad** (`DONACIONES_INTL_URL`, con la línea en inglés al lado), con la línea *"Puente es gratuito y sin fines de lucro. Las donaciones cubren servidores e IA."*. Los links salen de `GET /api/config` (solo `https://`); cada botón aparece solo si su variable tiene valor, y si están las dos vacías no se muestra nada. El repo además tiene `.github/FUNDING.yml` (GitHub Sponsors).
+- **Funciones**: con `auditoria.js`, `config.js` y `feedback.js` el proyecto tiene 11 funciones (`web/api/*.js`); el plan Hobby de Vercel admite hasta 12.
+
 ### Puesta en marcha en Vercel
 1. **Base**: Vercel → Storage → *Create Database* → **Neon** (Marketplace) → conectarla al proyecto. Eso crea `DATABASE_URL` (o `POSTGRES_URL`; sirven las dos). Las tablas se crean solas en el primer pedido (`CREATE TABLE IF NOT EXISTS`); también se puede correr a mano: `cd web && DATABASE_URL=... npm run migrar`.
 2. **Variables** (Settings → Environment Variables):
@@ -117,9 +132,25 @@ Plataforma (ADMIN_EMAIL y quien ella promueva)
 | `ADMIN_EMAIL` | Cuenta de la **plataforma** (superadmin). Si está, la primera cuenta solo se puede crear con ese email. Recibe los avisos de solicitudes de escuelas nuevas y de directoras | Recomendada |
 | `RESEND_API_KEY` | Envía los códigos de ingreso (docentes y familias), los avisos de solicitudes y las invitaciones a familias ([resend.com](https://resend.com)) | Sí en producción |
 | `RESEND_FROM` | Remitente, ej. `Puente <hola@tudominio.com>` (dominio verificado en Resend) | Recomendada (por defecto `onboarding@resend.dev`, que solo manda a tu propio email) |
-| `PUENTE_URL` | Base de los links en los mails, ej. `https://puente-pictos.vercel.app`. Si falta se usa el dominio de producción de Vercel (o la URL de la rama en *preview*) | Opcional |
+| `PUENTE_URL` | Base de los links en los mails, ej. `https://puente-pictos.vercel.app` (con dominio propio: `https://puentepictos.org`). También es el Referer que se manda a OpenRouter. Si falta se usa el dominio de producción de Vercel (o la URL de la rama en *preview*) | Opcional |
+| `CRON_SECRET` | Protege la limpieza diaria (`/api/auditoria?accion=limpieza`, la llama el cron de `vercel.json`). 16+ caracteres al azar (`openssl rand -base64 32`). Sin esto el cron responde 401 y solo queda la limpieza perezosa | Recomendada |
+| `CHAT_RETENCION_DIAS` | Días que se guarda el historial del chat de la familia | Opcional (30) |
+| `DIAS_PUBLICADOS_RETENCION` | Días publicados que ve la familia (los más viejos se ocultan y se sacan al volver a publicar) | Opcional (365) |
+| `FICHAS_RETENCION_DIAS` | Días sin cambios ni publicaciones para contar una ficha como inactiva (solo se informa en la limpieza, no se borra) | Opcional (730) |
+| `AUDITORIA_RETENCION_DIAS` | Días que se guarda el registro de accesos | Opcional (365) |
+| `FEEDBACK_RETENCION_DIAS` | Días que se guardan los comentarios | Opcional (365) |
+| `AUDITORIA_ALERTA_FALLOS` | Códigos incorrectos en 30 min para una cuenta que disparan el mail de alerta a la plataforma | Opcional (5) |
+| `DONACIONES_AR_URL` | Link del botón «Doná desde Argentina» (ej. Cafecito). Vacía = no se muestra | Opcional |
+| `DONACIONES_INTL_URL` | Link del botón «Donate from abroad» (ej. GitHub Sponsors). Vacía = no se muestra | Opcional |
 
    Sin `RESEND_API_KEY`: en local el código aparece en pantalla; en *preview* solo en los logs de Vercel; en producción se muestra un error claro. Los avisos (solicitudes, acceso aprobado) sin Resend van a los logs y no frenan nada.
+   **Dominio propio** (cuando esté comprado; ej. `puentepictos.org`). Cambian dos variables y se redeploya:
+   - `PUENTE_URL` = `https://puentepictos.org` (links de los mails y Referer de OpenRouter).
+   - `RESEND_FROM` = `Puente <hola@puentepictos.org>` (solo cuando el dominio esté **verificado** en Resend; antes, los mails fallan).
+   - *Vercel*: proyecto `mi-dia-en-pictos` → Settings → Domains → *Add* `puentepictos.org` (y `www.puentepictos.org`, con redirección a uno de los dos). Cargar en el DNS del registrador los registros que muestra Vercel (normalmente un `A` para el dominio raíz y un `CNAME` para `www`, o delegar los nameservers a Vercel). Esperar *Valid Configuration*; el certificado HTTPS es automático. `puente-pictos.vercel.app` sigue andando.
+   - *Resend*: Domains → *Add Domain* → `puentepictos.org` (o un subdominio como `mail.puentepictos.org`) → región. Cargar en el DNS los registros que muestra: `MX` y `TXT` (SPF) del subdominio de envío y `TXT` de DKIM (`resend._domainkey`); recomendable un `TXT` de DMARC en `_dmarc` (ej. `v=DMARC1; p=none;`). Tocar *Verify* y esperar *Verified*. Recién ahí cambiar `RESEND_FROM`.
+   - Después: actualizar a mano las etiquetas Open Graph de `index.html` y `presentacion.html` (y el texto/QR de la última diapositiva) que hoy dicen `puente-pictos.vercel.app`, y mandarse un código de prueba.
+
 3. **Primera cuenta (plataforma)**: abrir `/login.html`, completar *Primera vez en Puente* con el `DOCENTE_PIN` (y el email de `ADMIN_EMAIL` si está). Se crea la cuenta admin de su escuela y de la plataforma, **sin contraseña**, y en el momento le llega un código a ese email para entrar. Después aprueba a las directoras en *Panel → Solicitudes*, y cada directora suma a sus docentes.
 4. Cargar alumnos y fichas en `/docente.html`, con los emails de las familias. El *Cuaderno del día* (`/`) publica solo al espacio de la familia.
 
@@ -136,9 +167,14 @@ web/            PWA (HTML + JS puro): pestañas Docente, Alumno, Familia y Progr
 web/api/        Funciones de Vercel: agente.js (Agente de Progreso), dia.js (registro diario), familia.js (espacio de familias),
                 auth.js (ingreso con código, alta inicial), solicitudes.js (pedidos de acceso), fichas.js (fichas de familia), docentes.js,
                 escuelas.js (búsqueda en el padrón y ficha de escuela)
+web/api/        (piloto) auditoria.js (registro de accesos + limpieza por cron), feedback.js (Enviar comentario), config.js (config pública: donaciones, versión legal)
+web/api/_lib/   minimizar.js (qué va a la IA), bajas.js (baja y borrado), retencion.js (plazos y limpieza), auditoria.js, legal.js (versión de los textos legales)
 web/api/_lib/   db.js + schema.js (Postgres/Neon), identidad.js (cuentas y proveedores de ingreso), codigos.js (código por email),
                 padron.js (padrón de escuelas en Postgres y búsqueda), alumnos.js (qué alumnos ve cada docente, asignaciones),
                 invitaciones.js (invitación a familias, 1 cada 24 h), importacion.js (importación masiva CSV/XLSX), seguridad.js (sesiones, límites), chat.js (chat de la familia: filtros, historial, límites), correo.js + avisos.js (Resend), almacen.js (Blob)
+web/pie.js      Pie común: BETA, privacidad/términos, crédito ARASAAC, Enviar comentario y donaciones
+web/privacidad.html, web/terminos.html  Textos legales (BORRADOR pendiente de revisión legal)
+web/vercel.json Cron diario de limpieza
 web/familia.html Vista de la familia (con sesión, o con link en modo demo)
 web/login.html  Entrar con código por email (docente o familia) y *Solicitar acceso*
 web/docente.html Panel docente: alumnos (con docentes a cargo e invitaciones), fichas, solicitudes (admin/plataforma), escuela (admin),
@@ -181,8 +217,8 @@ cd web && python3 -m http.server 8080
 - Reasignar una docente a otra escuela desde la plataforma (hoy: desactivar y volver a aprobar).
 
 ## Privacidad
-Datos de menores: solo nombre de pila, sin fotos ni diagnósticos, consentimiento de la familia registrado en la ficha. Con cuentas, cada API exige sesión y verifica que el alumno sea de la escuela de la admin, esté asignado a la docente o esté vinculado a la familia.
+Datos de menores: solo nombre de pila, sin fotos ni diagnósticos, consentimiento de la familia registrado en la ficha (con la versión de la política aceptada). Con cuentas, cada API exige sesión y verifica que el alumno sea de la escuela de la admin, esté asignado a la docente o esté vinculado a la familia. IA sin retención y con datos mínimos, baja y borrado completos, retención con plazos, registro de accesos: ver *Piloto* arriba y `privacidad.html`.
 
 ## Créditos
 Escuelas: Padrón Oficial de Establecimientos Educativos, Ministerio de Educación de la Nación (actualización 07/09/2026; CC BY 4.0 en datos.gob.ar).
-Pictogramas: Sergio Palao. Origen: [ARASAAC](https://arasaac.org). Licencia CC BY-NC-SA. Propiedad: Gobierno de Aragón (España).
+Autor pictogramas: Sergio Palao. Origen: ARASAAC (http://www.arasaac.org). Licencia: CC BY-NC-SA. Propiedad: Gobierno de Aragón (España).
