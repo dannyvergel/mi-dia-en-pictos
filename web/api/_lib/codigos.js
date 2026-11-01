@@ -7,6 +7,7 @@ const S = require("./seguridad");
 const { mandarCodigo } = require("./correo");
 const { errorPublico } = require("./http");
 const { TIPOS, cuentaPara, entrar } = require("./identidad");
+const auditoria = require("./auditoria");
 
 const VENTANA = 15;
 const MAX_CODIGOS_EMAIL = 3, MAX_CODIGOS_IP = 10, MAX_VERIF_IP = 30, MAX_INTENTOS_CODIGO = 5, VIGENCIA_MIN = 10;
@@ -48,15 +49,21 @@ async function verificar(req, res, tipoPedido, emailPedido, codigoPedido) {
   if (await S.superaLimite(kI, MAX_VERIF_IP, VENTANA)) throw errorPublico("Demasiados intentos. Esperá 15 minutos.", 429);
   await S.registrarIntento(kI);
   const malo = errorPublico("El código no es correcto o ya venció. Pedí uno nuevo si hace falta.", 401);
-  if (!S.emailValido(email) || codigo.length !== 6) throw malo;
+  if (!S.emailValido(email)) throw malo;
+  // Auditoría: cada fallo queda registrado (email hasheado) y, si se repite, avisa a la plataforma.
+  const fallo = async () => { await auditoria.loginFallido(req, tipo, email); return malo; };
+  if (codigo.length !== 6) throw await fallo();
   // Suma el intento antes de comparar: así nunca pasa de 5 aunque lleguen pedidos en paralelo.
   const c = await uno(`UPDATE codigos SET intentos = intentos + 1
     WHERE id = (SELECT id FROM codigos WHERE email = $1 AND tipo = $2 AND NOT usado AND expira > now() ORDER BY creado DESC LIMIT 1)
       AND intentos < $3 RETURNING id, codigo_hash`, [email, tipo, MAX_INTENTOS_CODIGO]);
-  if (!c || !S.igualSeguro(c.codigo_hash, hashCodigo(tipo, email, codigo))) throw malo;
+  if (!c || !S.igualSeguro(c.codigo_hash, hashCodigo(tipo, email, codigo))) throw await fallo();
   await q("UPDATE codigos SET usado = true WHERE id = $1", [c.id]);
   const sesion = await entrar(res, tipo, email, "codigo");
-  if (!sesion) throw malo; // la cuenta se desactivó o se desvinculó mientras tanto
+  if (!sesion) throw await fallo(); // la cuenta se desactivó o se desvinculó mientras tanto
+  const cuenta = await cuentaPara(tipo, email);
+  await auditoria.registrar(req, { evento: "login_ok", actor_tipo: tipo, actor_id: cuenta?.id, email,
+    escuela_id: tipo === "docente" ? (await uno("SELECT escuela_id FROM docentes WHERE id = $1", [cuenta?.id || 0]))?.escuela_id : null, detalle: { metodo: "codigo" } });
   return sesion;
 }
 

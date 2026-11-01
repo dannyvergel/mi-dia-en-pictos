@@ -4,8 +4,11 @@ const { crearHerramientas } = require("./_lib/tools");
 const { exigirDocente } = require("./_lib/auth");
 const { exigirVisiblePorNombre } = require("./_lib/alumnos");
 const { manejarError, hoyLocal } = require("./_lib/http");
+const { uno } = require("./_lib/db");
+const { objetivosAPpi, apoyosAPerfil } = require("./_lib/fichas");
+const { perfilParaIA, ppiParaIA, limpiarTexto } = require("./_lib/minimizar");
 
-const { PRINCIPAL: MODEL, cuerpo } = require("./_lib/modelos");
+const { PRINCIPAL: MODEL, cuerpo, cabeceras } = require("./_lib/modelos");
 const MAX_PASOS = 8;
 
 const SISTEMA = `Sos el Agente de Progreso de "Puente", para docentes de educación especial en Argentina.
@@ -35,7 +38,7 @@ const resumir = (r) => { const s = JSON.stringify(r); return s.length > 220 ? s.
 async function llm(messages, tools) {
   const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
-    headers: { Authorization: "Bearer " + process.env.OPENROUTER_API_KEY, "Content-Type": "application/json", "HTTP-Referer": "https://puente-pictos.vercel.app", "X-Title": "Puente" },
+    headers: cabeceras(),
     signal: AbortSignal.timeout(28000),
     body: JSON.stringify(cuerpo("agente", { temperature: 0.2, messages, ...(tools ? { tools, tool_choice: "auto" } : { response_format: { type: "json_object" } }) }))
   });
@@ -117,15 +120,22 @@ module.exports = async (req, res) => {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-Docente-Pin");
   if (req.method === "OPTIONS") return res.status(204).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Usá POST" });
-  let body;
+  let body, ficha = null;
   try {
     const yo = await exigirDocente(req, res);
     if (!yo) return;
     body = typeof req.body === "string" ? JSON.parse(req.body) : (req.body || {});
     // Con cuentas: solo alumnos que la docente puede ver (admin: su escuela; si no, sus asignados).
-    if (body.alumno) await exigirVisiblePorNombre(yo, body.alumno);
+    const a = body.alumno ? await exigirVisiblePorNombre(yo, body.alumno) : null;
+    // Con cuentas, la ficha manda (objetivos y apoyos salen de la base, no del navegador).
+    if (a) ficha = await uno("SELECT apoyos, objetivos FROM fichas WHERE alumno_id = $1", [a.id]);
   } catch (e) { return manejarError(res, e); }
-  const ctx = { alumno: body.alumno, registros: body.registros || [], ppi: body.ppi || [], perfil: body.perfil || {}, hoy: hoyLocal() };
+  // Minimización: a la IA (y a las herramientas que lee) solo llega el perfil funcional sin salud ni contactos,
+  // los objetivos del PPI y los registros del alumno (que las herramientas resumen sin alertas ni notas del legajo).
+  const ppi = ficha?.objetivos?.length ? objetivosAPpi(ficha.objetivos) : (body.ppi || []);
+  const perfil = ficha?.apoyos ? apoyosAPerfil(ficha.apoyos) : (body.perfil || {});
+  const ctx = { alumno: limpiarTexto(String(body.alumno || "").slice(0, 40)), registros: Array.isArray(body.registros) ? body.registros : [],
+    ppi: ppiParaIA(ppi), perfil: perfilParaIA(perfil), hoy: hoyLocal() };
   if (!ctx.alumno || !ctx.registros.length) return res.status(400).json({ error: "Faltan alumno o registros" });
 
   const t0 = Date.now();

@@ -177,8 +177,11 @@ test("espacio de familia con sesión: link con token ya no sirve; ve lo que publ
 test("si la docente saca el email de la ficha, la familia pierde el acceso", async () => {
   const fam = await entrarComoFamilia("laura@mail.com");
   await post(ana, fichas, { accion: "guardar", id: juanId, contactos: [{ nombre: "Abuela Marta", vinculo: "abuela" }], apoyos: {}, objetivos: [] });
-  assert.deepEqual((await fam.llamar(fichas)).body.alumnos, []);
-  assert.equal((await fam.llamar(familia, { query: { alumno: String(juanId) } })).status, 404);
+  // Sin otro alumno, la cuenta de familia se borra (con sus sesiones): ya no ve nada.
+  const r = await fam.llamar(fichas);
+  assert.equal(r.body.alumnos, undefined); assert.equal(r.status, 401);
+  assert.equal((await fam.llamar(familia, { query: { alumno: String(juanId) } })).status, 401);
+  assert.equal((await pg.query("SELECT count(*)::int AS n FROM familias WHERE email = 'laura@mail.com'")).rows[0].n, 0);
 });
 
 test("borrar un alumno borra su ficha y sus días publicados", async () => {

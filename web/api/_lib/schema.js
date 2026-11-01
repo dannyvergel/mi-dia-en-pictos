@@ -153,7 +153,65 @@ const SCHEMA = [
   )`,
   // Importación masiva: grado del alumno ("3° B", "Sala de 5") y grado/rol de la docente ("Maestra de 3° B", "Integradora").
   `ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS grado TEXT NOT NULL DEFAULT ''`,
-  `ALTER TABLE docentes ADD COLUMN IF NOT EXISTS rol TEXT NOT NULL DEFAULT ''`
+  `ALTER TABLE docentes ADD COLUMN IF NOT EXISTS rol TEXT NOT NULL DEFAULT ''`,
+  // ---------- Piloto: auditoría, bajas, retención, feedback ----------
+  // Registro de accesos y acciones sensibles. Sin datos personales: email solo como HMAC (email_hash), IP truncada
+  // (/24 en IPv4, /48 en IPv6), ids numéricos y un detalle chico sin nombres. Se borra a los AUDITORIA_RETENCION_DIAS.
+  `CREATE TABLE IF NOT EXISTS auditoria (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    evento TEXT NOT NULL,
+    actor_tipo TEXT,
+    actor_id BIGINT,
+    email_hash TEXT,
+    escuela_id BIGINT,
+    objeto_tipo TEXT,
+    objeto_id BIGINT,
+    ip TEXT,
+    detalle JSONB NOT NULL DEFAULT '{}',
+    creado TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS auditoria_creado ON auditoria (creado DESC)`,
+  `CREATE INDEX IF NOT EXISTS auditoria_escuela ON auditoria (escuela_id, creado DESC)`,
+  `CREATE INDEX IF NOT EXISTS auditoria_email ON auditoria (email_hash, evento, creado DESC)`,
+  // Última publicación para la familia (para medir inactividad de la ficha en la retención).
+  `ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS publicado TIMESTAMPTZ`,
+  // Comentarios de docentes y familias ("Enviar comentario"). Se borra a los FEEDBACK_RETENCION_DIAS.
+  `CREATE TABLE IF NOT EXISTS feedback (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    autor_tipo TEXT NOT NULL CHECK (autor_tipo IN ('docente', 'familia')),
+    autor_id BIGINT NOT NULL,
+    escuela_id BIGINT,
+    pagina TEXT NOT NULL DEFAULT '',
+    texto TEXT NOT NULL,
+    estado TEXT NOT NULL DEFAULT 'nuevo' CHECK (estado IN ('nuevo', 'leido')),
+    creado TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS feedback_creado ON feedback (creado DESC)`,
+  // ---------- Piloto cerrado: links de invitación ----------
+  // Solo se guarda el hash (SHA-256) del token: el link completo se ve una sola vez, al crearlo.
+  // tipo 'docente' (para una seño o directiva de escuela_id) o 'familia' (ligado a alumno_id). Por defecto 1 uso y 7 días.
+  `CREATE TABLE IF NOT EXISTS enlaces (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    token_hash TEXT NOT NULL UNIQUE,
+    tipo TEXT NOT NULL CHECK (tipo IN ('docente', 'familia')),
+    escuela_id BIGINT NOT NULL REFERENCES escuelas(id) ON DELETE CASCADE,
+    alumno_id BIGINT REFERENCES alumnos(id) ON DELETE CASCADE,
+    es_admin BOOLEAN NOT NULL DEFAULT false,
+    etiqueta TEXT NOT NULL DEFAULT '',
+    vinculo TEXT NOT NULL DEFAULT '',
+    usos_max INT NOT NULL DEFAULT 1,
+    usos INT NOT NULL DEFAULT 0,
+    expira TIMESTAMPTZ NOT NULL,
+    creado TIMESTAMPTZ NOT NULL DEFAULT now(),
+    creado_por BIGINT REFERENCES docentes(id) ON DELETE SET NULL,
+    usado TIMESTAMPTZ,
+    usado_por_tipo TEXT,
+    usado_por BIGINT,
+    revocado TIMESTAMPTZ,
+    revocado_por BIGINT
+  )`,
+  `CREATE INDEX IF NOT EXISTS enlaces_escuela ON enlaces (escuela_id, creado DESC)`,
+  `CREATE INDEX IF NOT EXISTS enlaces_alumno ON enlaces (alumno_id) WHERE alumno_id IS NOT NULL`
 ];
 
 module.exports = { SCHEMA };

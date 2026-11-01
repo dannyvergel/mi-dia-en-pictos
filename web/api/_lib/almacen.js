@@ -14,9 +14,16 @@ async function guardarFamilia(token, datos) {
   const { put } = require("@vercel/blob");
   await put(ruta(token), JSON.stringify(datos), { access: "private", allowOverwrite: true, addRandomSuffix: false, contentType: "application/json" });
 }
+// Borra los días publicados de un alumno y verifica que ya no estén. Devuelve true si quedó borrado (o no existía).
 async function borrarFamilia(token) {
-  if (prueba) return void prueba.delete(token);
-  try { const { del } = require("@vercel/blob"); await del(ruta(token)); } catch (e) { console.error("No se pudo borrar el blob", e.message); }
+  if (!token) return true;
+  if (prueba) { prueba.delete(token); return !prueba.has(token); }
+  try {
+    const { del, head } = require("@vercel/blob");
+    await del(ruta(token));
+    try { await head(ruta(token)); return false; } // sigue estando
+    catch (e) { if (/not.?found/i.test(e?.name || "") || /not.?found|does not exist/i.test(e?.message || "")) return true; throw e; }
+  } catch (e) { console.error("[puente] no se pudo borrar el blob:", e.message); return false; }
 }
 function usarAlmacenDePrueba(on = true) { prueba = on ? new Map() : null; return prueba; }
 

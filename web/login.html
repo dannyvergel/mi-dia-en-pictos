@@ -33,6 +33,29 @@
 <main class="login"><div class="pagina">
   <p class="vacio" id="cargando">Cargando…</p>
 
+  <!-- INVITACIÓN (piloto cerrado): login.html#invitacion=… -->
+  <section id="invitacion">
+    <div class="card cinta">
+      <span class="rotulo" id="iTitulo">Te invitaron a Puente</span>
+      <p id="iDesc" class="muted"></p>
+      <form id="iPedir" hidden>
+        <label for="iNombre" id="iNombreLbl">Tu nombre y apellido</label><input id="iNombre" maxlength="80" autocomplete="name">
+        <label for="iEmail">Tu email</label><input id="iEmail" type="email" autocomplete="email" required>
+        <p class="muted">Te mandamos un código de 6 números a ese email para confirmar que es tuyo. Sin contraseña.</p>
+        <button class="big">Mandame el código</button>
+      </form>
+      <form id="iCodigo" hidden>
+        <p id="iAviso" class="muted"></p>
+        <label for="iCod">Código</label>
+        <input id="iCod" class="codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="\d{6}" required>
+        <button class="big">Entrar</button>
+        <button type="button" class="big alt chico" id="iOtro">Usar otro email</button>
+      </form>
+      <p class="muted" id="iMsg"></p>
+      <p class="muted"><a href="login.html" style="color:var(--tinta)">¿Ya tenés cuenta? Entrá acá</a></p>
+    </div>
+  </section>
+
   <!-- DOCENTE -->
   <section id="docente">
     <div class="card cinta" id="loginDocente">
@@ -117,7 +140,8 @@
     </div>
   </section>
 </div></main>
-<footer>Datos de menores protegidos: solo nombre de pila, sin fotos ni diagnósticos.<br>Pictogramas: Sergio Palao. Origen: <a href="https://arasaac.org">ARASAAC</a>. Licencia CC BY-NC-SA. Propiedad: Gobierno de Aragón.</footer>
+<footer>Datos de menores protegidos: solo nombre de pila, sin fotos ni diagnósticos.<div id="puente-pie"></div></footer>
+<script src="pie.js" defer></script>
 <script src="cuenta.js"></script>
 <script src="escuelas.js"></script>
 <script>
@@ -131,6 +155,8 @@ const acSolicitud = Puente.autocompletarEscuela($("soEscuela"), { formulario: ()
 function mostrar(s) {
   document.querySelectorAll("section").forEach(x => x.classList.toggle("on", x.id === s));
   document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.s === s));
+  // Las donaciones nunca se muestran del lado de las familias.
+  document.body.classList.toggle("modo-familia", s === "familia");
 }
 document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => mostrar(b.dataset.s));
 const msg = (id, texto, error = true) => { $(id).textContent = texto; $(id).className = error ? "error" : "muted"; };
@@ -143,9 +169,14 @@ function ocupado(form, si) { form.querySelectorAll("button").forEach(b => b.disa
   $("cargando").remove();
   FORMULARIO = e.formulario || null;
   if (e.modo === "demo") { $("tabs").hidden = true; return mostrar("demo"); }
+  // Link de invitación: el token va en el fragmento (no llega al servidor por la URL) y se saca de la barra enseguida.
+  const inv = location.hash.match(/^#invitacion=([\w-]{20,100})$/);
+  if (inv) { history.replaceState(null, "", location.pathname); return invitacion(inv[1]); }
   if (e.sesion) return ir(e.sesion);
+  // Piloto cerrado: sin "Solicitar acceso" (el servidor también lo bloquea).
+  if (e.solo_invitacion) $("dPie").textContent = "¿Todavía no tenés cuenta? Puente está en un piloto cerrado: se entra con un link de invitación. Pedíselo a la dirección de tu escuela.";
   if (e.necesita_setup) { $("loginDocente").hidden = true; $("setup").hidden = false; }
-  if (location.hash === "#solicitar" && !e.necesita_setup) $("abrirSolicitud").click();
+  if (location.hash === "#solicitar" && !e.necesita_setup && !e.solo_invitacion) $("abrirSolicitud").click();
   mostrar(location.search.includes("familia") ? "familia" : "docente");
   // Link de la invitación por mail: login.html?familia&email=… deja el email escrito.
   const emailLink = new URLSearchParams(location.search).get("email");
@@ -181,6 +212,42 @@ function flujoCodigo(p, tipo) {
 }
 const pedirDocente = flujoCodigo("d", "docente");
 flujoCodigo("f", "familia");
+
+// Entrar con un link de invitación: nombre + email → código → cuenta creada y aprobada (docente) o vinculada al alumno (familia).
+async function invitacion(token) {
+  $("tabs").hidden = true; mostrar("invitacion");
+  let info;
+  try { info = await api("api/auth", { method: "POST", body: { accion: "invitacion_info", token } }); }
+  catch (e) { $("iTitulo").textContent = "Link de invitación"; return msg("iMsg", e.message); }
+  const familia = info.tipo === "familia";
+  document.body.classList.toggle("modo-familia", familia);
+  $("iDesc").textContent = familia
+    ? `${info.escuela} te invita a seguir el día de ${info.alumno} en la escuela, con pictogramas. Después de entrar vas a ver el consentimiento para leerlo y aceptarlo.`
+    : `Te invitaron a entrar como ${info.es_admin ? "directivo/a (admin)" : "docente"} de ${info.escuela}.`;
+  if (info.completo) return msg("iMsg", info.mensaje);
+  $("iNombreLbl").innerHTML = familia ? 'Tu nombre <span class="opc">(opcional)</span>' : "Tu nombre y apellido";
+  $("iNombre").required = !familia; $("iNombre").value = info.nombre || "";
+  $("iPedir").hidden = false; (info.nombre ? $("iEmail") : $("iNombre")).focus();
+  $("iPedir").onsubmit = async ev => {
+    ev.preventDefault(); ocupado(ev.target, true); msg("iMsg", "", false);
+    try {
+      const r = await api("api/auth", { method: "POST", body: { accion: "invitacion_pedir_codigo", token, email: $("iEmail").value } });
+      $("iPedir").hidden = true; $("iCodigo").hidden = false;
+      $("iAviso").textContent = r.mensaje + (r.codigo_dev ? ` (Prueba local: el código es ${r.codigo_dev})` : "");
+      $("iCod").value = ""; $("iCod").focus();
+    } catch (e) { msg("iMsg", e.message); }
+    finally { ocupado(ev.target, false); }
+  };
+  $("iCodigo").onsubmit = async ev => {
+    ev.preventDefault(); ocupado(ev.target, true);
+    try {
+      const r = await api("api/auth", { method: "POST", body: { accion: "invitacion_verificar", token, email: $("iEmail").value, codigo: $("iCod").value, nombre: $("iNombre").value } });
+      location.href = r.sesion.tipo === "docente" ? "docente.html" : "familia.html";
+    } catch (e) { msg("iMsg", e.message); $("iCod").value = ""; }
+    finally { ocupado(ev.target, false); }
+  };
+  $("iOtro").onclick = () => { $("iCodigo").hidden = true; $("iPedir").hidden = false; msg("iMsg", "", false); };
+}
 
 // Primera docente: PIN + email. No abre sesión: después entra con el código que le llega.
 $("fSetup").onsubmit = async ev => {

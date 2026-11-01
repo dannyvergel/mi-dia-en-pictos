@@ -19,7 +19,7 @@ const SETUP = { accion: "setup", escuela: "Escuela 2001", nombre: "Ana", email: 
 test("estado inicial: modo db, sin sesión, falta setup, métodos de ingreso", async () => {
   const r = await cliente().llamar(auth);
   const { formulario, ...resto } = r.body;
-  assert.deepEqual(resto, { modo: "db", sesion: null, necesita_setup: true, metodos: { docente: ["codigo"], familia: ["codigo"] } });
+  assert.deepEqual(resto, { modo: "db", sesion: null, necesita_setup: true, metodos: { docente: ["codigo"], familia: ["codigo"] }, solo_invitacion: false });
   assert.match(formulario, /^\d+\.[\w-]+$/); // token para buscar escuelas desde los formularios públicos
 });
 

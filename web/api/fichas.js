@@ -8,20 +8,34 @@
 //                                        por email + alumno). Si el mail falla, la ficha se guarda igual.
 //   POST accion=invitar { id, email }  → reenviar invitación (429 si se mandó hace menos de 24 h)
 //   POST accion=asignar | desasignar { id, docente_id }   (asignar: admins y docentes asignadas; quitar a otra: solo admins)
-//   POST accion=borrar  { id }
+//   POST accion=borrar  { id }          Baja del alumno: borra ficha, asignaciones, invitaciones, chat, vínculos, familias sin otro
+//                                        alumno y los días en Blob (solo admins de escuela; la plataforma, de cualquier escuela)
+//   POST accion=baja_familia { id, email }  Baja de una familia en los alumnos de mi escuela (admins; plataforma: en todos)
+//   GET ?id=&exportar=1                  Exportar la ficha del alumno (JSON). Queda en la auditoría.
+//   POST accion=link_familia { id, nombre?, vinculo?, dias? }  → link de invitación (un solo uso, 7 días) ligado a este alumno,
+//                                        para mandar por WhatsApp. Devuelve la URL una sola vez. Respeta el tope de cupos.
+//   POST accion=link_revocar { id, link_id }   → anula un link pendiente de la familia de este alumno
+//   Piloto: sumar emails nuevos de familia (crear/guardar) respeta el tope de cupos (409 "El piloto está completo").
 //   POST accion=importar_previa | importar_confirmar | importar_enviar   (solo admins de escuela / plataforma)
 //                                        Importación masiva de docentes y alumnos con familias: ver _lib/importacion.js
 // Familia: ve solo los alumnos vinculados a su email (los emails de "contactos" de la ficha), de escuelas activas.
 //   GET                                → sus alumnos con la ficha (solo lectura)
 //   POST accion=consentir   { id, dado }
 //   POST accion=mi_contacto { id, nombre, telefono }   (solo su propio contacto)
+//   POST accion=baja                   La familia pide la baja: se borran sus datos y se cierra la sesión
+//   GET ?exportar=1                    Exportar mis datos (derecho de acceso). Queda en la auditoría.
 const { dbActiva, q, uno } = require("./_lib/db");
 const { exigirSesion } = require("./_lib/auth");
 const F = require("./_lib/fichas");
-const { borrarFamilia } = require("./_lib/almacen");
+const bajas = require("./_lib/bajas");
+const auditoria = require("./_lib/auditoria");
+const legal = require("./_lib/legal");
+const S = require("./_lib/seguridad");
 const A = require("./_lib/alumnos");
 const inv = require("./_lib/invitaciones");
 const importacion = require("./_lib/importacion");
+const enlaces = require("./_lib/enlaces");
+const piloto = require("./_lib/piloto");
 const { cuerpo, consulta, exigirJson, manejarError, errorPublico, hoyLocal } = require("./_lib/http");
 
 const SELECT = `SELECT a.id, a.nombre, a.grado, a.blob_token IS NOT NULL AS publicado, f.contactos, f.apoyos, f.objetivos, f.consentimiento, f.actualizado
@@ -32,8 +46,8 @@ const forma = r => r && ({ id: Number(r.id), nombre: r.nombre, grado: r.grado ||
 // Suma a cada alumno sus docentes asignadas y cuándo se invitó a cada email de contacto.
 async function completar(filas) {
   const ids = filas.map(r => Number(r.id));
-  const [asig, invs] = await Promise.all([A.asignadas(ids), inv.enviadas(ids)]);
-  return filas.map(r => ({ ...forma(r), docentes: asig[Number(r.id)] || [], invitaciones: invs[Number(r.id)] || {} }));
+  const [asig, invs, links] = await Promise.all([A.asignadas(ids), inv.enviadas(ids), enlaces.pendientesFamilia(ids)]);
+  return filas.map(r => ({ ...forma(r), docentes: asig[Number(r.id)] || [], invitaciones: invs[Number(r.id)] || {}, links_familia: links[Number(r.id)] || [] }));
 }
 
 async function alumnoDeDocente(yo, id) {
@@ -59,11 +73,19 @@ async function sincronizarFamilias(alumnoId, contactos) {
 }
 
 async function docente(req, res, yo) {
+  const ses = { tipo: "docente", usuario: yo };
   if (req.method === "GET") {
     const id = consulta(req, "id");
-    if (id) return res.status(200).json({ alumno: await unoCompleto(yo, id) });
+    if (id) {
+      const alumno = await unoCompleto(yo, id);
+      const exportar = consulta(req, "exportar") === "1";
+      await auditoria.registrar(req, { evento: exportar ? "exportacion" : "ficha_ver", ...auditoria.actor(ses), objeto_tipo: "alumno", objeto_id: alumno.id });
+      if (exportar) return res.status(200).json({ exportado: new Date().toISOString(), alumno });
+      return res.status(200).json({ alumno });
+    }
     const [c, p] = A.condVisible(yo, 1);
     const filas = await q(`${SELECT} WHERE ${c} ORDER BY a.nombre`, p);
+    await auditoria.registrar(req, { evento: "fichas_listar", ...auditoria.actor(ses), detalle: { alumnos: filas.length } });
     const docentes = await q("SELECT id, nombre, email, es_admin FROM docentes WHERE escuela_id = $1 AND activo ORDER BY nombre", [yo.escuela_id]);
     return res.status(200).json({ alumnos: await completar(filas), apoyos: F.APOYOS, docentes: docentes.map(d => ({ ...d, id: Number(d.id) })),
       yo: Number(yo.id), es_admin: !!yo.es_admin });
@@ -73,6 +95,7 @@ async function docente(req, res, yo) {
   if (b.accion === "crear") {
     const nombre = F.validarNombre(b.nombre);
     const contactos = F.validarContactos(b.contactos);
+    await piloto.exigirCupo((await piloto.familiasNuevas(contactos.map(c => c.email))).length);
     if (await uno("SELECT 1 AS x FROM alumnos WHERE escuela_id = $1 AND lower(nombre) = lower($2)", [yo.escuela_id, nombre]))
       throw errorPublico(`Ya hay un alumno «${nombre}» en la escuela. Agregale una inicial para distinguirlos (ej: «${nombre} P.»).`, 409);
     const a = await uno("INSERT INTO alumnos (escuela_id, nombre, creado_por) VALUES ($1, $2, $3) RETURNING id, nombre", [yo.escuela_id, nombre, yo.id]);
@@ -86,6 +109,9 @@ async function docente(req, res, yo) {
     const actual = await alumnoDeDocente(yo, b.id);
     const nombre = b.nombre != null ? F.validarNombre(b.nombre) : actual.nombre;
     const contactos = F.validarContactos(b.contactos), apoyos = F.validarApoyos(b.apoyos), objetivos = F.validarObjetivos(b.objetivos);
+    // Piloto: cada email nuevo de familia es una cuenta (un cupo). Se corta antes de guardar nada.
+    const previos = new Set((actual.contactos || []).map(x => x.email).filter(Boolean));
+    await piloto.exigirCupo((await piloto.familiasNuevas(contactos.map(c => c.email).filter(e => e && !previos.has(e)))).length);
     let consentimiento = actual.consentimiento || { dado: false };
     if (b.consentimiento !== undefined) {
       const c = F.validarConsentimiento({ ...b.consentimiento, via: "docente" });
@@ -102,6 +128,11 @@ async function docente(req, res, yo) {
         consentimiento = EXCLUDED.consentimiento, actualizado = now(), actualizado_por = EXCLUDED.actualizado_por`,
       [actual.id, JSON.stringify(contactos), JSON.stringify(apoyos), JSON.stringify(objetivos), JSON.stringify(consentimiento), yo.email]);
     await sincronizarFamilias(actual.id, contactos);
+    await auditoria.registrar(req, { evento: "ficha_editar", ...auditoria.actor(ses), objeto_tipo: "alumno", objeto_id: actual.id });
+    // Las familias que se sacaron de la ficha y quedaron sin alumnos se borran (con sus sesiones y códigos).
+    const antes = new Set((actual.contactos || []).map(x => x.email).filter(Boolean)), ahora = new Set(contactos.map(x => x.email).filter(Boolean));
+    const quitados = [...antes].filter(e => !ahora.has(e));
+    if (quitados.length) await bajas.borrarFamiliasHuerfanas((await q("SELECT id FROM familias WHERE email = ANY($1::text[])", [quitados])).map(f => f.id), { invitaciones: false });
     // Ya guardado: las invitaciones van después y nunca hacen fallar el pedido.
     const invitaciones = await inv.invitarNuevos(req, { alumno: { id: actual.id, nombre }, antes: actual.contactos || [], despues: contactos, docente: yo });
     return res.status(200).json({ alumno: await unoCompleto(yo, actual.id), invitaciones });
@@ -116,6 +147,17 @@ async function docente(req, res, yo) {
     if (r === "fallo") throw errorPublico("No pudimos mandar la invitación. Probá en un rato.", 502);
     return res.status(200).json({ ok: true, alumno: await unoCompleto(yo, a.id) });
   }
+  if (b.accion === "link_familia") {
+    const a = await alumnoDeDocente(yo, b.id);
+    return res.status(200).json({ enlace: await enlaces.crearFamilia(req, yo, a.id, b), alumno: await unoCompleto(yo, a.id) });
+  }
+  if (b.accion === "link_revocar") {
+    const a = await alumnoDeDocente(yo, b.id);
+    const l = await uno("SELECT id FROM enlaces WHERE id = $1 AND alumno_id = $2", [Number(b.link_id) || 0, a.id]);
+    if (!l) throw errorPublico("No encontramos ese link", 404);
+    await enlaces.revocar(req, yo, l.id);
+    return res.status(200).json({ ok: true, alumno: await unoCompleto(yo, a.id) });
+  }
   if (b.accion === "asignar" || b.accion === "desasignar") {
     const a = await alumnoDeDocente(yo, b.id);
     await A.cambiarAsignacion(yo, a.id, b.docente_id, b.accion === "asignar");
@@ -124,29 +166,60 @@ async function docente(req, res, yo) {
     return res.status(200).json({ ok: true, alumno: sigue ? await unoCompleto(yo, a.id) : null });
   }
   if (b.accion === "borrar") {
-    const a = await alumnoDeDocente(yo, b.id);
-    if (!yo.es_admin) throw errorPublico("Solo la dirección de la escuela puede borrar un alumno.", 403);
-    const { blob_token } = await uno("SELECT blob_token FROM alumnos WHERE id = $1", [a.id]);
-    await q("DELETE FROM alumnos WHERE id = $1", [a.id]);
-    if (blob_token) await borrarFamilia(blob_token); // también sus días publicados
-    return res.status(200).json({ ok: true });
+    const plataforma = S.esPlataforma(yo);
+    // La plataforma puede dar de baja alumnos de cualquier escuela; una admin, solo de la suya.
+    const a = plataforma ? await uno("SELECT id FROM alumnos WHERE id = $1", [Number(b.id) || 0]) : await alumnoDeDocente(yo, b.id);
+    if (!a) throw errorPublico("No encontramos ese alumno", 404);
+    if (!yo.es_admin && !plataforma) throw errorPublico("Solo la dirección de la escuela puede borrar un alumno.", 403);
+    const resumen = await bajas.bajaAlumno(req, yo, a.id);
+    return res.status(200).json({ ok: true, resumen,
+      ...(resumen.blob_borrado ? {} : { aviso: "Se borró todo de la base, pero los días publicados no se pudieron borrar todavía. Avisale a la plataforma." }) });
+  }
+  if (b.accion === "baja_familia") {
+    const plataforma = S.esPlataforma(yo);
+    const a = plataforma ? await uno("SELECT id FROM alumnos WHERE id = $1", [Number(b.id) || 0]) : await alumnoDeDocente(yo, b.id);
+    if (!a) throw errorPublico("No encontramos ese alumno", 404);
+    if (!yo.es_admin && !plataforma) throw errorPublico("Solo la dirección de la escuela puede dar de baja a una familia.", 403);
+    const email = S.normEmail(b.email);
+    const f = await uno("SELECT f.id FROM familias f JOIN familia_alumno fa ON fa.familia_id = f.id WHERE f.email = $1 AND fa.alumno_id = $2", [email, a.id]);
+    if (!f) throw errorPublico("Ese email no está vinculado a este alumno", 404);
+    // Alcance: los alumnos de mi escuela (la plataforma: todos).
+    const alcance = plataforma ? null : (await q("SELECT id FROM alumnos WHERE escuela_id = $1", [yo.escuela_id])).map(r => Number(r.id));
+    const resumen = await bajas.bajaFamilia(req, ses, f.id, alcance);
+    return res.status(200).json({ ok: true, resumen, alumno: await A.puedeVer(yo, a.id) ? await unoCompleto(yo, a.id) : null });
   }
   throw errorPublico("Acción desconocida");
 }
 
 async function familia(req, res, fam) {
+  const ses = { tipo: "familia", usuario: fam };
   if (req.method === "GET") {
     const filas = await q(`${SELECT} JOIN familia_alumno fa ON fa.alumno_id = a.id JOIN escuelas e ON e.id = a.escuela_id
       WHERE fa.familia_id = $1 AND e.activa ORDER BY a.nombre`, [fam.id]);
-    return res.status(200).json({ alumnos: filas.map(forma), apoyos: F.APOYOS, email: fam.email });
+    if (consulta(req, "exportar") === "1") { // derecho de acceso: todo lo que Puente guarda de esta familia
+      const chat = await q("SELECT alumno_id, rol, texto, creado FROM chat_turnos WHERE usuario_tipo = 'familia' AND usuario_id = $1 ORDER BY id", [fam.id]);
+      await auditoria.registrar(req, { evento: "exportacion", ...auditoria.actor(ses), detalle: { alumnos: filas.length } });
+      return res.status(200).json({ exportado: new Date().toISOString(), email: fam.email, alumnos: filas.map(forma),
+        chat: chat.map(t => ({ ...t, alumno_id: Number(t.alumno_id) })) });
+    }
+    await auditoria.registrar(req, { evento: "ficha_ver", ...auditoria.actor(ses), detalle: { alumnos: filas.length } });
+    return res.status(200).json({ alumnos: filas.map(forma), apoyos: F.APOYOS, email: fam.email, privacidad: legal.VERSION_PRIVACIDAD });
   }
   const b = cuerpo(req);
+  if (b.accion === "baja") {
+    if (b.confirmar !== true) throw errorPublico("Confirmá la baja");
+    const resumen = await bajas.bajaFamilia(req, ses, fam.id, null);
+    await S.cerrarSesion(req, res);
+    return res.status(200).json({ ok: true, resumen });
+  }
   const a = await alumnoDeFamilia(fam, b.id);
   const contactos = a.contactos || [];
   const yo = contactos.find(c => c.email === fam.email);
   if (b.accion === "consentir") {
     const consentimiento = b.dado
-      ? { dado: true, fecha: hoyLocal(), quien: yo ? `${yo.nombre}${yo.vinculo ? " (" + yo.vinculo + ")" : ""} · ${fam.email}` : fam.email, via: "familia" }
+      ? { dado: true, fecha: hoyLocal(), quien: yo ? `${yo.nombre}${yo.vinculo ? " (" + yo.vinculo + ")" : ""} · ${fam.email}` : fam.email, via: "familia",
+          // Versión del texto de privacidad que aceptó (privacidad.html).
+          version: legal.VERSION_PRIVACIDAD, texto: legal.URL_PRIVACIDAD }
       : { dado: false, retirado: hoyLocal(), quien_retiro: fam.email };
     await q("UPDATE fichas SET consentimiento = $1::jsonb, actualizado = now(), actualizado_por = $2 WHERE alumno_id = $3", [JSON.stringify(consentimiento), fam.email, a.id]);
     return res.status(200).json({ alumno: forma(await alumnoDeFamilia(fam, a.id)) });

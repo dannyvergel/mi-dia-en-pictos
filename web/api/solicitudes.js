@@ -12,11 +12,14 @@
 //                                   la escuela de Puente con ese CUE o una nueva desde el padrón. Queda admin si la escuela es nueva,
 //                                   si no tenía admins o si dijo ser director/a.
 //  POST accion=rechazar  (admin)    { id, avisar? }  → marca rechazada; si avisar, le manda un mail amable
+// Piloto cerrado: con PILOTO_SOLO_INVITACION (por defecto con base) "crear" responde 403: se entra solo con link de invitación.
+// Aprobar respeta el tope de cupos (PILOTO_MAX_USUARIOS).
 const { dbActiva, q, uno } = require("./_lib/db");
 const S = require("./_lib/seguridad");
 const { exigirDocente } = require("./_lib/auth");
 const avisos = require("./_lib/avisos");
 const padron = require("./_lib/padron");
+const piloto = require("./_lib/piloto");
 const { cuerpo, exigirJson, manejarError, errorPublico } = require("./_lib/http");
 
 const MAX_IP = 5, VENTANA_IP = 60;              // 5 pedidos por IP por hora
@@ -43,7 +46,10 @@ async function rutear(d) {
   return { destino: "plataforma", escuela_id: e?.id ?? null };
 }
 
+const CERRADO = "Puente está en un piloto cerrado: se entra solo con un link de invitación. Pedíselo a la dirección de tu escuela.";
+
 async function crear(req, res, b) {
+  if (piloto.soloInvitacion()) return res.status(403).json({ error: CERRADO, solo_invitacion: true });
   const d = validar(b);
   const cue = /^\d{9}$/.test(String(b.cue ?? "").trim()) ? String(b.cue).trim() : "";
   d.cue = cue && await padron.porCue(cue) ? cue : null;
@@ -116,6 +122,7 @@ async function aprobar(req, res, yo, b) {
   // Antes de crear una escuela: si ya hay una docente activa con ese email no se sigue.
   const existe = await uno("SELECT id, activo FROM docentes WHERE email = $1", [s.email]);
   if (existe?.activo) throw errorPublico("Ya hay una docente activa con ese email. Podés rechazar esta solicitud.", 409);
+  await piloto.exigirCupo(1);
   let esAdmin = !!b.es_admin, escuela;
   const nueva = limpio(b.escuela_nueva, 120);
   const porCue = plataforma && !nueva && (b.desde_padron || (!b.escuela_id && s.cue));

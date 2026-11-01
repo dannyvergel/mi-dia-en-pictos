@@ -12,14 +12,16 @@ const { exigirDocente } = require("./_lib/auth");
 const { leerFamilia: leer, guardarFamilia } = require("./_lib/almacen");
 const { objetivosAPpi, apoyosAPerfil } = require("./_lib/fichas");
 const { condVisible } = require("./_lib/alumnos");
+const { filtrarDiasVigentes, quizasLimpiar } = require("./_lib/retencion");
 const { cuerpo, consulta, exigirJson, manejarError, errorPublico } = require("./_lib/http");
 
 const tokenOk = t => typeof t === "string" && /^[a-f0-9]{32}$/.test(t);
 
 // Solo lo que la familia necesita ver (sin notas internas del legajo).
 function vistaFamilia(d) {
-  const regs = (d.registros || []).slice().sort((a, b) => b.fecha.localeCompare(a.fecha));
-  const h = crearHerramientas({ alumno: d.alumno, registros: d.registros || [], ppi: d.ppi || [] });
+  // Retención: los días más viejos que DIAS_PUBLICADOS_RETENCION no se muestran (y se sacan en la próxima publicación).
+  const regs = filtrarDiasVigentes(d.registros).slice().sort((a, b) => b.fecha.localeCompare(a.fecha));
+  const h = crearHerramientas({ alumno: d.alumno, registros: filtrarDiasVigentes(d.registros), ppi: d.ppi || [] });
   const ppi = d.ppi?.length ? h.evaluar_ppi.run() : [];
   return {
     alumno: d.alumno, actualizado: d.actualizado, escuela: d.escuela || null,
@@ -39,7 +41,7 @@ function vistaFamilia(d) {
 function armarDatos(b, nombre, extra = {}) {
   return {
     alumno: nombre, actualizado: new Date().toISOString(),
-    registros: b.registros.filter(r => r && r.alumno === nombre).slice(0, 60).map(({ registro_docente, ...r }) => r),
+    registros: filtrarDiasVigentes(b.registros.filter(r => r && r.alumno === nombre)).slice(0, 60).map(({ registro_docente, ...r }) => r),
     ppi: b.ppi || [], perfil: { le_gusta: b.perfil?.le_gusta || "", lo_calma: b.perfil?.lo_calma || "" },
     agenda: b.agenda || null, mensaje_docente: b.mensaje_docente || null, ...extra
   };
@@ -121,6 +123,8 @@ async function modoDb(req, res) {
     const perfil = a.apoyos ? apoyosAPerfil(a.apoyos) : b.perfil;
     const datos = armarDatos({ ...b, registros: b.registros.map(r => ({ ...r, alumno: a.nombre })), ppi, perfil }, a.nombre);
     await guardarFamilia(t, datos);
+    await q("UPDATE alumnos SET publicado = now() WHERE id = $1", [a.id]);
+    await quizasLimpiar();
     return res.status(200).json({ alumno_id: Number(a.id), dias: datos.registros.length });
   }
   if (b.accion === "preguntar") {
@@ -137,7 +141,7 @@ async function modoDb(req, res) {
     if (!d) return res.status(200).json({ respuesta: `Todavía no hay días de ${a.nombre} cargados. Apenas la escuela publique, vas a poder preguntarme.`, modo: "vacio" });
     // El historial sale de la base (por cuenta + alumno), nunca del navegador.
     const historial = await chat.leerHistorial(cuenta, Number(a.id));
-    const r = await chat.preguntar({ ...d, alumno: a.nombre }, pregunta, { historial, quien: `${cuenta.tipo}#${cuenta.id}` });
+    const r = await chat.preguntar({ ...d, registros: filtrarDiasVigentes(d.registros), alumno: a.nombre }, pregunta, { historial, quien: `${cuenta.tipo}#${cuenta.id}` });
     if (r.en_tema && r.modo === "ia") await chat.guardarTurno(cuenta, Number(a.id), pregunta, r.respuesta);
     return res.status(200).json({ respuesta: r.respuesta, modo: r.modo });
   }

@@ -37,7 +37,8 @@
 <body>
 <header><h1 id="tit">Puente</h1><div class="bajada" id="sub">de la escuela a casa, en pictogramas</div><span class="tiza"></span></header>
 <main><div class="pagina" id="app"><p class="vacio">Cargando…</p></div></main>
-<footer><span id="pie">Este espacio es privado: solo lo ve quien tiene el link.</span><br>Pictogramas: Sergio Palao. Origen: <a href="https://arasaac.org">ARASAAC</a>. Licencia CC BY-NC-SA. Propiedad: Gobierno de Aragón.</footer>
+<footer><span id="pie">Este espacio es privado: solo lo ve quien tiene el link.</span><div id="puente-pie" data-feedback="si" data-donaciones="no"></div></footer>
+<script src="pie.js" defer></script>
 <script src="cuenta.js"></script>
 <script>
 const PICTOS = {};
@@ -61,7 +62,7 @@ const fechaLinda = f => new Date(f + "T12:00:00").toLocaleDateString("es-AR", { 
 function hablar(x) { if ("speechSynthesis" in window) { const u = new SpeechSynthesisUtterance(x); u.lang = "es-AR"; speechSynthesis.speak(u); } }
 let D = null;
 
-let MODO = "token", ALUMNO_ID = null, FICHA = null, ESFAMILIA = false, MIS = [];
+let MODO = "token", ALUMNO_ID = null, FICHA = null, ESFAMILIA = false, MIS = [], VERSION_PRIV = null;
 async function cargar() {
   if (t) return cargarToken();
   const e = await Puente.estado().catch(() => null);
@@ -71,7 +72,7 @@ async function cargar() {
   $("pie").textContent = ESFAMILIA ? "Este espacio es privado: solo lo ven las familias que la escuela vinculó." : "Vista previa de la docente: así lo ve la familia.";
   const pedido = Number(new URLSearchParams(location.search).get("alumno")) || null;
   try {
-    if (ESFAMILIA) MIS = (await Puente.api("api/fichas")).alumnos;
+    if (ESFAMILIA) { const r = await Puente.api("api/fichas"); MIS = r.alumnos; VERSION_PRIV = r.privacidad || null; }
     else if (pedido) MIS = [(await Puente.api("api/fichas?id=" + pedido)).alumno];
   } catch (err) { return $("app").innerHTML = `<div class="card">${esc(err.message)}</div>`; }
   if (!MIS.length) return $("app").innerHTML = `<div class="card">${ESFAMILIA ? "Tu email todavía no está vinculado a ningún alumno. Pedile a la docente que lo agregue en la ficha." : "Elegí un alumno desde el panel docente."}</div><div class="barra"><a href="#" onclick="Puente.salir();return false">Salir</a></div>`;
@@ -113,7 +114,11 @@ function htmlFicha() {
     ${ESFAMILIA && FICHA.contactos.some(x => x.email) ? `<form id="fTel" class="fila" style="margin-top:10px"><input id="miTel" inputmode="tel" maxlength="30" placeholder="Tu teléfono / WhatsApp"><button class="big chico" style="width:auto;margin:0;padding:0 14px">Actualizar mi teléfono</button></form>` : ""}
     <div class="${c.dado ? "logro" : "alerta"}" style="margin-top:12px">${c.dado ? `Consentimiento dado por ${esc(c.quien)} el ${esc(c.fecha)}.` : "Todavía no está el consentimiento de la familia para usar Puente."}</div>
     ${ESFAMILIA ? (c.dado ? `<button class="big alt chico" id="btnCons" data-dar="0">Retirar el consentimiento</button>`
-      : `<p class="muted">Al dar tu consentimiento aceptás que la escuela registre en Puente cómo fue el día de ${esc(FICHA.nombre)} (solo su nombre de pila, sin fotos ni diagnósticos) y que lo puedan ver las familias vinculadas.</p><button class="big" id="btnCons" data-dar="1">Doy mi consentimiento</button>`) : ""}
+      : `<p class="muted">Al dar tu consentimiento aceptás que la escuela registre en Puente cómo fue el día de ${esc(FICHA.nombre)} (solo su nombre de pila, sin fotos ni diagnósticos) y que lo puedan ver las familias vinculadas, según la <a href="privacidad.html" target="_blank">política de privacidad</a> (versión ${esc(VERSION_PRIV || "vigente")}). Los datos se guardan en servidores fuera de Argentina y una IA ayuda a ordenar los registros.</p><button class="big" id="btnCons" data-dar="1">Doy mi consentimiento</button>`) : ""}
+    ${c.dado && c.version ? `<p class="muted">Aceptaste la <a href="privacidad.html" target="_blank">política de privacidad</a> versión ${esc(c.version)}.</p>` : ""}
+    ${ESFAMILIA ? `<div class="card" style="margin-top:12px"><span class="rotulo">Tus datos</span>
+      <p class="muted">Podés descargar todo lo que Puente guarda de tu familia, o pedir la baja: se borra tu contacto, tu historial de preguntas y, si no tenés otro alumno en Puente, tu cuenta. Los registros de la escuela sobre ${esc(FICHA.nombre)} los maneja la escuela.</p>
+      <div class="fila"><button class="big alt chico" id="btnExport" type="button">Descargar mis datos</button><button class="big alt chico" id="btnBaja" type="button" style="color:var(--bad);border-color:var(--bad)">Pedir la baja y borrar mis datos</button></div></div>` : ""}
     <p class="muted" id="msgFicha"></p></details></div>`;
 }
 function conectarFicha() {
@@ -121,6 +126,20 @@ function conectarFicha() {
   if (b) b.onclick = async () => {
     if (b.dataset.dar === "0" && !confirm("¿Seguro que querés retirar el consentimiento?")) return;
     try { const r = await Puente.api("api/fichas", { method: "POST", body: { accion: "consentir", id: ALUMNO_ID, dado: b.dataset.dar === "1" } }); actualizarFicha(r.alumno); }
+    catch (e) { $("msgFicha").textContent = e.message; }
+  };
+  const ex = $("btnExport");
+  if (ex) ex.onclick = async () => {
+    try {
+      const r = await Puente.api("api/fichas?exportar=1");
+      const url = URL.createObjectURL(new Blob([JSON.stringify(r, null, 2)], { type: "application/json" }));
+      const a = Object.assign(document.createElement("a"), { href: url, download: "puente-mis-datos.json" }); a.click(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+    } catch (e) { $("msgFicha").textContent = e.message; }
+  };
+  const bj = $("btnBaja");
+  if (bj) bj.onclick = async () => {
+    if (!confirm("¿Seguro que querés darte de baja de Puente? Se borran tus datos y vas a dejar de ver el día en la escuela. No se puede deshacer.")) return;
+    try { await Puente.api("api/fichas", { method: "POST", body: { accion: "baja", confirmar: true } }); alert("Listo: te diste de baja y borramos tus datos."); location.href = "login.html?familia"; }
     catch (e) { $("msgFicha").textContent = e.message; }
   };
   const f = $("fTel");

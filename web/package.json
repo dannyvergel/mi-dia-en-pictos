@@ -14,5 +14,8 @@
     "local": "node scripts/dev.js",
     "migrar": "node scripts/migrar.js",
     "padron": "node scripts/padron.js"
+  },
+  "overrides": {
+    "zod": "^4.6.6"
   }
 }
