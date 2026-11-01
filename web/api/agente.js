@@ -8,7 +8,7 @@ const { uno } = require("./_lib/db");
 const { objetivosAPpi, apoyosAPerfil } = require("./_lib/fichas");
 const { perfilParaIA, ppiParaIA, limpiarTexto } = require("./_lib/minimizar");
 
-const { PRINCIPAL: MODEL, cuerpo } = require("./_lib/modelos");
+const { PRINCIPAL: MODEL, cuerpo, cabeceras } = require("./_lib/modelos");
 const MAX_PASOS = 8;
 
 const SISTEMA = `Sos el Agente de Progreso de "Puente", para docentes de educación especial en Argentina.
@@ -38,7 +38,7 @@ const resumir = (r) => { const s = JSON.stringify(r); return s.length > 220 ? s.
 async function llm(messages, tools) {
   const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
-    headers: { Authorization: "Bearer " + process.env.OPENROUTER_API_KEY, "Content-Type": "application/json", "HTTP-Referer": "https://puente-pictos.vercel.app", "X-Title": "Puente" },
+    headers: cabeceras(),
     signal: AbortSignal.timeout(28000),
     body: JSON.stringify(cuerpo("agente", { temperature: 0.2, messages, ...(tools ? { tools, tool_choice: "auto" } : { response_format: { type: "json_object" } }) }))
   });

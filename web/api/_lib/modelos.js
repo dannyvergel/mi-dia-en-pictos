@@ -31,4 +31,9 @@ function cuerpo(uso, extra) {
   // provider va al final para que ningún "extra" lo pise.
   return { model: PRINCIPAL, models: [PRINCIPAL, ...RESPALDO], max_tokens: TOPE[uso], ...extra, provider: { ...PROVEEDOR } };
 }
-module.exports = { PRINCIPAL, PERMITIDOS, SIN_ZDR, PROVEEDOR, cuerpo };
+// Cabeceras para OpenRouter. El Referer sale de PUENTE_URL (dominio propio) o del de Vercel.
+function cabeceras() {
+  const url = (process.env.PUENTE_URL || "https://puente-pictos.vercel.app").replace(/\/+$/, "");
+  return { Authorization: "Bearer " + process.env.OPENROUTER_API_KEY, "Content-Type": "application/json", "HTTP-Referer": url, "X-Title": "Puente" };
+}
+module.exports = { PRINCIPAL, PERMITIDOS, SIN_ZDR, PROVEEDOR, cuerpo, cabeceras };

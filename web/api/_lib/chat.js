@@ -4,7 +4,7 @@
 //  3. post-chequeo de la salida: sin URLs, sin bloques de código, largo acotado, sin filtrar las instrucciones;
 //  4. historial del lado del servidor (tabla chat_turnos, 30 días) — nunca el que manda el navegador;
 //  5. límites por cuenta e IP (con base) o por token + IP en memoria (modo demo).
-const { cuerpo: cuerpoLLM } = require("./modelos");
+const { cuerpo: cuerpoLLM, cabeceras } = require("./modelos");
 const { diaSemana } = require("./tools");
 const { q } = require("./db");
 const S = require("./seguridad");
@@ -149,7 +149,7 @@ async function preguntar(d, pregunta, { historial = [], quien } = {}) {
 
   const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
-    headers: { Authorization: "Bearer " + process.env.OPENROUTER_API_KEY, "Content-Type": "application/json", "HTTP-Referer": "https://puente-pictos.vercel.app", "X-Title": "Puente" },
+    headers: cabeceras(),
     body: JSON.stringify(cuerpoLLM("chat", { temperature: 0.2, response_format: { type: "json_object" }, messages: mensajes(d, p, historial) }))
   });
   if (!r.ok) throw new Error("OpenRouter " + r.status);
