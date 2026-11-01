@@ -8,11 +8,13 @@ const { cuerpo: cuerpoLLM } = require("./modelos");
 const { diaSemana } = require("./tools");
 const { q } = require("./db");
 const S = require("./seguridad");
+const { limpiarTexto, alertasParaChat } = require("./minimizar");
+const { plazos } = require("./retencion");
 
 const MAX_PREGUNTA = 500;
 const MAX_RESPUESTA = 700;      // caracteres que ve la familia
 const TURNOS_CONTEXTO = 6;      // mensajes previos (3 preguntas + 3 respuestas)
-const RETENCION_DIAS = 30;
+const RETENCION_DIAS = plazos().chat; // CHAT_RETENCION_DIAS (por defecto 30)
 // Límites. Ventanas en minutos.
 const LIMITES = {
   cuenta: [{ max: 5, min: 10 }, { max: 20, min: 1440 }],
@@ -54,11 +56,12 @@ function contextoChat(d) {
     `${r.fecha} (${diaSemana(r.fecha)}) · ánimo ${r.animo_general}\n` +
     (r.actividades || []).map(a => `  - ${a.hora || "?"} ${a.actividad} [${a.estado}]`).join("\n") +
     (r.logros?.length ? `\n  Logros: ${r.logros.join("; ")}` : "") +
-    (r.alertas?.length ? `\n  Alertas: ${r.alertas.map(a => a.detalle).join("; ")}` : "")
+    // Minimización: las alertas de salud/medicación no van a la IA (solo un aviso sin detalle).
+    (r.alertas?.length ? `\n  Alertas: ${alertasParaChat(r.alertas).join("; ")}` : "")
   ).join("\n");
 }
 function contextoPpi(d) {
-  const o = (d.ppi || []).map(p => p?.objetivo).filter(Boolean);
+  const o = (d.ppi || []).map(p => p?.objetivo).filter(Boolean).map(t => limpiarTexto(t, 300));
   return o.length ? `\nObjetivos del PPI en los que se trabaja: ${o.join("; ")}.` : "";
 }
 
@@ -82,7 +85,7 @@ CÓMO RESPONDER cuando está en tema:
 FORMATO: respondé SIEMPRE y ÚNICAMENTE con un objeto JSON, sin texto antes ni después:
 {"en_tema": true|false, "respuesta": "texto para la familia"}
 Si en_tema es false, "respuesta" va vacía.
-${d.perfil?.le_gusta ? `\nLe gusta: ${d.perfil.le_gusta}.` : ""}${d.perfil?.lo_calma ? ` Lo calma: ${d.perfil.lo_calma}.` : ""}${contextoPpi(d)}
+${d.perfil?.le_gusta ? `\nLe gusta: ${limpiarTexto(d.perfil.le_gusta, 500)}.` : ""}${d.perfil?.lo_calma ? ` Lo calma: ${limpiarTexto(d.perfil.lo_calma, 500)}.` : ""}${contextoPpi(d)}
 
 Registros de la escuela:
 ${contextoChat(d) || "(todavía no hay días registrados)"}`;
@@ -90,7 +93,8 @@ ${contextoChat(d) || "(todavía no hay días registrados)"}`;
 // Frases del prompt que nunca deberían aparecer en una respuesta (filtración de instrucciones).
 const MARCAS_PROMPT = ["temas permitidos", "seguridad (no negociable)", "pregunta_familia", "en_tema", "no negociable", "registros de la escuela:", "formato: respond"];
 
-const envolver = t => `<pregunta_familia>\n${String(t).replace(/[<>]/g, " ").slice(0, MAX_PREGUNTA)}\n</pregunta_familia>`;
+// La pregunta de la familia puede traer un email o teléfono sin querer: se tapa antes de mandarla.
+const envolver = t => `<pregunta_familia>\n${limpiarTexto(String(t).replace(/[<>]/g, " "), MAX_PREGUNTA)}\n</pregunta_familia>`;
 
 function mensajes(d, pregunta, historial) {
   const prev = (historial || []).slice(-TURNOS_CONTEXTO).map(m => m.rol === "familia"
@@ -169,7 +173,7 @@ async function leerHistorial(cuenta, alumnoId) {
 // Solo se guardan las preguntas en tema con su respuesta (las negativas no ensucian el contexto).
 async function guardarTurno(cuenta, alumnoId, pregunta, respuesta) {
   await q(`INSERT INTO chat_turnos (usuario_tipo, usuario_id, alumno_id, rol, texto) VALUES ($1, $2, $3, 'familia', $4), ($1, $2, $3, 'puente', $5)`,
-    [cuenta.tipo, cuenta.id, alumnoId, String(pregunta).slice(0, MAX_PREGUNTA), String(respuesta).slice(0, MAX_RESPUESTA)]);
+    [cuenta.tipo, cuenta.id, alumnoId, limpiarTexto(pregunta, MAX_PREGUNTA), String(respuesta).slice(0, MAX_RESPUESTA)]);
   if (Math.random() < 0.1) await q(`DELETE FROM chat_turnos WHERE creado < now() - ($1 || ' days')::interval`, [String(RETENCION_DIAS)]);
 }
 
