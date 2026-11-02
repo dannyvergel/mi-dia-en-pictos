@@ -36,7 +36,7 @@ test("donaciones: nunca en el espacio de la familia ni hardcodeadas; dos botones
 
 test("páginas legales: marcadas como borrador, con terceros, derechos y contacto", () => {
   const p = leer("privacidad.html");
-  for (const t of ["BORRADOR", "Vercel", "Neon", "Resend", "OpenRouter", "ARASAAC", "fuera de Argentina", "acceso", "rectificación", "supresión", "[CONTACTO]"]) assert.ok(p.includes(t), t);
+  for (const t of ["BORRADOR", "Vercel", "Neon", "Resend", "OpenRouter", "ARASAAC", "fuera de Argentina", "acceso", "rectificación", "supresión", "soporte@puentepictos.app"]) assert.ok(p.includes(t), t);
   assert.ok(p.includes(require("../api/_lib/legal").VERSION_PRIVACIDAD));
   assert.ok(leer("terminos.html").includes("BORRADOR"));
   assert.ok(leer("familia.html").includes('href="privacidad.html"'));

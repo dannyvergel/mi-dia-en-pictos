@@ -1,6 +1,6 @@
 # 🌉 Puente
 
-**De la escuela a casa, en pictogramas.** Demo: https://puente-pictos.vercel.app
+**De la escuela a casa, en pictogramas.** Demo: https://puentepictos.app
 
 **La docente cuenta el día en 20 segundos. El chico lo ve en pictogramas. La familia recibe un resumen claro. Y el registro queda guardado solo.**
 
@@ -146,7 +146,7 @@ Decisión del 1/11/2026: el piloto queda abierto a **15 usuarios en total** (se�
 - **Retención** (`api/_lib/retencion.js`, todo configurable): chat 30 días, días publicados 365 (se filtran al leer y al publicar), auditoría y comentarios 365, fichas inactivas 730 (solo se cuentan para revisar, nunca se borran solas). Limpieza perezosa en pedidos normales y un **cron diario** (`web/vercel.json`, 07:30 UTC) que llama a `/api/auditoria?accion=limpieza` con `Authorization: Bearer CRON_SECRET`.
 - **Registro de accesos** (tabla `auditoria`): `login_ok`, `login_fallido`, `ficha_ver`, `fichas_listar`, `ficha_editar`, `exportacion`, `baja_alumno`, `baja_familia`, `feedback`, `alerta_fallos`, `invitacion_creada`, `invitacion_usada`, `invitacion_revocada`. Email como HMAC (con `SESSION_SECRET`), IP truncada (/24 o /48), ids y contadores. Pestaña *Panel → Registro* (admins: su escuela; plataforma: todo). Con `AUDITORIA_ALERTA_FALLOS` (5) códigos incorrectos para una cuenta en 30 min, llega un mail a la plataforma con el email enmascarado (máx. 1 por hora por cuenta).
 - **Enviar comentario**: en el pie de las páginas con sesión (docentes y familias). Se guarda en `feedback` y avisa por mail a la plataforma (como mucho 1 mail cada 10 min por cuenta; 3 comentarios cada 10 min y 10 por día). La plataforma los ve en *Panel → Registro*.
-- **Legales y aviso**: `privacidad.html` y `terminos.html` (**borrador, pendiente de revisión legal**, con `[CONTACTO]` para completar). Pie común (`web/pie.js`) en todas las páginas: aviso **BETA**, links legales y crédito ARASAAC completo. El consentimiento de la familia linkea a la política y guarda la versión aceptada (`api/_lib/legal.js`: cambiar `VERSION_PRIVACIDAD` cada vez que cambie el texto).
+- **Legales y aviso**: `privacidad.html` y `terminos.html` (**borrador, pendiente de revisión legal**, contacto `soporte@puentepictos.app`). Pie común (`web/pie.js`) en todas las páginas: aviso **BETA**, links legales y crédito ARASAAC completo. El consentimiento de la familia linkea a la política y guarda la versión aceptada (`api/_lib/legal.js`: cambiar `VERSION_PRIVACIDAD` cada vez que cambie el texto).
 - **Donaciones** («Apoyá Puente»): dos botones de texto en el pie (no en el espacio de la familia, ni en el login cuando está en «Soy familia», ni en el chat; nunca como pedido a las familias): **Doná desde Argentina** (`DONACIONES_AR_URL`) y **Donate from abroad** (`DONACIONES_INTL_URL`, con la línea en inglés al lado), con la línea *"Puente es gratuito y sin fines de lucro. Las donaciones cubren servidores e IA."*. Los links salen de `GET /api/config` (solo `https://`); cada botón aparece solo si su variable tiene valor, y si están las dos vacías no se muestra nada. El repo además tiene `.github/FUNDING.yml` (GitHub Sponsors).
 - **Funciones**: con `auditoria.js`, `config.js` y `feedback.js` el proyecto tiene 11 funciones (`web/api/*.js`); el plan Hobby de Vercel admite hasta 12.
 
@@ -162,7 +162,7 @@ Decisión del 1/11/2026: el piloto queda abierto a **15 usuarios en total** (se�
 | `ADMIN_EMAIL` | Cuenta de la **plataforma** (superadmin, única que entra a `admin.html`). La primera cuenta solo se puede crear con ese email (sin ella, el alta inicial no anda). Recibe los avisos de solicitudes y comentarios | **Sí** |
 | `RESEND_API_KEY` | Envía los códigos de ingreso (docentes y familias), los avisos de solicitudes y las invitaciones a familias ([resend.com](https://resend.com)) | Sí en producción |
 | `RESEND_FROM` | Remitente, ej. `Puente <hola@tudominio.com>` (dominio verificado en Resend) | Recomendada (por defecto `onboarding@resend.dev`, que solo manda a tu propio email) |
-| `PUENTE_URL` | Base de los links en los mails, ej. `https://puente-pictos.vercel.app` (con dominio propio: `https://puentepictos.org`). También es el Referer que se manda a OpenRouter. Si falta se usa el dominio de producción de Vercel (o la URL de la rama en *preview*) | Opcional |
+| `PUENTE_URL` | Base de los links en los mails, ej. `https://puentepictos.app` (con dominio propio: `https://puentepictos.app`). También es el Referer que se manda a OpenRouter. Si falta se usa el dominio de producción de Vercel (o la URL de la rama en *preview*) | Opcional |
 | `CRON_SECRET` | Protege la limpieza diaria (`/api/auditoria?accion=limpieza`, la llama el cron de `vercel.json`). 16+ caracteres al azar (`openssl rand -base64 32`). Sin esto el cron responde 401 y solo queda la limpieza perezosa | Recomendada |
 | `CHAT_RETENCION_DIAS` | Días que se guarda el historial del chat de la familia | Opcional (30) |
 | `DIAS_PUBLICADOS_RETENCION` | Días publicados que ve la familia (los más viejos se ocultan y se sacan al volver a publicar) | Opcional (365) |
@@ -176,11 +176,11 @@ Decisión del 1/11/2026: el piloto queda abierto a **15 usuarios en total** (se�
 | `DONACIONES_INTL_URL` | Link del botón «Donate from abroad» (ej. GitHub Sponsors). Vacía = no se muestra | Opcional |
 
    Sin `RESEND_API_KEY`: en local el código aparece en pantalla; en *preview* solo en los logs de Vercel; en producción se muestra un error claro. Los avisos (solicitudes, acceso aprobado) sin Resend van a los logs y no frenan nada.
-   **Dominio propio** (cuando esté comprado; ej. `puentepictos.org`). Cambian dos variables y se redeploya:
-   - `PUENTE_URL` = `https://puentepictos.org` (links de los mails y Referer de OpenRouter).
-   - `RESEND_FROM` = `Puente <hola@puentepictos.org>` (solo cuando el dominio esté **verificado** en Resend; antes, los mails fallan).
-   - *Vercel*: proyecto `mi-dia-en-pictos` → Settings → Domains → *Add* `puentepictos.org` (y `www.puentepictos.org`, con redirección a uno de los dos). Cargar en el DNS del registrador los registros que muestra Vercel (normalmente un `A` para el dominio raíz y un `CNAME` para `www`, o delegar los nameservers a Vercel). Esperar *Valid Configuration*; el certificado HTTPS es automático. `puente-pictos.vercel.app` sigue andando.
-   - *Resend*: Domains → *Add Domain* → `puentepictos.org` (o un subdominio como `mail.puentepictos.org`) → región. Cargar en el DNS los registros que muestra: `MX` y `TXT` (SPF) del subdominio de envío y `TXT` de DKIM (`resend._domainkey`); recomendable un `TXT` de DMARC en `_dmarc` (ej. `v=DMARC1; p=none;`). Tocar *Verify* y esperar *Verified*. Recién ahí cambiar `RESEND_FROM`.
+   **Dominio propio** (cuando esté comprado; ej. `puentepictos.app`). Cambian dos variables y se redeploya:
+   - `PUENTE_URL` = `https://puentepictos.app` (links de los mails y Referer de OpenRouter).
+   - `RESEND_FROM` = `Puente <hola@puentepictos.app>` (solo cuando el dominio esté **verificado** en Resend; antes, los mails fallan).
+   - *Vercel*: proyecto `mi-dia-en-pictos` → Settings → Domains → *Add* `puentepictos.app` (y `www.puentepictos.app`, con redirección a uno de los dos). Cargar en el DNS del registrador los registros que muestra Vercel (normalmente un `A` para el dominio raíz y un `CNAME` para `www`, o delegar los nameservers a Vercel). Esperar *Valid Configuration*; el certificado HTTPS es automático. `puente-pictos.vercel.app` sigue andando.
+   - *Resend*: Domains → *Add Domain* → `puentepictos.app` (o un subdominio como `mail.puentepictos.app`) → región. Cargar en el DNS los registros que muestra: `MX` y `TXT` (SPF) del subdominio de envío y `TXT` de DKIM (`resend._domainkey`); recomendable un `TXT` de DMARC en `_dmarc` (ej. `v=DMARC1; p=none;`). Tocar *Verify* y esperar *Verified*. Recién ahí cambiar `RESEND_FROM`.
    - Después: actualizar a mano las etiquetas Open Graph (y el `canonical`) de `index.html` (portada) y `presentacion.html` (y el texto/QR de la última diapositiva) que hoy dicen `puente-pictos.vercel.app`, y mandarse un código de prueba.
 
 3. **Primera cuenta (plataforma)**: abrir `/login.html`, completar *Primera vez en Puente* con el `DOCENTE_PIN` y el email de `ADMIN_EMAIL`. Se crea la cuenta de la plataforma, **sin escuela y sin contraseña**, y en el momento le llega un código a ese email para entrar. Después, en `/admin.html`, da de alta cada escuela desde el padrón y le manda el link a su directivo/a; cada directivo invita a sus docentes (ver *Alta por invitación en cascada*).

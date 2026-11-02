@@ -36,7 +36,7 @@ El piloto no reemplaza los canales de comunicación habituales de la escuela (cu
 
 ## 3. Responsable del tratamiento de los datos
 
-Para este piloto, el responsable del tratamiento de los datos personales es **Puente** — [NOMBRE DEL RESPONSABLE] —, con domicilio en [DOMICILIO DEL RESPONSABLE], contacto **[CONTACTO]**. Las familias firman el consentimiento con Puente. Puente asume, si corresponde, la inscripción de la base en el Registro Nacional de Bases de Datos y la respuesta a los pedidos de las familias. La escuela no es responsable de la base: da su aval para que sus docentes usen Puente con sus alumnos.
+Para este piloto, el responsable del tratamiento de los datos personales es **Puente** — [NOMBRE DEL RESPONSABLE] —, con domicilio en [DOMICILIO DEL RESPONSABLE], contacto **soporte@puentepictos.app**. Las familias firman el consentimiento con Puente. Puente asume, si corresponde, la inscripción de la base en el Registro Nacional de Bases de Datos y la respuesta a los pedidos de las familias. La escuela no es responsable de la base: da su aval para que sus docentes usen Puente con sus alumnos.
 
 *Nota para completar (borrar antes de firmar):* confirmar con el abogado si Puente es una **persona física** o una **asociación civil**, y si hace falta alguna conformidad de la entidad de la que depende la escuela.
 
@@ -110,7 +110,7 @@ Me dirijo a usted en mi carácter de director/a de [ESCUELA], CUE [CUE], para in
 - Acuerdo de confidencialidad firmado por docentes y directivos (Ley 25.326, art. 10).
 - Plan de respuesta ante incidentes de seguridad y plazos de conservación definidos (días publicados 365 días, chat 30 días, fichas mientras dure el piloto), con borrado al cierre.
 - Uso de inteligencia artificial solo con proveedores configurados para no entrenar con los datos ni retenerlos.
-- Responsable del tratamiento: Puente ([NOMBRE DEL RESPONSABLE]), contacto [CONTACTO]. Cada familia firma el consentimiento con Puente.
+- Responsable del tratamiento: Puente ([NOMBRE DEL RESPONSABLE]), contacto soporte@puentepictos.app. Cada familia firma el consentimiento con Puente.
 
 **Evaluación.** Al finalizar se elaborará un informe con indicadores generales de uso y la opinión de docentes y familias, sin datos que identifiquen a los alumnos, que pondremos a disposición de esa supervisión.
 

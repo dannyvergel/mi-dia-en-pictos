@@ -33,7 +33,7 @@ function cuerpo(uso, extra) {
 }
 // Cabeceras para OpenRouter. El Referer sale de PUENTE_URL (dominio propio) o del de Vercel.
 function cabeceras() {
-  const url = (process.env.PUENTE_URL || "https://puente-pictos.vercel.app").replace(/\/+$/, "");
+  const url = (process.env.PUENTE_URL || "https://puentepictos.app").replace(/\/+$/, "");
   return { Authorization: "Bearer " + process.env.OPENROUTER_API_KEY, "Content-Type": "application/json", "HTTP-Referer": url, "X-Title": "Puente" };
 }
 module.exports = { PRINCIPAL, PERMITIDOS, SIN_ZDR, PROVEEDOR, cuerpo, cabeceras };

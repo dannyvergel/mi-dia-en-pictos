@@ -24,7 +24,7 @@ El piloto es **cerrado**: participan hasta **15 personas en total**, entre seño
 # 2. ¿Quién es responsable de los datos?
 
 - **Responsable del tratamiento:** **Puente** — [NOMBRE DEL RESPONSABLE: persona física o asociación civil, a confirmar con el abogado] —, con domicilio en [DOMICILIO DEL RESPONSABLE]. Este consentimiento se firma con Puente.
-- **Contacto para dudas, pedidos y reclamos:** [CONTACTO].
+- **Contacto para dudas, pedidos y reclamos:** soporte@puentepictos.app.
 - **Escuela de la seño:** [ESCUELA], CUE [CUE]. La dirección dio su aval para que la seño use Puente con sus alumnos; no es la responsable de la base.
 - **Sitio de Puente:** [DOMINIO].
 
@@ -110,14 +110,14 @@ Como madre, padre o tutor/a podés, sobre tus datos y los de tu hijo o hija:
 - **Rectificación y actualización:** corregir lo que esté mal o desactualizado.
 - **Supresión:** pedir que se borren. Se hace dentro de los **5 días hábiles** desde tu pedido (Ley 25.326, art. 16).
 
-**Cómo pedirlo:** escribí a [CONTACTO] o pedilo por escrito en la escuela. No hace falta ninguna fórmula especial; solo que podamos confirmar quién sos (Decreto 1558/2001, anexo I, art. 14). También podés corregir tu teléfono desde tu espacio en Puente.
+**Cómo pedirlo:** escribí a soporte@puentepictos.app o pedilo por escrito en la escuela. No hace falta ninguna fórmula especial; solo que podamos confirmar quién sos (Decreto 1558/2001, anexo I, art. 14). También podés corregir tu teléfono desde tu espacio en Puente.
 
 Si no te responden en esos plazos, o la respuesta no te alcanza, podés hacer una denuncia gratuita ante la **Agencia de Acceso a la Información Pública (AAIP)**, el organismo que controla esta ley: <https://www.argentina.gob.ar/denunciar-incumplimientos-de-la-ley-de-proteccion-de-datos-personales>.
 
 # 10. Es voluntario y lo podés retirar
 
 - Participar es **voluntario**. **No participar no afecta la escolaridad** de tu hijo o hija: la escuela seguirá comunicándose con vos como siempre (cuaderno, reuniones, mensajes).
-- Podés **retirar tu consentimiento cuando quieras**, sin dar explicaciones: desde tu espacio en Puente, escribiendo a [CONTACTO] o avisando en la escuela. Retirarlo no vuelve ilegal lo que se hizo antes (Decreto 1558/2001, anexo I, art. 5), pero desde ese momento no se cargan más datos y se borran los existentes dentro de los 5 días hábiles.
+- Podés **retirar tu consentimiento cuando quieras**, sin dar explicaciones: desde tu espacio en Puente, escribiendo a soporte@puentepictos.app o avisando en la escuela. Retirarlo no vuelve ilegal lo que se hizo antes (Decreto 1558/2001, anexo I, art. 5), pero desde ese momento no se cargan más datos y se borran los existentes dentro de los 5 días hábiles.
 - Tu hijo o hija también tiene derecho a ser escuchado según su edad y madurez (Ley 26.061, arts. 3 y 24). Si muestra que no quiere participar, lo vamos a respetar. Para eso hay una versión en fácil, con pictogramas, al final.
 
 \newpage

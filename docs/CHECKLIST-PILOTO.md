@@ -41,7 +41,7 @@ Estado: ☐ pendiente · ☑ hecho
 ## 4. Legal y escuela
 - ☐ Aval por escrito de la dirección de la escuela (y, si corresponde, del Ministerio de Educación de Santa Fe o la supervisión).
 - ☐ Consentimiento informado firmado por cada familia/tutor: qué datos, para qué, quién los ve, dónde se guardan, uso de IA, cuánto tiempo, cómo pedir acceso, corrección o borrado.
-- ☐ Política de privacidad y términos de uso publicados en la app. **Borrador** listo (`privacidad.html`, `terminos.html`, link en el pie de todas las páginas, el consentimiento de la familia linkea y guarda la versión). Falta: revisión legal, completar `[CONTACTO]`, `[RESPONSABLE]` y `[REGIÓN]`, y subir `VERSION_PRIVACIDAD` al publicar el texto final.
+- ☐ Política de privacidad y términos de uso publicados en la app. **Borrador** listo (`privacidad.html`, `terminos.html`, link en el pie de todas las páginas, el consentimiento de la familia linkea y guarda la versión). Falta: revisión legal, completar `[RESPONSABLE]` y `[REGIÓN]`, y subir `VERSION_PRIVACIDAD` al publicar el texto final.
 - ☐ Evaluar inscripción de la base en el Registro Nacional de Bases de Datos (AAIP).
 - ◐ Responsable del tratamiento: **Puente** (decidido 1/11/2026). ☐ Falta: confirmar con el abogado si es persona física o asociación civil, y definir un contacto para reclamos. Documentos de `docs/piloto/` ajustados (borradores).
 - ☐ Aval de la dirección de **cada** seño que participe (puede haber más de una escuela).

@@ -62,7 +62,7 @@ La inscribe el **responsable**: quien es titular de la base y decide para qué y
 | Modo de interrelacionar la información | Por alumno: ficha, días y chat vinculados a la escuela y a las docentes asignadas |
 | Medidas de seguridad y quién accede | Ingreso con código por email, sesiones firmadas, acceso por roles, límites de uso, copias de seguridad, acuerdo de confidencialidad, plan de incidentes |
 | Tiempo de conservación | Días publicados 365 días; chat 30 días; fichas mientras dure el piloto |
-| Cómo ejercer acceso y rectificación | Pedido a [CONTACTO] o en la escuela; plazos de los arts. 14 y 16 de la Ley 25.326 |
+| Cómo ejercer acceso y rectificación | Pedido a soporte@puentepictos.app o en la escuela; plazos de los arts. 14 y 16 de la Ley 25.326 |
 
 5. **Esperar la constancia.** Cuando se aprueba, llega por mail la constancia con el número de registro. Si hay observaciones, la AAIP escribe al mail informado.
 6. **Mantenerla al día.** La inscripción no vence, pero hay que **modificarla** si cambia algo de lo declarado (nuevos datos, nuevos proveedores, nueva finalidad). Ningún usuario puede tener datos de naturaleza distinta a los declarados (Ley 25.326, art. 21, inc. 3).
