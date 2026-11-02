@@ -160,6 +160,7 @@ let MODO_DB = false, FICHAS = {};
 (async () => {
   const e = await fetch("api/auth").then(r => r.json()).catch(() => ({ modo: "demo" }));
   if (e.modo === "db") return entrarConCuenta(e);
+  if (e.abierto) return modoAbierto();
   const g = document.getElementById("pinGate"), guardado = localStorage.getItem("puente_pin");
   if (guardado && await chequearPin(guardado).catch(() => true)) return;
   g.hidden = false; document.getElementById("pinIn").focus();
@@ -169,6 +170,19 @@ let MODO_DB = false, FICHAS = {};
     else document.getElementById("pinErr").textContent = "PIN incorrecto. Probá de nuevo.";
   };
 })();
+
+// Demo abierto: sin PIN, datos solo en este navegador, sin links para familias y sin IA.
+let ABIERTO = false;
+function modoAbierto() {
+  ABIERTO = true;
+  const aviso = document.createElement("div");
+  aviso.className = "card cinta"; aviso.id = "avisoDemo"; aviso.setAttribute("role", "note");
+  aviso.innerHTML = '<span class="rotulo">Demo para probar</span><p class="muted" style="margin:4px 0 0">Usá datos de prueba, nunca datos reales de chicos. Lo que cargás queda solo en este navegador y no se envía a nadie. Esta demo no usa IA.</p>';
+  document.querySelector(".pagina").prepend(aviso);
+  $("descF").textContent = "En la demo no se crean links para familias. Así lo vería la familia en casa: tocá la pestaña Familia de arriba después de armar un día.";
+  ["btnLinkF", "alumnoF", "linkF"].forEach(id => $(id).hidden = true);
+  $("linkF").style.display = "none";
+}
 
 let ALUMNOS = ["Juan", "Sofía", "Mateo", "Valentina"];
 const EJEMPLO = "Llegó contento, desayunó bien. A las 9 hicimos música y le encantó tocar el tambor. A las 11 en el recreo se angustió por el ruido y lloró un rato, lo calmamos con los auriculares. Después almorzó poco. A la tarde pintó con témperas y saludó solito a sus compañeros al irse.";
@@ -392,6 +406,7 @@ function mostrarLink() {
 }
 $("alumnoF").onchange = mostrarLink;
 async function publicarFamilia(alumno, soloSiExiste) {
+  if (ABIERTO) return;
   if (MODO_DB) return publicarConCuenta(alumno);
   const tk = tokens()[alumno];
   if (soloSiExiste && !tk) return;

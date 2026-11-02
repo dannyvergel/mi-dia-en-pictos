@@ -25,7 +25,7 @@ module.exports = async (req, res) => {
     const a = await exigirVisiblePorNombre(yo, b.alumno);
     nombre = a?.nombre || String(b.alumno || "").slice(0, 40);
   } catch (e) { return manejarError(res, e); }
-  if (!process.env.OPENROUTER_API_KEY) return res.status(503).json({ error: "sin key" });
+  if (!require("./_lib/pin").iaActiva()) return res.status(503).json({ error: "sin key" });
   const fecha = b.fecha || hoyLocal();
   try {
     const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {

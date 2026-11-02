@@ -142,7 +142,7 @@ module.exports = async (req, res) => {
   let traza = [], resultado, modo;
   const h = crearHerramientas(ctx);
   try {
-    if (!process.env.OPENROUTER_API_KEY) throw Object.assign(new Error("sin key"), { demo: true });
+    if (!require("./_lib/pin").iaActiva()) throw Object.assign(new Error("sin key"), { demo: true });
     resultado = await correrAgente(ctx, h, traza);
     modo = "ia";
     if (!ctx.agenda) { // el modelo no armó agenda: la completamos

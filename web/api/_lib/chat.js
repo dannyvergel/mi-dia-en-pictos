@@ -145,7 +145,7 @@ async function preguntar(d, pregunta, { historial = [], quien } = {}) {
   const p = String(pregunta || "").trim().slice(0, MAX_PREGUNTA);
   const regla = prefiltro(p);
   if (regla) { registrarNegativa("prefiltro:" + regla, quien); return { respuesta: negativa(d.alumno), modo: "fuera_de_tema", en_tema: false }; }
-  if (!process.env.OPENROUTER_API_KEY) return { respuesta: SIN_IA, modo: "demo", en_tema: true };
+  if (!require("./pin").iaActiva()) return { respuesta: SIN_IA, modo: "demo", en_tema: true };
 
   const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
