@@ -172,6 +172,8 @@
       <a class="big" id="btnEntrar" href="login.html">Entrar</a>
       <a class="big alt" id="btnFamilia" href="login.html?familia">Soy familia</a>
     </div>
+    <a class="big alt chico demo-btn" id="btnDemo" href="https://puente-pictos-demo.vercel.app/cuaderno.html">Probar la demo, sin cuenta</a>
+    <p class="muted chiquito demo-txt">Con datos de prueba: lo que cargás queda en tu navegador.</p>
     <p class="muted" id="sesionTxt" hidden></p>
 
     <h3 class="sub" style="margin-top:22px">Cómo funciona</h3>
@@ -309,6 +311,7 @@
       <a class="big" href="login.html">Entrar</a>
       <a class="big alt" href="login.html?familia">Soy familia</a>
     </div>
+    <p style="text-align:center;margin:6px 0"><a class="demo-link" href="https://puente-pictos-demo.vercel.app/cuaderno.html">Probar la demo, sin cuenta</a></p>
     <p class="muted chiquito" style="text-align:center">¿Querés saber más? <a href="presentacion.html">Mirá la presentación</a>.</p>
   </section>
 </div></main>
@@ -327,7 +330,8 @@ document.querySelectorAll("#ejemplo .picto").forEach(p => p.onclick = () => {
 fetch("api/auth", { credentials: "same-origin" }).then(r => r.ok ? r.json() : null).then(e => {
   if (!e) return;
   const entrar = document.getElementById("btnEntrar");
-  if (e.modo === "demo") { entrar.href = "cuaderno.html"; return; }
+  // En el propio demo, "Probar la demo" abre el Cuaderno de acá mismo.
+  if (e.modo === "demo") { entrar.href = "cuaderno.html"; document.querySelectorAll('a[href$="demo.vercel.app/cuaderno.html"]').forEach(a => a.href = "cuaderno.html"); return; }
   const s = e.sesion;
   if (!s) return;
   const txt = document.getElementById("sesionTxt");

@@ -306,3 +306,7 @@ details > summary { min-height: 32px; }
 /* Alto contraste del sistema */
 @media (forced-colors: active) { .big, nav button, .picto { border: 1px solid ButtonText; } }
 main[tabindex="-1"]:focus, main[tabindex="-1"]:focus-visible { outline: none; box-shadow: none; }
+
+/* Portada: botón para probar la demo abierta (sin cuenta). */
+.demo-btn { display: block; text-align: center; margin-top: 10px; }
+.demo-txt { text-align: center; margin: 4px 0 0; }

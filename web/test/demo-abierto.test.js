@@ -54,3 +54,9 @@ test("el cuaderno tiene el modo abierto: cartel de datos de prueba y sin links",
   assert.ok(h.includes("nunca datos reales de chicos"));
   assert.ok(h.includes("if (ABIERTO) return;"));
 });
+
+test("la portada tiene el botón «Probar la demo» hacia el demo abierto", () => {
+  const h = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+  assert.ok(h.includes('id="btnDemo" href="https://puente-pictos-demo.vercel.app/cuaderno.html"'));
+  assert.ok(!/PIN[^<]{0,20}\b\d{4}\b/.test(h), "la portada no muestra el PIN");
+});
