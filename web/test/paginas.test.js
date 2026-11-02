@@ -60,7 +60,7 @@ test("el Cuaderno del día se movió a cuaderno.html y los links siguen andando"
   assert.ok(leer("docente.html").includes('href="cuaderno.html"'));
   assert.match(leer("login.html"), /"volver"\) === "cuaderno" \? "cuaderno\.html"/);
   assert.ok(leer("sw.js").includes("'cuaderno.html'"));
-  assert.equal(JSON.parse(leer("manifest.json")).start_url, "cuaderno.html");
+  assert.equal(JSON.parse(leer("manifest.json")).start_url, "/login.html?app");
   // El login de familias, los links de invitación (#invitacion=) y familia.html no cambian.
   assert.ok(leer("login.html").includes("#invitacion=") && leer("login.html").includes('location.search.includes("familia")'));
 });
@@ -102,4 +102,21 @@ test("admin: la plataforma ve las solicitudes de la portada", () => {
   const a = leer("admin.html");
   assert.ok(a.includes('id="listaSol"') && a.includes('data-a="aprobar"') && a.includes('data-a="rechazar"'));
   assert.ok(a.includes("Quiero sumarme al piloto"));
+});
+
+test("PWA instalable: manifest con íconos PNG (192, 512 y maskable) y enlazado en todas las páginas", () => {
+  const fs = require("fs"), path = require("path");
+  const m = JSON.parse(leer("manifest.json"));
+  assert.equal(m.display, "standalone");
+  assert.equal(m.scope, "/");
+  for (const [tam, prop] of [["192x192", "any"], ["512x512", "any"], ["512x512", "maskable"]]) {
+    const i = m.icons.find(x => x.sizes === tam && x.purpose === prop && x.type === "image/png");
+    assert.ok(i, `falta ícono ${tam} ${prop}`);
+    assert.ok(fs.existsSync(path.join(__dirname, "..", i.src)), i.src);
+  }
+  for (const f of ["index.html", "cuaderno.html", "familia.html", "docente.html", "login.html", "admin.html", "privacidad.html", "terminos.html", "presentacion.html"]) {
+    const h = leer(f);
+    assert.ok(h.includes('rel="manifest"') && h.includes('rel="apple-touch-icon"'), f);
+  }
+  assert.ok(leer("pie.js").includes('serviceWorker.register("/sw.js")'));
 });

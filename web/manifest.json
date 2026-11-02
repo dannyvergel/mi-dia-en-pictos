@@ -1,1 +1,43 @@
-{ "name": "Puente · de la escuela a casa, en pictogramas", "short_name": "Puente", "id": "./", "start_url": "cuaderno.html", "display": "standalone", "background_color": "#fbf7ee", "theme_color": "#2f4a3e", "lang": "es-AR" }
+{
+  "name": "Puente · de la escuela a casa, en pictogramas",
+  "short_name": "Puente",
+  "description": "La seño cuenta el día y Puente lo convierte en pictogramas para el chico y su familia.",
+  "id": "/",
+  "start_url": "/login.html?app",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fbf7ee",
+  "theme_color": "#2f4a3e",
+  "lang": "es-AR",
+  "dir": "ltr",
+  "categories": [
+    "education"
+  ],
+  "icons": [
+    {
+      "src": "/icono-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icono-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icono-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icono.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

@@ -63,3 +63,6 @@
     }).catch(() => {});
   }
 })();
+
+// App instalable (PWA): el service worker se registra desde cualquier página que tenga el pie.
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
