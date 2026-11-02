@@ -52,7 +52,7 @@ Conviene evitar semanas con muchos feriados, actos o cierre de trimestre. Si en 
 | Semana −1 | **Firma de consentimientos con Puente** (hasta 5 días hábiles para devolverlos). Puente guarda los originales y la familia, una copia | Familias, Puente | Lista de alumnos que participan |
 | Semana 0 | **Alta por invitación:** Puente manda el link a cada seño; la seño entra, carga solo a los alumnos con consentimiento y manda el link (o la invitación por mail) a cada familia. Revisar el contador de cupos | Puente + seños | Cuentas activas (máx. 15) |
 | Semana 0 | **Capacitación de seños** (30 min): entrar con el link y el código, dictar el día, revisar antes de publicar, ficha, invitar a la familia, qué no cargar, a quién avisar si algo falla | Puente | Seños listas |
-| Semanas 1 a 6–8 | **Uso**. Soporte por [CONTACTO]. Mirada rápida semanal de los indicadores y de los links sin usar (reenviar o anular) | Seños, familias, Puente | Datos de uso |
+| Semanas 1 a 6–8 | **Uso**. Soporte por soporte@puentepictos.app. Mirada rápida semanal de los indicadores y de los links sin usar (reenviar o anular) | Seños, familias, Puente | Datos de uso |
 | Semana 3 | **Encuesta intermedia** (5 preguntas, 3 min) a seños y familias. Ajustes rápidos | Puente | Lista de mejoras |
 | Última semana | **Encuesta final** (10 preguntas) a seños y familias | Puente | Evaluación |
 | Cierre (+1 semana) | **Reunión de cierre** con las seños y sus direcciones: resultados y decisión | Todos | Decisión escrita |
@@ -130,7 +130,7 @@ Explicar en palabras simples, con el consentimiento en la mano:
 - Los datos se guardan **en servidores fuera de Argentina**, de empresas de tecnología. Por eso les pedimos un permiso especial.
 - Una **inteligencia artificial** ayuda a armar el día. Le mandamos solo el nombre de pila, nunca teléfonos ni mails, y está configurada para **no quedarse con los datos ni aprender de ellos**. La IA se puede equivocar: lo que vale es lo que dice la seño.
 - **Cuánto tiempo:** el chat se borra a los 30 días; los días, al año; la ficha, cuando termina el piloto.
-- Pueden **pedir ver, corregir o borrar** todo, y **retirarse cuando quieran**, escribiendo a [CONTACTO] o avisando en la escuela.
+- Pueden **pedir ver, corregir o borrar** todo, y **retirarse cuando quieran**, escribiendo a soporte@puentepictos.app o avisando en la escuela.
 
 **4. La opinión de los chicos (5 min) — seño**
 
@@ -148,6 +148,6 @@ Preguntas que suelen aparecer:
 
 **6. Cierre (2 min) — dirección**
 
-> "Llévense el consentimiento, léanlo tranquilos y devuélvanlo firmado (o sin firmar) hasta el [FECHA]. Si tienen dudas, estamos en la escuela o en [CONTACTO]. Cuando lo firmen, les llega el link para entrar. Gracias."
+> "Llévense el consentimiento, léanlo tranquilos y devuélvanlo firmado (o sin firmar) hasta el [FECHA]. Si tienen dudas, estamos en la escuela o en soporte@puentepictos.app. Cuando lo firmen, les llega el link para entrar. Gracias."
 
 **Después:** anotar las dudas que surgieron para mejorar el material. **No cargar a ningún alumno ni mandar ningún link a una familia hasta tener su consentimiento firmado.**

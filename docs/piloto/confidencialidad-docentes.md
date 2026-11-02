@@ -28,7 +28,7 @@ Email con el que entrás a Puente: \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\
 2. **Nunca compartas el código de 6 números** que te llega por mail. Puente nunca te lo va a pedir por teléfono, WhatsApp ni mail.
 3. Protegé tu email: si alguien entra a tu mail, puede entrar a Puente. Usá contraseña fuerte y, si podés, verificación en dos pasos.
 4. **Cerrá la sesión** en computadoras compartidas (sala de maestros, dirección). Bloqueá tu celular con clave.
-5. Si perdés el celular o la compu con la sesión abierta, o creés que alguien entró a tu cuenta, **avisá en el día** a la dirección y a Puente ([CONTACTO]).
+5. Si perdés el celular o la compu con la sesión abierta, o creés que alguien entró a tu cuenta, **avisá en el día** a la dirección y a Puente (soporte@puentepictos.app).
 
 # 4. Qué se carga y qué no
 
@@ -56,12 +56,12 @@ Email con el que entrás a Puente: \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\
 3. No uses lo que dice el agente de progreso como diagnóstico ni como única base para decidir algo sobre un alumno.
 4. No saques capturas de pantalla ni descargues información de Puente a tu celular o a grupos de WhatsApp.
 5. No copies datos de Puente a otras herramientas de IA (ChatGPT u otras).
-6. Si una familia te pide acceso, corrección o borrado de datos, pasale el pedido a la dirección o a [CONTACTO] ese mismo día.
+6. Si una familia te pide acceso, corrección o borrado de datos, pasale el pedido a la dirección o a soporte@puentepictos.app ese mismo día.
 7. Si en Puente aparece algo que hace pensar que se están vulnerando derechos de un chico o chica, se sigue el protocolo institucional de la escuela, igual que fuera de Puente (Ley 26.061, art. 30).
 
 # 6. Si algo sale mal
 
-Avisá **en el día** a la dirección y a Puente ([CONTACTO]) si:
+Avisá **en el día** a la dirección y a Puente (soporte@puentepictos.app) si:
 
 - ves datos de un alumno que no es tuyo,
 - publicaste algo en el alumno equivocado,

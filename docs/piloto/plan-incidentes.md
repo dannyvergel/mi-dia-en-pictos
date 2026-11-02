@@ -38,7 +38,7 @@ Los plazos corren desde que alguien de Puente o de la escuela **se entera**.
 
 ## Paso 1. Detectar y registrar (enseguida)
 
-- Cualquiera que lo note avisa a la dirección y al responsable técnico por [CONTACTO], **en el día**.
+- Cualquiera que lo note avisa a la dirección y al responsable técnico por soporte@puentepictos.app, **en el día**.
 - El responsable técnico abre una entrada en el **registro de incidentes** (punto 5) con fecha, hora y quién avisó.
 - **No borrar nada** que sirva para entender qué pasó (logs, mails, capturas).
 
@@ -143,8 +143,8 @@ Una ficha por incidente (en papel o planilla), guardada por el responsable del t
 >
 > Lo que te recomendamos: [si aplica: cambiar la contraseña de tu mail, no responder mails sospechosos].
 >
-> Recordá que podés pedir ver, corregir o borrar tus datos, o retirar tu consentimiento, escribiendo a [CONTACTO].
+> Recordá que podés pedir ver, corregir o borrar tus datos, o retirar tu consentimiento, escribiendo a soporte@puentepictos.app.
 >
-> Lamentamos mucho lo ocurrido. Para cualquier duda: [CONTACTO].
+> Lamentamos mucho lo ocurrido. Para cualquier duda: soporte@puentepictos.app.
 
 **Normas y guías citadas:** Ley 25.326 (art. 9 y art. 32, que incorpora el art. 157 bis al Código Penal); Resolución AAIP 47/2018, anexo I, punto G (Incidentes de seguridad).
