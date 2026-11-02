@@ -110,6 +110,39 @@
     .pz-accion, .pz-escuchar { font-size: 14px; padding: 6px 12px; }
     .pz-form .big { padding: 0 14px; }
   }
+  .tarjetas { margin-top: 22px; }
+  /* ---------- Escritorio: todo a la vista, pizarrón a la derecha ---------- */
+  @media (min-width: 1000px) {
+    main.portada { max-width: 1240px; }
+    .portada .pagina { padding: 18px 22px 10px 40px; }
+    .portada-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(360px, .8fr); gap: 0 28px; align-items: start; }
+    .col-der .pz { margin-top: 0; }
+    .lema { font-size: 32px; }
+    .intro { font-size: 17px; }
+    .botones { margin: 12px 0 4px; }
+    .portada h3.sub { margin-top: 16px !important; }
+    .pasos { gap: 10px; }
+    .pasos li { padding: 8px 10px; }
+    .pasos img { width: 56px; height: 56px; }
+    .pasos span { font-size: 13px; line-height: 1.35; }
+    .pasos b { font-size: 19px; }
+    .tira.ejemplo .picto { padding: 6px 4px; }
+    .pz-pizarron { grid-template-columns: 76px 1fr; gap: 4px 12px; padding: 14px 14px 18px; }
+    .pz-cara { width: 76px; }
+    .pz-tiza { font-size: 20px; min-height: 5.2em; }
+    .pz-chips { gap: 6px; }
+    .pz-chip { font-size: 14px; padding: 4px 12px; }
+    .tarjetas { display: grid; grid-template-columns: 1fr 1fr 1.25fr; gap: 14px; align-items: start; margin-top: 20px; }
+    .tarjetas .card { margin: 0; height: 100%; }
+    .tarjetas .card.piloto { height: auto; }
+    .botones.final { display: none; }
+  }
+  @media (min-width: 1000px) and (max-height: 820px) {
+    .portada .pagina { padding-top: 12px; }
+    header { padding-top: 12px; padding-bottom: 10px; }
+    .intro { margin-bottom: 0; }
+    .tira.ejemplo .picto img { max-height: 76px; }
+  }
   @media (max-width: 640px) {
     .tira.ejemplo { grid-template-columns: repeat(3, 1fr); }
     .pasos { grid-template-columns: 1fr; }
@@ -129,6 +162,8 @@
 <main id="contenido" tabindex="-1" class="portada" style="margin-top:14px"><div class="pagina" style="border-radius:14px">
 
   <section class="on" aria-labelledby="lema">
+   <div class="portada-grid">
+    <div class="col-izq">
     <h2 class="lema" id="lema">Cómo fue el día en la escuela, contado en pictogramas.</h2>
     <p class="intro">La seño dicta cómo fue el día, Puente lo arma en pictogramas y la familia lo ve en casa. Así el chico puede contarlo con dibujos, y en casa saben qué pasó.</p>
     <div class="botones">
@@ -137,14 +172,14 @@
     </div>
     <p class="muted" id="sesionTxt" hidden></p>
 
-    <h3 style="margin-top:22px">Cómo funciona</h3>
+    <h3 class="sub" style="margin-top:22px">Cómo funciona</h3>
     <ol class="pasos">
       <li><img src="https://static.arasaac.org/pictograms/2456/2456_300.png" alt="" width="72" height="72" loading="lazy"><span class="n">1</span><b>La seño dicta el día</b><span>Lo cuenta con su voz o lo escribe, en 20 segundos.</span></li>
       <li><img src="https://static.arasaac.org/pictograms/24791/24791_300.png" alt="" width="72" height="72" loading="lazy"><span class="n">2</span><b>Se arma en pictogramas</b><span>Cada actividad, en orden, con un dibujo que se toca y se escucha.</span></li>
       <li><img src="https://static.arasaac.org/pictograms/6964/6964_300.png" alt="" width="72" height="72" loading="lazy"><span class="n">3</span><b>La familia lo ve en casa</b><span>Entra con su email y ve el día, los logros y lo que viene.</span></li>
     </ol>
 
-    <h3 style="margin-top:22px">Un día de ejemplo</h3>
+    <h3 class="sub" style="margin-top:22px">Un día de ejemplo</h3>
     <p class="muted" style="margin-top:0">Tocá un dibujo para escucharlo. (Ejemplo con datos ficticios.)</p>
     <div class="tira ejemplo" id="ejemplo">
       <div class="picto bien" data-h="Llegamos a la escuela"><img src="https://static.arasaac.org/pictograms/32446/32446_300.png" alt="Escuela" width="120" height="120"><div class="t">Llegar</div><div class="h">08:00</div></div>
@@ -154,8 +189,9 @@
       <div class="picto bien" data-h="Almorzamos"><img src="https://static.arasaac.org/pictograms/28207/28207_300.png" alt="Almorzar" width="120" height="120"><div class="t">Almorzar</div><div class="h">12:00</div></div>
       <div class="picto bien" data-h="Nos saludamos y fuimos a casa"><img src="https://static.arasaac.org/pictograms/6610/6610_300.png" alt="Saludar" width="120" height="120"><div class="t">Saludar</div><div class="h">15:00</div></div>
     </div>
+    </div><!-- /col-izq -->
 
-
+    <aside class="col-der" aria-label="Preguntas frecuentes">
     <!-- Preguntale al pizarrón: FAQ 100 % en el navegador (pizarron.js), sin IA ni API. Sin JavaScript queda la lista de abajo. -->
     <section class="on pz" id="preguntale" aria-labelledby="pzTitulo">
       <h3 id="pzTitulo">Preguntale al pizarrón</h3>
@@ -206,8 +242,11 @@
         </dl>
       </details>
     </section>
+    </aside>
+   </div><!-- /portada-grid -->
 
-    <div class="card" style="margin-top:22px">
+   <div class="tarjetas">
+    <div class="card">
       <span class="rotulo">Para quién es</span>
       <ul class="lista-puntos">
         <li>Escuelas de <b>educación especial</b>: chicos con TEA, discapacidad intelectual o necesidades de comunicación.</li>
@@ -256,8 +295,9 @@
       </details>
       <p class="muted chiquito" style="margin:.5em 0 0">o escribinos a <a href="mailto:soporte@puentepictos.app?subject=Quiero%20sumarme%20al%20piloto%20de%20Puente">soporte@puentepictos.app</a></p>
     </div>
+   </div><!-- /tarjetas -->
 
-    <div class="botones">
+    <div class="botones final">
       <a class="big" href="login.html">Entrar</a>
       <a class="big alt" href="login.html?familia">Soy familia</a>
     </div>
