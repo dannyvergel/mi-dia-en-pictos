@@ -98,10 +98,8 @@
 
     <div class="card cinta" id="setup" hidden>
       <span class="rotulo">Primera vez en Puente</span>
-      <p class="muted">Creá la cuenta de la primera docente (va a poder sumar a las demás). Necesitás el PIN de docente que está configurado en Vercel. Después entrás con un código que te llega a ese email.</p>
+      <p class="muted">Creá la cuenta de la plataforma: tiene que ser el email de ADMIN_EMAIL y necesitás el PIN de docente que está configurado en Vercel. No lleva escuela: las escuelas se dan de alta después, desde el panel de la plataforma, y cada directivo entra con su link de invitación. Después entrás con un código que te llega a ese email.</p>
       <form id="fSetup">
-        <label for="sEscuela">Escuela</label><input id="sEscuela" maxlength="120" aria-describedby="sEscAyuda">
-        <p class="muted" id="sEscAyuda" style="margin:2px 0 0">Buscala en el padrón oficial por nombre, número o localidad. Si no aparece, escribí el nombre.</p>
         <label for="sNombre">Tu nombre</label><input id="sNombre" required maxlength="80" autocomplete="name">
         <label for="sEmail">Tu email</label><input id="sEmail" type="email" required autocomplete="email">
         <label for="sPin">PIN de docente</label><input id="sPin" type="password" inputmode="numeric" required>
@@ -136,7 +134,7 @@
     <div class="card cinta">
       <span class="rotulo">Puente está en modo demo</span>
       <p>Todavía no hay base de datos conectada: las docentes entran con el PIN desde el inicio y las familias con el link privado que les manda la escuela.</p>
-      <a class="big" href="index.html" style="text-align:center;text-decoration:none">Ir al inicio</a>
+      <a class="big" href="cuaderno.html" style="text-align:center;text-decoration:none">Ir al Cuaderno del día</a>
     </div>
   </section>
 </div></main>
@@ -150,7 +148,6 @@ const { api } = Puente;
 // Token que da GET /api/auth sin sesión: habilita buscar escuelas del padrón desde estos formularios públicos.
 let FORMULARIO = null;
 const renovar = async () => { try { FORMULARIO = (await Puente.estado()).formulario || null; } catch {} };
-const acSetup = Puente.autocompletarEscuela($("sEscuela"), { formulario: () => FORMULARIO, renovar });
 const acSolicitud = Puente.autocompletarEscuela($("soEscuela"), { formulario: () => FORMULARIO, renovar });
 function mostrar(s) {
   document.querySelectorAll("section").forEach(x => x.classList.toggle("on", x.id === s));
@@ -160,7 +157,10 @@ function mostrar(s) {
 }
 document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => mostrar(b.dataset.s));
 const msg = (id, texto, error = true) => { $(id).textContent = texto; $(id).className = error ? "error" : "muted"; };
-const ir = s => location.href = s.tipo === "docente" ? (new URLSearchParams(location.search).get("volver") === "cuaderno" ? "index.html" : "docente.html") : "familia.html";
+// Después de entrar: la plataforma (ADMIN_EMAIL) va a su panel; las docentes al panel (o al Cuaderno si venían de ahí); las familias a su espacio.
+const destino = s => s.tipo !== "docente" ? "familia.html"
+  : new URLSearchParams(location.search).get("volver") === "cuaderno" ? "cuaderno.html" : s.es_plataforma ? "admin.html" : "docente.html";
+const ir = s => location.href = destino(s);
 function ocupado(form, si) { form.querySelectorAll("button").forEach(b => b.disabled = si); }
 
 (async () => {
@@ -242,18 +242,18 @@ async function invitacion(token) {
     ev.preventDefault(); ocupado(ev.target, true);
     try {
       const r = await api("api/auth", { method: "POST", body: { accion: "invitacion_verificar", token, email: $("iEmail").value, codigo: $("iCod").value, nombre: $("iNombre").value } });
-      location.href = r.sesion.tipo === "docente" ? "docente.html" : "familia.html";
+      location.href = destino(r.sesion);
     } catch (e) { msg("iMsg", e.message); $("iCod").value = ""; }
     finally { ocupado(ev.target, false); }
   };
   $("iOtro").onclick = () => { $("iCodigo").hidden = true; $("iPedir").hidden = false; msg("iMsg", "", false); };
 }
 
-// Primera docente: PIN + email. No abre sesión: después entra con el código que le llega.
+// Primera cuenta (la de la plataforma, sin escuela): PIN + email de ADMIN_EMAIL. No abre sesión: después entra con el código que le llega.
 $("fSetup").onsubmit = async ev => {
   ev.preventDefault(); ocupado(ev.target, true);
   try {
-    const r = await api("api/auth", { method: "POST", body: { accion: "setup", escuela: $("sEscuela").value, cue: acSetup.seleccion?.cue || "", nombre: $("sNombre").value, email: $("sEmail").value, pin: $("sPin").value } });
+    const r = await api("api/auth", { method: "POST", body: { accion: "setup", nombre: $("sNombre").value, email: $("sEmail").value, pin: $("sPin").value } });
     $("setup").hidden = true; $("loginDocente").hidden = false; $("dPie").hidden = false;
     $("dEmail").value = r.email;
     try { await pedirDocente(r.email); } catch (e) { msg("dMsg", e.message); }

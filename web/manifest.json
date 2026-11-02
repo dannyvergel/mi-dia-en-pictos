@@ -1,1 +1,1 @@
-{ "name": "Puente · de la escuela a casa, en pictogramas", "short_name": "Puente", "start_url": ".", "display": "standalone", "background_color": "#fbf7ee", "theme_color": "#2f4a3e", "lang": "es-AR" }
+{ "name": "Puente · de la escuela a casa, en pictogramas", "short_name": "Puente", "id": "./", "start_url": "cuaderno.html", "display": "standalone", "background_color": "#fbf7ee", "theme_color": "#2f4a3e", "lang": "es-AR" }
