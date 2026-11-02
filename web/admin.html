@@ -44,6 +44,7 @@
 <script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
+<a class="saltar" href="#contenido">Saltar al contenido</a>
 <header><h1>Panel de la plataforma</h1><div class="bajada">escuelas, invitaciones y cupos del piloto</div><span class="tiza"></span></header>
 <nav id="tabs" hidden>
   <button class="on" data-s="escuelas">Escuelas</button>
@@ -52,14 +53,14 @@
   <button data-s="registro">Registro</button>
   <button data-s="cuenta">Mi cuenta</button>
 </nav>
-<main><div class="pagina">
+<main id="contenido" tabindex="-1"><div class="pagina">
   <p class="vacio" id="cargando">Cargando…</p>
 
   <section id="sinAcceso">
     <div class="card cinta">
       <span class="rotulo">Este panel es solo de la plataforma</span>
       <p>Solo la cuenta de administración de Puente puede entrar acá. Si sos directivo o docente, tu panel es otro.</p>
-      <a class="big" href="docente.html" style="text-align:center;text-decoration:none">Ir a mi panel</a>
+      <a class="big" href="docente.html">Ir a mi panel</a>
     </div>
   </section>
 
@@ -112,7 +113,7 @@
           <div><label for="feAvalFecha">Fecha del aval</label><input id="feAvalFecha" type="date"></div>
           <div><label for="feAvalPor">Quién lo firmó</label><input id="feAvalPor" maxlength="120"></div>
         </div>
-        <label for="feNotas">Notas</label><textarea id="feNotas" maxlength="2000" style="min-height:64px"></textarea>
+        <label for="feNotas">Notas</label><textarea class="corto" id="feNotas" maxlength="2000"></textarea>
         <div class="fila"><button class="big">Guardar ficha</button><button type="button" class="big alt" id="feCerrar">Cerrar</button></div>
       </form>
       <p class="muted" id="msgFicha"></p>
@@ -156,7 +157,7 @@
     <div class="card">
       <span class="rotulo">Registro de accesos de toda la plataforma</span>
       <p class="muted">Sin datos personales: la cuenta va como código (email cifrado) y la red truncada. Se guarda <span id="regPlazo">365</span> días.</p>
-      <div class="fila"><select id="regEvento"><option value="">Todos los eventos</option></select><button type="button" class="big alt chico" id="regCargar" style="width:auto;margin:0;padding:0 14px">Actualizar</button></div>
+      <div class="fila"><select id="regEvento"><option value="">Todos los eventos</option></select><button type="button" class="big alt chico auto" id="regCargar">Actualizar</button></div>
       <div id="regLista" style="overflow-x:auto;margin-top:10px"><p class="vacio">Cargando…</p></div>
     </div>
     <div class="card">
@@ -223,7 +224,7 @@ function cajaLink(el, l) {
   el.innerHTML = `<div class="link-nuevo"><b>Link listo</b> <span class="muted">· ${esc(l.escuela || "")} · ${l.es_admin ? "directivo/a (admin)" : "docente"} · vence ${esc(fecha(l.expira))} · ${l.usos_max === 1 ? "un solo uso" : l.usos_max + " usos"}</span>
     <input readonly value="${esc(l.url)}" aria-label="Link de invitación">
     <div class="link-acciones"><button type="button" class="big chico" data-copiar>Copiar link</button>
-    <a class="big alt chico" href="${esc(l.whatsapp)}" target="_blank" rel="noopener" style="text-decoration:none;text-align:center">Compartir por WhatsApp</a></div>
+    <a class="big alt chico" href="${esc(l.whatsapp)}" target="_blank" rel="noopener">Compartir por WhatsApp</a></div>
     <p class="muted" style="margin:6px 0 0">Copialo ahora: después no se puede volver a ver.</p></div>`;
   const inp = el.querySelector("input");
   inp.onfocus = () => inp.select();
@@ -236,7 +237,7 @@ function filaEnlace(l) {
   const quien = l.tipo === "familia" ? `Familia de ${esc(l.alumno || "?")}${l.etiqueta ? " · " + esc(l.etiqueta) : ""}` : `${l.es_admin ? "Directivo/a" : "Docente"}${l.etiqueta ? " · " + esc(l.etiqueta) : ""}`;
   return `<div class="enl"><span><b>${quien}</b> <span class="muted">· ${esc(l.escuela || "")} · creado ${esc(fecha(l.creado))}${l.creado_por ? " por " + esc(l.creado_por) : ""} · ${l.estado === "pendiente" ? "vence " + esc(fecha(l.expira)) : ESTADOS[l.estado]}</span></span>
     <span>${l.estado === "pendiente" ? '<span class="sello avanzando">pendiente</span>' : `<span class="sello">${ESTADOS[l.estado]}</span>`}
-    ${l.estado === "pendiente" ? `<button type="button" class="quitar" data-revocar="${l.id}" style="font-size:14px">anular</button>` : ""}</span></div>`;
+    ${l.estado === "pendiente" ? `<button type="button" class="quitar txt" data-revocar="${l.id}">anular</button>` : ""}</span></div>`;
 }
 async function crearLink(body) { return (await api("api/docentes", { method: "POST", body: { accion: "invitacion_crear", ...body } })).enlace; }
 
@@ -366,7 +367,7 @@ async function cargarSolicitudes() {
         <label>Escuela en Puente</label><select data-k="escuela">${opciones(s)}</select>
         <input type="text" data-k="nueva" maxlength="120" value="${esc(s.escuela)}" hidden placeholder="Nombre de la escuela nueva">
         <label class="check"><input type="checkbox" data-k="admin" ${s.es_director ? "checked" : ""}> Queda admin de la escuela</label>
-        <div class="fila"><button class="big chico" data-a="aprobar">Aprobar</button><button class="big alt chico" data-a="rechazar" style="color:var(--bad);border-color:var(--bad)">Rechazar</button></div>
+        <div class="fila"><button class="big chico" data-a="aprobar">Aprobar</button><button class="big alt chico peligro" data-a="rechazar">Rechazar</button></div>
       </div>`).join("") : `<p class="vacio">No hay pedidos pendientes.</p>`;
     $("listaSol").querySelectorAll(".sol").forEach(el => {
       const sel = el.querySelector('[data-k="escuela"]'), nueva = el.querySelector('[data-k="nueva"]'), adm = el.querySelector('[data-k="admin"]');

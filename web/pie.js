@@ -16,7 +16,7 @@
     <form class="pie-fb-form" id="pieFbForm" hidden>
       <label for="pieFbTxt">Tu comentario, idea o problema (no pongas datos de los chicos)</label>
       <textarea id="pieFbTxt" maxlength="2000" required></textarea>
-      <div class="fila"><button class="big chico" style="width:auto;margin:0;padding:0 16px">Enviar</button><button type="button" class="enlace" id="pieFbCancelar">Cancelar</button></div>
+      <div class="fila"><button class="big chico auto">Enviar</button><button type="button" class="enlace" id="pieFbCancelar">Cancelar</button></div>
       <p class="muted" id="pieFbMsg" role="status"></p>
     </form>
     <div class="pie-don" id="pieDon" hidden></div>
@@ -50,7 +50,7 @@
       document.getElementById("pieFbCancelar").onclick = () => { f.hidden = true; p.hidden = false; m.textContent = ""; };
       f.onsubmit = async ev => {
         ev.preventDefault();
-        const b = f.querySelector("button"); b.disabled = true; m.textContent = "Enviando…";
+        const b = f.querySelector("button"); b.disabled = true; b.setAttribute("aria-busy", "true"); m.textContent = "Enviando…";
         try {
           const r = await fetch("api/feedback", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ texto: document.getElementById("pieFbTxt").value, pagina: location.pathname.split("/").pop() || "index.html" }) });
@@ -58,7 +58,7 @@
           if (!r.ok) throw new Error(j.error || "No pudimos enviarlo. Probá en un rato.");
           document.getElementById("pieFbTxt").value = ""; m.textContent = j.mensaje || "¡Gracias! Lo recibimos.";
         } catch (e) { m.textContent = e.message; }
-        b.disabled = false;
+        b.disabled = false; b.removeAttribute("aria-busy");
       };
     }).catch(() => {});
   }

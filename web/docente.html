@@ -61,6 +61,7 @@
 <script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
+<a class="saltar" href="#contenido">Saltar al contenido</a>
 <header><h1>Panel de la seño</h1><div class="bajada" id="sub">fichas de familia</div><span class="tiza"></span></header>
 <nav>
   <button class="on" data-s="alumnos">Alumnos</button>
@@ -72,7 +73,7 @@
   <button data-s="docentes">Docentes</button>
   <button data-s="cuenta">Mi cuenta</button>
 </nav>
-<main><div class="pagina">
+<main id="contenido" tabindex="-1"><div class="pagina">
   <div class="barra"><a href="cuaderno.html">← Cuaderno del día</a><a href="admin.html" id="irAdmin" hidden>Panel de la plataforma →</a><span class="muted" id="quien"></span></div>
 
   <section id="alumnos" class="on">
@@ -81,7 +82,7 @@
       <div id="lista"><p class="vacio">Cargando…</p></div>
       <form id="fNuevo" class="fila" style="margin-top:10px">
         <input id="nuevoNombre" placeholder="Nombre de pila (ej: Juan o Juan P.)" maxlength="40" required>
-        <button class="big chico" style="width:auto;margin:0;padding:0 16px">Agregar</button>
+        <button class="big chico auto">Agregar</button>
       </form>
       <p class="muted" id="msgLista"></p>
     </div>
@@ -95,7 +96,7 @@
       <h3 style="margin-top:16px">Docentes a cargo</h3>
       <p class="muted">Ven y editan la ficha, cargan sus días y publican para la familia. Las admins de la escuela ven a todos los alumnos.</p>
       <div id="asignadas"></div>
-      <div class="fila" id="asignarFila"><select id="asignarSel" aria-label="Docente para asignar"></select><button type="button" class="big alt chico" id="asignarBtn" style="width:auto;margin:0;padding:0 16px">Asignar</button></div>
+      <div class="fila" id="asignarFila"><select id="asignarSel" aria-label="Docente para asignar"></select><button type="button" class="big alt chico auto" id="asignarBtn">Asignar</button></div>
 
       <h3 style="margin-top:16px">Contactos de la familia</h3>
       <p class="muted">Los emails que cargues acá son los que pueden entrar a Puente como familia de este alumno. Al guardar, a cada email nuevo le mandamos una invitación para entrar.</p>
@@ -130,7 +131,7 @@
       <p class="muted" id="consVia"></p>
 
       <button class="big" id="guardar">Guardar ficha</button>
-      <div class="fila"><a class="big alt chico" id="verFamilia" target="_blank" style="text-align:center;text-decoration:none">Ver como familia</a><button class="big alt chico" id="borrar" hidden style="color:var(--bad);border-color:var(--bad)">Borrar alumno</button></div>
+      <div class="fila"><a class="big alt chico" id="verFamilia" target="_blank">Ver como familia</a><button class="big alt chico peligro" id="borrar" hidden>Borrar alumno</button></div>
       <p id="msgEd" class="muted"></p>
     </div>
   </section>
@@ -151,9 +152,9 @@
       <div class="aviso">Datos de menores: solo nombre de pila (ej. «Juan» o «Juan P.»), sin apellidos, diagnósticos, datos de salud ni fotos.</div>
       <h3>1. Bajá la plantilla</h3>
       <div class="imp-bajar">
-        <button type="button" class="big alt chico" id="impBajarXlsx" style="width:auto;margin:0;padding:0 16px">Excel (.xlsx, dos hojas)</button>
-        <button type="button" class="big alt chico" id="impBajarDoc" style="width:auto;margin:0;padding:0 16px">CSV docentes</button>
-        <button type="button" class="big alt chico" id="impBajarAl" style="width:auto;margin:0;padding:0 16px">CSV alumnos y familias</button>
+        <button type="button" class="big alt chico auto" id="impBajarXlsx">Excel (.xlsx, dos hojas)</button>
+        <button type="button" class="big alt chico auto" id="impBajarDoc">CSV docentes</button>
+        <button type="button" class="big alt chico auto" id="impBajarAl">CSV alumnos y familias</button>
       </div>
       <p class="muted">Docentes: nombre, email, rol (grado o función) y admin (sí/no). Alumnos: nombre de pila, grado, emails de sus docentes y hasta 6 contactos de la familia (nombre, vínculo, email, teléfono). Las instrucciones están en la hoja «instrucciones» del Excel. Hasta 500 filas por vez.</p>
       <h3 style="margin-top:16px">2. Subí la planilla completa</h3>
@@ -212,7 +213,7 @@
           <div><label for="feAvalFecha">Fecha</label><input id="feAvalFecha" type="date"></div>
           <div><label for="feAvalPor">Quién lo firmó</label><input id="feAvalPor" maxlength="120" placeholder="Ej: Laura Pérez (directora)"></div>
         </div>
-        <label for="feNotas">Notas</label><textarea id="feNotas" maxlength="2000" style="min-height:64px"></textarea>
+        <label for="feNotas">Notas</label><textarea class="corto" id="feNotas" maxlength="2000"></textarea>
         <button class="big">Guardar ficha de la escuela</button>
       </form>
       <p class="muted">Fuente de la búsqueda: Padrón Oficial de Establecimientos Educativos, Ministerio de Educación de la Nación (actualizado el 07/09/2026).</p>
@@ -260,7 +261,7 @@
     <div class="card">
       <span class="rotulo">Registro de accesos</span>
       <p class="muted">Ingresos, intentos fallidos, fichas vistas, exportaciones, bajas y comentarios. Sin datos personales: la cuenta va como código (email cifrado), la red truncada. Se guarda <span id="regPlazo">365</span> días.</p>
-      <div class="fila"><select id="regEvento"><option value="">Todos los eventos</option></select><button type="button" class="big alt chico" id="regCargar" style="width:auto;margin:0;padding:0 14px">Actualizar</button></div>
+      <div class="fila"><select id="regEvento"><option value="">Todos los eventos</option></select><button type="button" class="big alt chico auto" id="regCargar">Actualizar</button></div>
       <div id="regLista" style="overflow-x:auto;margin-top:10px"><p class="vacio">Cargando…</p></div>
     </div>
   </section>
@@ -395,7 +396,7 @@ function abrir(id) {
   $("editor").hidden = false; msg("msgEd", "");
   $("edNom").textContent = actual.nombre; $("edNombre").value = actual.nombre;
   $("contactos").innerHTML = ""; actual.contactos.forEach(filaContacto); if (!actual.contactos.length) filaContacto();
-  $("apoyos").innerHTML = Object.entries(APOYOS).map(([k, t]) => `<label>${esc(t)}</label><textarea data-k="${k}" style="min-height:50px" maxlength="1000">${esc(actual.apoyos[k] || "")}</textarea>`).join("");
+  $("apoyos").innerHTML = Object.entries(APOYOS).map(([k, t]) => `<label>${esc(t)}</label><textarea class="corto" data-k="${k}" maxlength="1000">${esc(actual.apoyos[k] || "")}</textarea>`).join("");
   $("objetivos").innerHTML = ""; actual.objetivos.forEach(filaObjetivo); if (!actual.objetivos.length) filaObjetivo();
   const c = actual.consentimiento || {};
   $("consDado").checked = !!c.dado; $("consQuien").value = c.quien || ""; $("consFecha").value = c.fecha || "";
@@ -414,7 +415,7 @@ function cajaLink(el, l) {
   el.innerHTML = `<div class="link-nuevo"><b>Link listo</b> <span class="muted">· vence ${esc(fecha(l.expira))} · ${l.usos_max === 1 ? "un solo uso" : l.usos_max + " usos"}</span>
     <input readonly value="${esc(l.url)}" aria-label="Link de invitación">
     <div class="link-acciones"><button type="button" class="big chico" data-copiar>Copiar link</button>
-    <a class="big alt chico" href="${esc(l.whatsapp)}" target="_blank" rel="noopener" style="text-decoration:none;text-align:center">Compartir por WhatsApp</a></div>
+    <a class="big alt chico" href="${esc(l.whatsapp)}" target="_blank" rel="noopener">Compartir por WhatsApp</a></div>
     <p class="muted" style="margin:6px 0 0">Copialo ahora: después no se puede volver a ver.</p></div>`;
   const inp = el.querySelector("input");
   inp.onfocus = () => inp.select();
@@ -427,7 +428,7 @@ function filaEnlace(l, conRevocar) {
   const quien = l.tipo === "familia" ? `Familia de ${esc(l.alumno || "?")}${l.etiqueta ? " · " + esc(l.etiqueta) : ""}` : `${l.es_admin ? "Directivo/a" : "Docente"}${l.etiqueta ? " · " + esc(l.etiqueta) : ""}`;
   return `<div class="enl"><span><b>${quien}</b> <span class="muted">· ${esc(l.escuela || "")} · creado ${esc(fecha(l.creado))}${l.creado_por ? " por " + esc(l.creado_por) : ""} · ${l.estado === "pendiente" ? "vence " + esc(fecha(l.expira)) : ESTADOS[l.estado]}</span></span>
     <span>${l.estado === "pendiente" ? '<span class="sello avanzando">pendiente</span>' : `<span class="sello">${ESTADOS[l.estado]}</span>`}
-    ${conRevocar && l.estado === "pendiente" ? `<button type="button" class="quitar" data-revocar="${l.id}" style="font-size:14px">anular</button>` : ""}</span></div>`;
+    ${conRevocar && l.estado === "pendiente" ? `<button type="button" class="quitar txt" data-revocar="${l.id}">anular</button>` : ""}</span></div>`;
 }
 async function cargarInvitaciones() {
   try {
@@ -538,7 +539,7 @@ async function cargarDocentes() {
     $("docCupos").hidden = !r.cupos; $("docCupos").textContent = "Piloto: " + textoCupos(r.cupos); $("docCupos").classList.toggle("lleno", !!r.cupos?.completo);
     $("listaDoc").innerHTML = r.docentes.map(d => `<div class="fila-al" style="cursor:default"><span><b>${esc(d.nombre)}</b> <span class="muted">· ${esc(d.email)}</span></span>
       <span>${d.es_plataforma ? '<span class="sello avanzando">plataforma</span>' : ""} ${d.es_admin ? '<span class="sello avanzando">admin</span>' : ""}
-        ${!d.activo ? '<span class="sello">inactiva</span>' : (YO.es_admin && d.id !== r.yo ? `<button class="quitar" data-id="${d.id}" style="font-size:14px">desactivar</button>` : "")}</span></div>`).join("");
+        ${!d.activo ? '<span class="sello">inactiva</span>' : (YO.es_admin && d.id !== r.yo ? `<button class="quitar txt" data-id="${d.id}">desactivar</button>` : "")}</span></div>`).join("");
     $("listaDoc").querySelectorAll("button[data-id]").forEach(b => b.onclick = async () => {
       if (!confirm("¿Desactivar esta cuenta? No va a poder entrar más.")) return;
       try { await api("api/docentes", { method: "POST", body: { accion: "desactivar", id: Number(b.dataset.id) } }); cargarDocentes(); } catch (e) { alert(e.message); }
@@ -579,7 +580,7 @@ async function cargarSolicitudes() {
         <label>Escuela en Puente</label><select data-k="escuela">${opciones(s)}</select>
         <input type="text" data-k="nueva" maxlength="120" value="${esc(s.escuela)}" hidden placeholder="Nombre de la escuela nueva">
         <label class="check"><input type="checkbox" data-k="admin" ${s.es_director ? "checked" : ""}> También puede administrar la escuela (sumar docentes, ver solicitudes y todos los alumnos)</label>
-        <div class="fila"><button class="big chico" data-a="aprobar">Aprobar</button><button class="big alt chico" data-a="rechazar" style="color:var(--bad);border-color:var(--bad)">Rechazar</button></div>
+        <div class="fila"><button class="big chico" data-a="aprobar">Aprobar</button><button class="big alt chico peligro" data-a="rechazar">Rechazar</button></div>
       </div>`).join("") : `<p class="vacio">No hay pedidos pendientes.</p>`;
     $("listaSol").querySelectorAll(".sol").forEach(el => {
       const sel = el.querySelector('[data-k="escuela"]'), nueva = el.querySelector('[data-k="nueva"]'), adm = el.querySelector('[data-k="admin"]');
