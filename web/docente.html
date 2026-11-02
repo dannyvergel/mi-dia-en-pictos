@@ -14,7 +14,6 @@
   nav button[data-s="cuenta"] { --tab: #8fbf8a; }
   nav button[data-s="solicitudes"] { --tab: #e8998d; }
   nav button[data-s="escuela"] { --tab: #b9a3d6; }
-  nav button[data-s="escuelas"] { --tab: #f2c46d; }
   nav button[data-s="importar"] { --tab: #9ccfc4; }
   nav button[data-s="invitaciones"] { --tab: #f4a6c0; }
   .cupos { font-weight: 700; } .cupos.lleno { color: var(--bad); }
@@ -67,7 +66,6 @@
   <button class="on" data-s="alumnos">Alumnos</button>
   <button data-s="solicitudes" id="tabSol" hidden>Solicitudes <span class="cuenta-n" id="nSol" hidden></span></button>
   <button data-s="escuela" id="tabEsc" hidden>Escuela</button>
-  <button data-s="escuelas" id="tabEscs" hidden>Escuelas</button>
   <button data-s="importar" id="tabImp" hidden>Importar</button>
   <button data-s="invitaciones" id="tabInv" hidden>Invitaciones</button>
   <button data-s="registro" id="tabReg" hidden>Registro</button>
@@ -75,7 +73,7 @@
   <button data-s="cuenta">Mi cuenta</button>
 </nav>
 <main><div class="pagina">
-  <div class="barra"><a href="index.html">← Cuaderno del día</a><span class="muted" id="quien"></span></div>
+  <div class="barra"><a href="cuaderno.html">← Cuaderno del día</a><a href="admin.html" id="irAdmin" hidden>Panel de la plataforma →</a><span class="muted" id="quien"></span></div>
 
   <section id="alumnos" class="on">
     <div class="card">
@@ -144,14 +142,6 @@
       <p class="muted" id="msgSol"></p>
     </div>
     <div class="card" id="resueltasCard" hidden><span class="rotulo">Últimas resueltas</span><div id="listaRes"></div></div>
-  </section>
-
-  <section id="escuelas">
-    <div class="card"><span class="rotulo">Escuelas en Puente</span>
-      <p class="muted">Solo la ve la plataforma. Una escuela desactivada no puede entrar (ni sus docentes ni sus familias) y sus pedidos nuevos llegan acá.</p>
-      <div id="listaEscs"><p class="vacio">Cargando…</p></div>
-      <p class="muted" id="msgEscs"></p>
-    </div>
   </section>
 
   <section id="importar">
@@ -239,7 +229,6 @@
     <div class="card cinta">
       <span class="rotulo">Invitar a una seño</span>
       <form id="fInv">
-        <div id="invEscFila" hidden><label for="invEscuela">Escuela</label><select id="invEscuela"></select></div>
         <label for="invEtiqueta">Para quién <span class="muted">(opcional, para reconocer el link)</span></label>
         <input id="invEtiqueta" maxlength="80" placeholder="Ej: Seño Laura, 3.º B">
         <label class="check" style="margin-top:8px"><input type="checkbox" id="invAdmin"> Es directivo/a (puede sumar docentes)</label>
@@ -274,10 +263,6 @@
       <div class="fila"><select id="regEvento"><option value="">Todos los eventos</option></select><button type="button" class="big alt chico" id="regCargar" style="width:auto;margin:0;padding:0 14px">Actualizar</button></div>
       <div id="regLista" style="overflow-x:auto;margin-top:10px"><p class="vacio">Cargando…</p></div>
     </div>
-    <div class="card" id="fbCard" hidden>
-      <span class="rotulo">Comentarios recibidos</span>
-      <div id="fbLista"><p class="vacio">Cargando…</p></div>
-    </div>
   </section>
 
   <section id="cuenta">
@@ -306,7 +291,6 @@ document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
   if (b.dataset.s === "docentes") cargarDocentes();
   if (b.dataset.s === "solicitudes") cargarSolicitudes();
   if (b.dataset.s === "escuela") cargarEscuela();
-  if (b.dataset.s === "escuelas") cargarEscuelas();
   if (b.dataset.s === "importar") Importar.iniciar(YO);
   if (b.dataset.s === "registro") cargarRegistro();
   if (b.dataset.s === "invitaciones") cargarInvitaciones();
@@ -315,19 +299,25 @@ const abrirTab = s => document.querySelector(`nav button[data-s="${s}"]`)?.click
 
 (async () => {
   const e = await Puente.estado().catch(() => null);
-  if (!e || e.modo === "demo") return location.href = "index.html";
+  if (!e || e.modo === "demo") return location.href = "cuaderno.html";
   if (!e.sesion) return location.href = "login.html";
   if (e.sesion.tipo !== "docente") return location.href = "familia.html";
   YO = e.sesion;
+  // La plataforma (ADMIN_EMAIL) tiene su propio panel. Sin escuela propia no tiene nada que hacer acá.
+  if (YO.es_plataforma && !YO.tiene_escuela) return location.href = "admin.html";
+  $("irAdmin").hidden = !YO.es_plataforma;
   $("quien").textContent = `${YO.nombre} · ${YO.email}`;
   $("miEmail").textContent = "Tu email: " + YO.email;
   cargarAlumnos();
   if (YO.es_admin) { $("tabEsc").hidden = false; if (location.hash === "#escuela") abrirTab("escuela"); }
-  if (YO.es_plataforma) { $("tabEscs").hidden = false; if (location.hash === "#escuelas") abrirTab("escuelas"); }
-  if (YO.es_admin || YO.es_plataforma) { $("tabReg").hidden = false; if (location.hash === "#registro") abrirTab("registro"); }
-  if (YO.es_admin || YO.es_plataforma) { $("tabInv").hidden = false; if (location.hash === "#invitaciones") abrirTab("invitaciones"); }
-  if (YO.es_admin || YO.es_plataforma) { $("tabImp").hidden = false; if (location.hash === "#importar") abrirTab("importar"); }
-  if (YO.es_admin || YO.es_plataforma) { $("tabSol").hidden = false; await cargarSolicitudes(); if (location.hash === "#solicitudes") abrirTab("solicitudes"); }
+  // Lo de toda la plataforma (escuelas, solicitudes, invitaciones a directivos, registro y comentarios de todas) está en admin.html.
+  // Acá la dirección ve lo de SU escuela; la plataforma, si además tiene escuela, ve acá solo lo de su escuela (sin esas pestañas).
+  if (location.hash === "#escuelas" && YO.es_plataforma) return location.href = "admin.html#escuelas";
+  const direccion = YO.es_admin && !YO.es_plataforma;
+  if (direccion) { $("tabReg").hidden = false; if (location.hash === "#registro") abrirTab("registro"); }
+  if (direccion) { $("tabInv").hidden = false; if (location.hash === "#invitaciones") abrirTab("invitaciones"); }
+  if (YO.es_admin) { $("tabImp").hidden = false; if (location.hash === "#importar") abrirTab("importar"); }
+  if (direccion) { $("tabSol").hidden = false; await cargarSolicitudes(); if (location.hash === "#solicitudes") abrirTab("solicitudes"); }
 })();
 
 // ---------- alumnos ----------
@@ -443,8 +433,6 @@ async function cargarInvitaciones() {
   try {
     const r = await api("api/docentes?invitaciones=1");
     $("invCupos").textContent = textoCupos(r.cupos); $("invCupos").classList.toggle("lleno", !!r.cupos?.completo);
-    $("invEscFila").hidden = !r.plataforma;
-    if (r.plataforma && !$("invEscuela").options.length) $("invEscuela").innerHTML = r.escuelas.map(e => `<option value="${e.id}" ${e.id === r.mi_escuela ? "selected" : ""}>${esc(e.nombre)}</option>`).join("");
     $("invLista").innerHTML = r.enlaces.length ? r.enlaces.map(l => filaEnlace(l, true)).join("") : '<p class="vacio">Todavía no creaste links.</p>';
     $("invLista").querySelectorAll("[data-revocar]").forEach(b => b.onclick = async () => {
       if (!confirm("¿Anular este link? Nadie va a poder usarlo.")) return;
@@ -455,8 +443,7 @@ async function cargarInvitaciones() {
 $("fInv").onsubmit = async ev => {
   ev.preventDefault(); msg("msgInv", "");
   try {
-    const r = await api("api/docentes", { method: "POST", body: { accion: "invitacion_crear", etiqueta: $("invEtiqueta").value, es_admin: $("invAdmin").checked,
-      ...(!$("invEscFila").hidden && $("invEscuela").value ? { escuela_id: Number($("invEscuela").value) } : {}) } });
+    const r = await api("api/docentes", { method: "POST", body: { accion: "invitacion_crear", etiqueta: $("invEtiqueta").value, es_admin: $("invAdmin").checked } });
     cajaLink($("invNuevo"), r.enlace); ev.target.reset(); cargarInvitaciones();
   } catch (e) { $("invNuevo").innerHTML = ""; msg("msgInv", e.message, true); }
 };
@@ -539,11 +526,6 @@ async function cargarRegistro() {
       <td>${esc(e.actor_tipo || "")}${e.actor_id ? " #" + e.actor_id : ""}${e.cuenta ? ` <span class="muted">${esc(e.cuenta)}</span>` : ""}</td>
       <td>${e.objeto_tipo ? esc(e.objeto_tipo) + " #" + e.objeto_id : ""}</td><td>${esc(e.ip || "")}</td>
       <td class="muted">${esc(Object.entries(e.detalle || {}).map(([k, v]) => k + ": " + v).join(", "))}</td></tr>`).join("")}</table>` : `<p class="vacio">Sin eventos todavía.</p>`;
-    if (r.plataforma) {
-      $("fbCard").hidden = false;
-      const f = await api("api/feedback");
-      $("fbLista").innerHTML = f.comentarios.length ? f.comentarios.map(c => `<div class="contacto"><span class="muted">${esc(fecha(c.creado))} · ${esc(c.autor_tipo)} #${c.autor_id}${c.pagina ? " · " + esc(c.pagina) : ""}</span><div style="white-space:pre-wrap">${esc(c.texto)}</div></div>`).join("") : `<p class="vacio">Sin comentarios todavía.</p>`;
-    }
   } catch (e) { $("regLista").innerHTML = `<p class="error">${esc(e.message)}</p>`; }
 }
 $("regCargar").onclick = cargarRegistro;
@@ -556,15 +538,10 @@ async function cargarDocentes() {
     $("docCupos").hidden = !r.cupos; $("docCupos").textContent = "Piloto: " + textoCupos(r.cupos); $("docCupos").classList.toggle("lleno", !!r.cupos?.completo);
     $("listaDoc").innerHTML = r.docentes.map(d => `<div class="fila-al" style="cursor:default"><span><b>${esc(d.nombre)}</b> <span class="muted">· ${esc(d.email)}</span></span>
       <span>${d.es_plataforma ? '<span class="sello avanzando">plataforma</span>' : ""} ${d.es_admin ? '<span class="sello avanzando">admin</span>' : ""}
-        ${YO.es_plataforma && d.activo && d.id !== r.yo ? `<button class="enlace" data-plat="${d.id}" data-valor="${d.es_plataforma ? "" : "1"}" style="font-size:14px">${d.es_plataforma ? "quitar plataforma" : "hacer plataforma"}</button>` : ""} ${!d.activo ? '<span class="sello">inactiva</span>' : (YO.es_admin && d.id !== r.yo ? `<button class="quitar" data-id="${d.id}" style="font-size:14px">desactivar</button>` : "")}</span></div>`).join("");
+        ${!d.activo ? '<span class="sello">inactiva</span>' : (YO.es_admin && d.id !== r.yo ? `<button class="quitar" data-id="${d.id}" style="font-size:14px">desactivar</button>` : "")}</span></div>`).join("");
     $("listaDoc").querySelectorAll("button[data-id]").forEach(b => b.onclick = async () => {
       if (!confirm("¿Desactivar esta cuenta? No va a poder entrar más.")) return;
       try { await api("api/docentes", { method: "POST", body: { accion: "desactivar", id: Number(b.dataset.id) } }); cargarDocentes(); } catch (e) { alert(e.message); }
-    });
-    $("listaDoc").querySelectorAll("button[data-plat]").forEach(b => b.onclick = async () => {
-      const si = !!b.dataset.valor;
-      if (!confirm(si ? "¿Darle acceso de plataforma? Va a ver todas las escuelas y aprobar directoras." : "¿Quitarle el acceso de plataforma?")) return;
-      try { await api("api/docentes", { method: "POST", body: { accion: "plataforma", id: Number(b.dataset.plat), valor: si } }); cargarDocentes(); } catch (e) { alert(e.message); }
     });
     $("nuevaDoc").hidden = !YO.es_admin;
   } catch (e) { $("listaDoc").textContent = e.message; }
@@ -672,26 +649,6 @@ $("fEscuela").onsubmit = async ev => {
     msg("msgEsc", "Ficha de la escuela guardada ✓" + (r.ficha.cue && !r.en_padron ? " (ese CUE no está en el padrón de Santa Fe: revisalo)" : ""));
   } catch (e) { msg("msgEsc", e.message, true); }
 };
-
-// ---------- escuelas (solo plataforma) ----------
-async function cargarEscuelas() {
-  try {
-    const r = await api("api/escuelas?todas=1");
-    $("listaEscs").innerHTML = r.escuelas.length ? r.escuelas.map(e => `<div class="fila-al" style="cursor:default">
-        <span><b>${esc(e.nombre)}</b> <span class="muted">· ${e.cue ? "CUE " + esc(e.cue) : "sin CUE"}${e.localidad ? " · " + esc(e.localidad) : ""}
-          · ${e.docentes} docente${e.docentes === 1 ? "" : "s"} (${e.admins} admin) · ${e.alumnos} alumno${e.alumnos === 1 ? "" : "s"}</span></span>
-        <span><span class="sello ${e.aval_firmado ? "avanzando" : "estancado"}">${e.aval_firmado ? "con aval" : "sin aval"}</span>
-          ${!e.activa ? '<span class="sello">desactivada</span>' : ""}
-          ${e.id !== r.mi_escuela ? `<button class="enlace" data-esc="${e.id}" data-activa="${e.activa ? "1" : ""}" style="font-size:14px">${e.activa ? "desactivar" : "reactivar"}</button>` : ""}</span></div>`).join("")
-      : `<p class="vacio">Todavía no hay escuelas.</p>`;
-    $("listaEscs").querySelectorAll("button[data-esc]").forEach(b => b.onclick = async () => {
-      const desactivar = !!b.dataset.activa;
-      if (desactivar && !confirm("¿Desactivar esta escuela? Sus docentes y familias no van a poder entrar hasta que la reactives.")) return;
-      try { await api("api/escuelas", { method: "POST", body: { accion: desactivar ? "desactivar_escuela" : "activar_escuela", id: Number(b.dataset.esc) } }); msg("msgEscs", desactivar ? "Escuela desactivada." : "Escuela reactivada ✓"); cargarEscuelas(); }
-      catch (e) { msg("msgEscs", e.message, true); }
-    });
-  } catch (e) { msg("msgEscs", e.message, true); }
-}
 
 $("salir").onclick = Puente.salir;
 </script>
