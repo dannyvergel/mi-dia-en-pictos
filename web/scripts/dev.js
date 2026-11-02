@@ -11,6 +11,8 @@ const PUERTO = Number(process.env.PORT || 3000);
 const TIPOS = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
 
 async function main() {
+  // Local: la cuenta de la plataforma (panel admin.html) es la de ADMIN_EMAIL. Sin variable, una de prueba.
+  if (!process.env.ADMIN_EMAIL) { process.env.ADMIN_EMAIL = "admin@puente.local"; console.log("ADMIN_EMAIL (plataforma): admin@puente.local"); }
   if (!process.env.DATABASE_URL && !process.env.POSTGRES_URL && !process.env.DEMO) {
     const { PGlite } = require("@electric-sql/pglite");
     require("../api/_lib/db").usarBaseDePrueba(new PGlite());

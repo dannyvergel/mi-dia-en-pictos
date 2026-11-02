@@ -3,13 +3,15 @@
 //  POST accion=crear           { nombre, email, es_admin }  (solo admin; sin contraseña: le llega un mail y entra con código.
 //                                                          Si el email era de una docente desactivada, la reactiva en mi escuela)
 //  POST accion=desactivar      { id }                                  (solo admin, no a sí misma)
-//  POST accion=plataforma      { id, valor }  (solo plataforma) promueve (o saca) a otra docente como admin de la plataforma.
-//                                             La cuenta de ADMIN_EMAIL siempre es de la plataforma.
+//  POST accion=plataforma      → 403 para todos: promover a otras cuentas como plataforma está bloqueado por ahora
+//                                (la plataforma es solo la cuenta de ADMIN_EMAIL; pendiente en docs/CHECKLIST-PILOTO.md).
 // Piloto cerrado (links de invitación, _lib/enlaces.js) y cupos (_lib/piloto.js):
 //  GET                         → también { cupos: { usados, max, libres, completo } } para admins y plataforma
 //  GET ?invitaciones=1         → { enlaces, cupos, escuelas } links de mi escuela (plataforma: todos) (admins y plataforma)
 //  POST accion=invitacion_crear   { escuela_id? | cue? (plataforma), es_admin?, etiqueta?, dias? (7), usos? (1) }
 //                                 → link para una seño (la admin de escuela, solo para la suya). Devuelve la URL una sola vez.
+//                                 La plataforma (ADMIN_EMAIL) lo usa desde admin.html para el link del directivo de una escuela:
+//                                 con cue de una escuela que todavía no está en Puente, la escuela se crea desde el padrón al crear el link.
 //  POST accion=invitacion_revocar { id }   (admins de esa escuela, plataforma, o la docente que ve al alumno en links de familia)
 //  "crear" respeta el tope de cupos.
 const { dbActiva, q, uno } = require("./_lib/db");
@@ -36,6 +38,7 @@ module.exports = async (req, res) => {
         mi_escuela: Number(yo.escuela_id), plataforma: S.esPlataforma(yo) });
     }
     if (req.method === "GET") {
+      if (yo.escuela_id == null) return res.status(200).json({ docentes: [], yo: yo.id, sin_escuela: true, ...(admin ? { cupos: await piloto.cupos() } : {}) });
       const docentes = await q("SELECT id, nombre, email, rol, es_admin, es_plataforma, activo FROM docentes WHERE escuela_id = $1 ORDER BY nombre", [yo.escuela_id]);
       return res.status(200).json({ docentes: docentes.map(d => ({ ...d, es_plataforma: S.esPlataforma(d) })), yo: yo.id,
         ...(admin ? { cupos: await piloto.cupos() } : {}) });
@@ -44,15 +47,9 @@ module.exports = async (req, res) => {
     const b = cuerpo(req);
     if (b.accion === "invitacion_crear") return res.status(200).json({ enlace: await enlaces.crearDocente(req, yo, b), cupos: await piloto.cupos() });
     if (b.accion === "invitacion_revocar") return res.status(200).json({ enlace: await enlaces.revocar(req, yo, b.id) });
-    if (b.accion === "plataforma") {
-      if (!S.esPlataforma(yo)) throw errorPublico("Solo la plataforma puede sumar administradoras de la plataforma.", 403);
-      const id = Number(b.id) || 0;
-      if (id === Number(yo.id)) throw errorPublico("No podés cambiar tu propio rol");
-      const d = await uno("UPDATE docentes SET es_plataforma = $2 WHERE id = $1 AND activo RETURNING id, nombre, email, es_plataforma", [id, !!b.valor]);
-      if (!d) throw errorPublico("No encontramos esa docente", 404);
-      return res.status(200).json({ docente: { ...d, es_plataforma: S.esPlataforma(d) } });
-    }
-    if (!yo.es_admin) throw errorPublico("Solo una docente administradora puede sumar o quitar docentes.", 403);
+    // Promover a otra cuenta como plataforma: bloqueado por ahora para todos (también para ADMIN_EMAIL).
+    if (b.accion === "plataforma") throw errorPublico("Por ahora la plataforma es solo la cuenta de ADMIN_EMAIL: no se puede promover a otras cuentas.", 403);
+    if (!yo.es_admin || yo.escuela_id == null) throw errorPublico("Solo una docente administradora puede sumar o quitar docentes.", 403);
     if (b.accion === "crear") {
       const email = S.normEmail(b.email), nombre = String(b.nombre || "").trim().slice(0, 80);
       if (!nombre) throw errorPublico("Falta el nombre");

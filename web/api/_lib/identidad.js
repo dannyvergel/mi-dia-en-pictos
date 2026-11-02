@@ -18,8 +18,9 @@ async function cuentaPara(tipo, email) {
   email = normEmail(email);
   if (tipo === "docente") {
     // Docente activa; si la plataforma desactivó su escuela, no entra (salvo que sea de la plataforma).
-    const d = await uno(`SELECT d.id, d.nombre, d.email, d.es_admin, d.es_plataforma, e.activa AS escuela_activa
-      FROM docentes d JOIN escuelas e ON e.id = d.escuela_id WHERE d.email = $1 AND d.activo`, [email]);
+    // La plataforma (ADMIN_EMAIL) puede no tener escuela: LEFT JOIN.
+    const d = await uno(`SELECT d.id, d.escuela_id, d.nombre, d.email, d.es_admin, d.es_plataforma, e.activa AS escuela_activa
+      FROM docentes d LEFT JOIN escuelas e ON e.id = d.escuela_id WHERE d.email = $1 AND d.activo`, [email]);
     if (!d) return null;
     d.es_plataforma = esPlataforma(d);
     return d.escuela_activa || d.es_plataforma ? d : null;
@@ -32,7 +33,8 @@ async function cuentaPara(tipo, email) {
 function datosSesion(tipo, u) {
   if (!u) return null;
   return tipo === "docente"
-    ? { tipo: "docente", nombre: u.nombre, email: u.email, es_admin: u.es_admin, es_plataforma: esPlataforma(u) }
+    ? { tipo: "docente", nombre: u.nombre, email: u.email, es_admin: !!u.es_admin && u.escuela_id != null, es_plataforma: esPlataforma(u),
+        tiene_escuela: u.escuela_id != null }
     : { tipo: "familia", email: u.email };
 }
 

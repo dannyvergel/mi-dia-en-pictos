@@ -1,7 +1,7 @@
 // Fichas de familia, código por email y espacio de la familia con sesión.
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { baseNueva, cliente, entrarConCodigo } = require("./ayuda");
+const { baseNueva, cliente, entrarConCodigo, altaEscuela } = require("./ayuda");
 const auth = require("../api/auth");
 const fichas = require("../api/fichas");
 const familia = require("../api/familia");
@@ -13,8 +13,7 @@ const post = (c, h, body) => c.llamar(h, { method: "POST", body });
 
 test.before(async () => {
   pg = await baseNueva();
-  const r = await post(cliente(), auth, { accion: "setup", escuela: "Escuela 2001", nombre: "Ana", email: "ana@escuela.edu.ar", pin: "4321" });
-  assert.equal(r.status, 200);
+  await altaEscuela({ escuela: "Escuela 2001", nombre: "Ana", email: "ana@escuela.edu.ar" });
   ana = await entrarConCodigo(pg, "ana@escuela.edu.ar");
   // Docente de otra escuela (para probar el aislamiento)
   await pg.query("INSERT INTO escuelas (nombre) VALUES ('Otra escuela')");

@@ -6,7 +6,7 @@ Estado: ☐ pendiente · ☑ hecho
 
 **Decisión (Danny, 1/11/2026):** el piloto queda abierto a **15 usuarios en total** (seños, directivos y familias juntos), se entra **solo con link de invitación** y dura 6 a 8 semanas. Responsable del tratamiento: **Puente** (persona física o asociación civil, a confirmar con el abogado); cada familia firma el consentimiento con Puente y cada seño necesita el aval de su dirección.
 
-Última actualización: 1/11/2026 (rama `feat/piloto`). Lo marcado ☑ en código está en esa rama hasta que se mergee.
+Última actualización: 1/11/2026 (rama `feat/home-admin`: portada, panel de la plataforma y alta por invitación en cascada). Lo marcado ☑ en código está en esa rama hasta que se mergee.
 
 ## 1. Para la hackatón (datos ficticios)
 - ☑ Mergear PR #1 (login, fichas, solicitudes de acceso, chat blindado: commit 786cdae) a `main`. Mergeado el 1/11/2026.
@@ -50,6 +50,12 @@ Estado: ☐ pendiente · ☑ hecho
 - ☐ Antes de importar una planilla real: que la escuela confirme que tiene el consentimiento de esas familias para cargar sus emails y teléfonos, y que la planilla tiene solo nombre de pila (sin apellidos, diagnósticos ni datos de salud). Borrar la planilla de la compu después de importar.
 
 ## 5. Operación del piloto
+- ☑ Portada pública en `/` (qué es Puente, ejemplo con pictos ARASAAC, gratuito, piloto con invitación, *Entrar* / *Soy familia*, meta tags). El Cuaderno del día pasó a `/cuaderno.html`.
+- ☑ Panel de la plataforma `admin.html`, solo para `ADMIN_EMAIL` (validado en el server en cada acción): escuelas desde el padrón, ficha, activar/desactivar, links de directivos, cupos *X de 15*, registro de accesos y comentarios de toda la plataforma, solicitudes que queden.
+- ☑ Alta inicial sin escuela (la cuenta de `ADMIN_EMAIL`) y flujo en cascada: plataforma → link del directivo (la escuela se crea desde el padrón) → directivo invita seños → seños/dirección invitan familias. Tests en `test/admin-plataforma.test.js`.
+- ☐ Confirmar que `ADMIN_EMAIL` en Vercel (Producción y Preview) es el email de Danny: desde este cambio es la **única** cuenta de plataforma; las cuentas promovidas antes pierden ese acceso.
+- ☐ Probar en Preview: entrar como `ADMIN_EMAIL` → `admin.html` → alta de una escuela ficticia del padrón → link del directivo → el directivo invita a una seño → la seño invita a una familia (datos ficticios).
+- ☐ **Para después**: volver a habilitar *promover a otra cuenta como plataforma* (hoy oculto y bloqueado en el server: `accion=plataforma` responde 403; `docentes.es_plataforma` no da permisos).
 - ☐ Piloto de **15 usuarios en total** (seños, directivos y familias), solo con **link de invitación**, 6 a 8 semanas. Repartir los cupos entre seños antes de invitar.
 - ☑ Links de invitación (seño y familia; un solo uso, 7 días, copiar/WhatsApp/anular, solo hash del token, auditoría), modo solo invitación (`PILOTO_SOLO_INVITACION`) y tope de cupos (`PILOTO_MAX_USUARIOS`, panel *X de 15*, importación incluida). Tests en `test/piloto-invitaciones.test.js`.
 - ☐ Probar en Preview el flujo completo de invitación (seño y familia) y el tope con un `PILOTO_MAX_USUARIOS` bajo.

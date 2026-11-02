@@ -2,7 +2,7 @@
 // Se simula OpenRouter reemplazando fetch y se revisa cada cuerpo enviado.
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { baseNueva, cliente, entrarConCodigo } = require("./ayuda");
+const { baseNueva, cliente, entrarConCodigo, altaEscuela } = require("./ayuda");
 const auth = require("../api/auth");
 const fichas = require("../api/fichas");
 const familia = require("../api/familia");
@@ -36,7 +36,7 @@ test.after(() => { global.fetch = fetchReal; delete process.env.OPENROUTER_API_K
 let pg, ana, juanId;
 test.before(async () => {
   pg = await baseNueva();
-  await post(cliente(), auth, { accion: "setup", escuela: "Escuela 2001", nombre: "Ana", email: "ana@escuela.edu.ar", pin: "4321" });
+  await altaEscuela({ escuela: "Escuela 2001", nombre: "Ana", email: "ana@escuela.edu.ar" });
   ana = await entrarConCodigo(pg, "ana@escuela.edu.ar");
   juanId = (await post(ana, fichas, { accion: "crear", nombre: "Juan" })).body.alumno.id;
   const r = await post(ana, fichas, { accion: "guardar", id: juanId, nombre: "Juan",

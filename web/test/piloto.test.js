@@ -1,7 +1,7 @@
 // Piloto: baja y borrado, retención, auditoría (con alerta de fallos), feedback y config pública.
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { baseNueva, cliente, entrarConCodigo } = require("./ayuda");
+const { baseNueva, cliente, entrarConCodigo, altaEscuela } = require("./ayuda");
 const auth = require("../api/auth");
 const fichas = require("../api/fichas");
 const familia = require("../api/familia");
@@ -25,7 +25,7 @@ const hoy = () => new Date().toISOString().slice(0, 10);
 test.before(async () => {
   pg = await baseNueva();
   buzon = correo.usarBuzonDePrueba(true);
-  await post(cliente(), auth, { accion: "setup", escuela: "Escuela 2001", nombre: "Ana", email: "ana@escuela.edu.ar", pin: "4321" });
+  await altaEscuela({ escuela: "Escuela 2001", nombre: "Ana", email: "ana@escuela.edu.ar" });
   ana = await entrarConCodigo(pg, "ana@escuela.edu.ar");
   await pg.query("INSERT INTO docentes (escuela_id, email, nombre) VALUES (1, 'caro@escuela.edu.ar', 'Caro')");
   caro = await entrarConCodigo(pg, "caro@escuela.edu.ar");

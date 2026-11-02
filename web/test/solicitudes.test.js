@@ -1,7 +1,7 @@
 // Solicitudes de acceso de docentes: formulario público, aviso a admins, aprobar / rechazar.
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { baseNueva, cliente, entrarConCodigo } = require("./ayuda");
+const { baseNueva, cliente, entrarConCodigo, altaEscuela } = require("./ayuda");
 const auth = require("../api/auth");
 const solicitudes = require("../api/solicitudes");
 const docentes = require("../api/docentes");
@@ -17,7 +17,7 @@ const pendientes = async () => (await pg.query("SELECT * FROM solicitudes WHERE 
 
 test.before(async () => {
   pg = await baseNueva();
-  assert.equal((await post(cliente(), { accion: "setup", escuela: "Escuela 2001", nombre: "Ana", email: "ana@escuela.edu.ar", pin: "4321" }, auth)).status, 200);
+  await altaEscuela({ escuela: "Escuela 2001", nombre: "Ana", email: "ana@escuela.edu.ar" });
   ana = await entrarConCodigo(pg, "ana@escuela.edu.ar");
   buzon = correo.usarBuzonDePrueba(true);
 });

@@ -1,7 +1,7 @@
 // Piloto cerrado: links de invitación (docente y familia), modo solo invitación y tope de cupos.
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { baseNueva, cliente, entrarConCodigo } = require("./ayuda");
+const { baseNueva, cliente, entrarConCodigo, altaEscuela } = require("./ayuda");
 const auth = require("../api/auth");
 const solicitudes = require("../api/solicitudes");
 const docentes = require("../api/docentes");
@@ -33,7 +33,8 @@ test.before(async () => {
   delete process.env.PILOTO_SOLO_INVITACION; delete process.env.PILOTO_MAX_USUARIOS;
   buzon = correo.usarBuzonDePrueba(true);
   assert.equal((await post(cliente(), auth, { accion: "setup", escuela: "Escuela Uno", nombre: "Ana", email: "ana@plataforma.org", pin: "4321" })).status, 200);
-  ana = await entrarConCodigo(pg, "ana@plataforma.org");
+  ana = await entrarConCodigo(pg, "ana@plataforma.org"); // la plataforma: sin escuela
+  await pg.query("INSERT INTO escuelas (nombre) VALUES ('Escuela Uno')"); // id 1
   // Escuela B con su directora (admin de escuela).
   escuelaB = Number((await pg.query("INSERT INTO escuelas (nombre) VALUES ('Escuela Dos') RETURNING id")).rows[0].id);
   await pg.query("INSERT INTO docentes (escuela_id, email, nombre, es_admin) VALUES ($1, 'dire@dos.edu.ar', 'Directora Dos', true)", [escuelaB]);
