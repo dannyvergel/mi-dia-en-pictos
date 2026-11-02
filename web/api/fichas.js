@@ -93,6 +93,7 @@ async function docente(req, res, yo) {
   const b = cuerpo(req);
   if (String(b.accion || "").startsWith("importar_")) return importacion.manejar(req, res, yo, b);
   if (b.accion === "crear") {
+    if (yo.escuela_id == null) throw errorPublico("Tu cuenta no tiene escuela: los alumnos los cargan las docentes de cada escuela.", 403);
     const nombre = F.validarNombre(b.nombre);
     const contactos = F.validarContactos(b.contactos);
     await piloto.exigirCupo((await piloto.familiasNuevas(contactos.map(c => c.email))).length);

@@ -2,9 +2,10 @@
 // La lógica de "qué cuenta corresponde a un email verificado" está en _lib/identidad.js, lista para sumar SSO.
 //  GET                            → estado: modo (demo|db), sesión actual, si falta crear la primera docente, métodos de ingreso
 //                                  y, sin sesión, el token de formulario para buscar escuelas (/api/escuelas).
-//  POST accion=setup              { escuela, cue?, nombre, email, pin } → crea la primera docente (admin) y la escuela
-//                                  (con cue, la escuela sale del Padrón Oficial con sus datos).
-//                                  Protegido con DOCENTE_PIN (+ ADMIN_EMAIL si está). No abre sesión: después entra con código.
+//  POST accion=setup              { nombre, email, pin } → crea la primera cuenta: la de la plataforma (ADMIN_EMAIL), SIN escuela.
+//                                  Exige ADMIN_EMAIL definida y ese mismo email, y DOCENTE_PIN. No abre sesión: después entra con código.
+//                                  Las escuelas se dan de alta después desde el panel de la plataforma (admin.html), desde el padrón,
+//                                  y cada directivo entra con un link de invitación (ver _lib/enlaces.js). escuela/cue se ignoran.
 //  POST accion=pedir_codigo       { email, tipo: "docente"|"familia" (por defecto familia) }
 //  POST accion=verificar_codigo   { email, codigo, tipo }
 //  POST accion=logout
@@ -18,7 +19,6 @@ const { dbActiva, uno } = require("./_lib/db");
 const S = require("./_lib/seguridad");
 const { pinOk } = require("./_lib/pin");
 const codigos = require("./_lib/codigos");
-const padron = require("./_lib/padron");
 const { datosSesion, metodos } = require("./_lib/identidad");
 const enlaces = require("./_lib/enlaces");
 const piloto = require("./_lib/piloto");
@@ -37,20 +37,14 @@ async function setup(req, res, b) {
     await S.registrarIntento("setup:" + S.ipDe(req));
     throw errorPublico("PIN de docente incorrecto", 401);
   }
-  const email = S.normEmail(b.email), admin = S.normEmail(process.env.ADMIN_EMAIL);
+  const email = S.normEmail(b.email), admin = S.emailPlataforma();
+  if (!admin) throw errorPublico("Para crear la primera cuenta hay que definir ADMIN_EMAIL (la cuenta de la plataforma) en Vercel.", 403);
   if (!S.emailValido(email)) throw errorPublico("Revisá el email");
-  if (admin && email !== admin) throw errorPublico("La primera cuenta tiene que ser la de ADMIN_EMAIL.", 403);
-  const nombre = textoCorto(b.nombre, 80), escuela = textoCorto(b.escuela, 120) || "Mi escuela";
+  if (email !== admin) throw errorPublico("La primera cuenta tiene que ser la de ADMIN_EMAIL.", 403);
+  const nombre = textoCorto(b.nombre, 80);
   if (!nombre) throw errorPublico("Falta tu nombre");
-  const cue = String(b.cue ?? "").trim();
-  let e;
-  if (cue) { // elegida del Padrón Oficial: la escuela se crea con sus datos
-    if (!/^\d{9}$/.test(cue)) throw errorPublico("El CUE tiene que tener 9 números");
-    e = (await padron.escuelaPorCue(cue))?.escuela;
-    if (!e) throw errorPublico("No encontramos ese CUE en el padrón. Escribí el nombre de la escuela sin elegirla de la lista.", 404);
-  } else e = await uno("INSERT INTO escuelas (nombre) VALUES ($1) RETURNING id", [escuela]);
-  // La primera cuenta es admin de su escuela y de la plataforma (aprueba directoras de escuelas nuevas).
-  await uno("INSERT INTO docentes (escuela_id, email, nombre, es_admin, es_plataforma) VALUES ($1, $2, $3, true, true) RETURNING id", [e.id, email, nombre]);
+  // La primera cuenta es la de la plataforma y no tiene escuela: las escuelas se crean desde el panel admin (padrón).
+  await uno("INSERT INTO docentes (escuela_id, email, nombre, es_admin, es_plataforma) VALUES (NULL, $1, $2, false, true) RETURNING id", [email, nombre]);
   // Sin sesión: el PIN no prueba que el email sea suyo. Entra con el código que llega a ese email.
   res.status(200).json({ ok: true, email, mensaje: "Cuenta creada. Ahora entrá con tu email: te mandamos un código." });
 }

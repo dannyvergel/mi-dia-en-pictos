@@ -2,7 +2,7 @@
 // Solo datos ficticios.
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { baseNueva, cliente, entrarConCodigo } = require("./ayuda");
+const { baseNueva, cliente, entrarConCodigo, altaEscuela } = require("./ayuda");
 const auth = require("../api/auth");
 const fichas = require("../api/fichas");
 const correo = require("../api/_lib/correo");
@@ -32,8 +32,7 @@ test.before(async () => {
   delete process.env.ADMIN_EMAIL;
   pg = await baseNueva();
   buzon = correo.usarBuzonDePrueba(true);
-  const r = await cliente().llamar(auth, { method: "POST", body: { accion: "setup", escuela: "Escuela 2001", nombre: "Dire", email: "dire@e.edu.ar", pin: "4321" } });
-  assert.equal(r.status, 200, JSON.stringify(r.body));
+  await altaEscuela({ escuela: "Escuela 2001", nombre: "Dire", email: "dire@e.edu.ar" });
   process.env.ADMIN_EMAIL = "plata@plataforma.org"; // plataforma (superadmin), en otra escuela y sin es_admin
   otraEscuela = Number((await pg.query("INSERT INTO escuelas (nombre) VALUES ('Escuela Otra') RETURNING id")).rows[0].id);
   await pg.query("INSERT INTO docentes (escuela_id, email, nombre) VALUES (1, 'caro@e.edu.ar', 'Caro')");

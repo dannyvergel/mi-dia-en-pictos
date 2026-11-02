@@ -12,10 +12,11 @@ async function intentar(datos) {
   catch (e) { console.error("[puente] no se pudo mandar el email:", e.message); return false; }
 }
 
-// Plataforma: ADMIN_EMAIL + las cuentas promovidas. Escuela: sus docentes admin activas.
+// Plataforma: solo ADMIN_EMAIL (sin ADMIN_EMAIL, por compatibilidad, las cuentas marcadas es_plataforma). Escuela: sus docentes admin activas.
 async function destinatariosPlataforma() {
-  const p = await q("SELECT email FROM docentes WHERE es_plataforma AND activo");
-  return [...new Set([normEmail(process.env.ADMIN_EMAIL), ...p.map(a => a.email)].filter(Boolean))];
+  const admin = normEmail(process.env.ADMIN_EMAIL);
+  if (admin) return [admin];
+  return [...new Set((await q("SELECT email FROM docentes WHERE es_plataforma AND activo")).map(a => a.email))];
 }
 async function destinatariosEscuela(escuelaId) {
   return (await q("SELECT email FROM docentes WHERE escuela_id = $1 AND es_admin AND activo", [escuelaId])).map(a => a.email);

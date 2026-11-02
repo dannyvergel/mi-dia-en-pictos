@@ -47,4 +47,17 @@ async function entrarConCodigo(pg, email, tipo = "docente", c = cliente()) {
   return c;
 }
 
-module.exports = { baseNueva, cliente, entrarConCodigo };
+// La primera cuenta (setup) ya no tiene escuela: es la de la plataforma. Para los tests que necesitan una escuela con su
+// directora (admin), se crean directo en la base, como quedarían después de usar el link de directivo.
+// { escuela | cue, nombre, email } → { escuela_id, docente_id }. Con cue, la escuela sale del padrón de prueba.
+async function altaEscuela({ escuela = "Escuela 2001", cue = "", nombre = "Ana", email }) {
+  const db = require("../api/_lib/db");
+  let e;
+  if (cue) e = (await require("../api/_lib/padron").escuelaPorCue(cue))?.escuela;
+  else e = await db.uno("INSERT INTO escuelas (nombre) VALUES ($1) RETURNING id", [escuela]);
+  if (!e) throw new Error("No se pudo crear la escuela " + (cue || escuela));
+  const d = await db.uno("INSERT INTO docentes (escuela_id, email, nombre, es_admin) VALUES ($1, $2, $3, true) RETURNING id", [e.id, email, nombre]);
+  return { escuela_id: Number(e.id), docente_id: Number(d.id) };
+}
+
+module.exports = { baseNueva, cliente, entrarConCodigo, altaEscuela };

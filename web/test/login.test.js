@@ -1,7 +1,7 @@
 // Con base (PGlite): alta de la primera docente, ingreso de docentes con código por email, sesiones, límites y docentes.
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { baseNueva, cliente, entrarConCodigo } = require("./ayuda");
+const { baseNueva, cliente, entrarConCodigo, altaEscuela } = require("./ayuda");
 const auth = require("../api/auth");
 const docentes = require("../api/docentes");
 const dia = require("../api/dia");
@@ -14,7 +14,7 @@ let pg;
 test.before(async () => { pg = await baseNueva(); });
 const post = (c, body) => c.llamar(auth, { method: "POST", body });
 
-const SETUP = { accion: "setup", escuela: "Escuela 2001", nombre: "Ana", email: "ana@escuela.edu.ar" };
+const SETUP = { accion: "setup", nombre: "Danny", email: "plata@puente.org" };
 
 test("estado inicial: modo db, sin sesión, falta setup, métodos de ingreso", async () => {
   const r = await cliente().llamar(auth);
@@ -23,23 +23,42 @@ test("estado inicial: modo db, sin sesión, falta setup, métodos de ingreso", a
   assert.match(formulario, /^\d+\.[\w-]+$/); // token para buscar escuelas desde los formularios públicos
 });
 
-test("setup: PIN incorrecto → 401; ADMIN_EMAIL obliga ese email", async () => {
+test("setup: PIN incorrecto → 401; sin ADMIN_EMAIL no se puede; ADMIN_EMAIL obliga ese email", async () => {
   const c = cliente();
   assert.equal((await post(c, { ...SETUP, pin: "0000" })).status, 401);
+  delete process.env.ADMIN_EMAIL;
+  const sin = await post(c, { ...SETUP, pin: "4321" });
+  assert.equal(sin.status, 403); assert.match(sin.body.error, /ADMIN_EMAIL/);
   process.env.ADMIN_EMAIL = "otra@escuela.edu.ar";
   assert.equal((await post(c, { ...SETUP, pin: "4321" })).status, 403);
   delete process.env.ADMIN_EMAIL;
+  assert.equal((await pg.query("SELECT count(*)::int AS n FROM docentes")).rows[0].n, 0);
 });
 
-test("setup crea la primera docente admin sin contraseña y sin abrir sesión; no se puede repetir", async () => {
-  const c = cliente();
-  const r = await post(c, { ...SETUP, pin: "4321" });
-  assert.equal(r.status, 200, JSON.stringify(r.body));
-  assert.equal(r.headers["set-cookie"], undefined); // el PIN no prueba el email: entra con código
-  assert.equal((await c.llamar(auth)).body.sesion, null);
-  const fila = (await pg.query("SELECT pass_hash, es_admin FROM docentes WHERE email = 'ana@escuela.edu.ar'")).rows[0];
-  assert.equal(fila.pass_hash, null); assert.equal(fila.es_admin, true);
-  assert.equal((await post(cliente(), { ...SETUP, email: "x@y.com", pin: "4321" })).status, 409);
+test("setup sin escuela: crea la cuenta de la plataforma (ADMIN_EMAIL) sin escuela, sin contraseña y sin abrir sesión; no se repite", async () => {
+  process.env.ADMIN_EMAIL = "plata@puente.org";
+  try {
+    const c = cliente();
+    // Aunque el navegador mande escuela o CUE, se ignoran: la primera cuenta no tiene escuela.
+    const r = await post(c, { ...SETUP, escuela: "Escuela 2001", cue: "820060800", pin: "4321" });
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    assert.equal(r.headers["set-cookie"], undefined); // el PIN no prueba el email: entra con código
+    assert.equal((await c.llamar(auth)).body.sesion, null);
+    const fila = (await pg.query("SELECT pass_hash, es_admin, escuela_id FROM docentes WHERE email = 'plata@puente.org'")).rows[0];
+    assert.equal(fila.pass_hash, null); assert.equal(fila.es_admin, false); assert.equal(fila.escuela_id, null);
+    assert.equal((await pg.query("SELECT count(*)::int AS n FROM escuelas")).rows[0].n, 0);
+    assert.equal((await post(cliente(), { ...SETUP, email: "x@y.com", pin: "4321" })).status, 409);
+    // Entra con código y queda como plataforma, sin escuela.
+    const plata = await entrarConCodigo(pg, "plata@puente.org");
+    const s = (await plata.llamar(auth)).body.sesion;
+    assert.equal(s.es_plataforma, true); assert.equal(s.tiene_escuela, false); assert.equal(s.es_admin, false);
+    // Sin escuela no carga alumnos ni suma docentes a mano.
+    assert.equal((await plata.llamar(require("../api/fichas"), { method: "POST", body: { accion: "crear", nombre: "Juan" } })).status, 403);
+    assert.equal((await plata.llamar(docentes, { method: "POST", body: { accion: "crear", nombre: "X", email: "x@x.org" } })).status, 403);
+    assert.deepEqual((await plata.llamar(docentes)).body.docentes, []);
+  } finally { delete process.env.ADMIN_EMAIL; }
+  // Para el resto de los tests: una escuela con su directora (como si hubiera entrado con el link de directivo).
+  await altaEscuela({ escuela: "Escuela 2001", nombre: "Ana", email: "ana@escuela.edu.ar" });
 });
 
 test("docente entra con código: cookie segura, código hasheado y de un solo uso, logout invalida", async () => {
@@ -51,7 +70,7 @@ test("docente entra con código: cookie segura, código hasheado y de un solo us
   const v = await post(c, { accion: "verificar_codigo", tipo: "docente", email: "ana@escuela.edu.ar", codigo: p.body.codigo_dev });
   assert.equal(v.status, 200, JSON.stringify(v.body));
   for (const flag of ["HttpOnly", "Secure", "SameSite=Lax", "Path=/"]) assert.ok(v.headers["set-cookie"].includes(flag), flag);
-  assert.deepEqual((await c.llamar(auth)).body.sesion, { tipo: "docente", nombre: "Ana", email: "ana@escuela.edu.ar", es_admin: true, es_plataforma: true });
+  assert.deepEqual((await c.llamar(auth)).body.sesion, { tipo: "docente", nombre: "Ana", email: "ana@escuela.edu.ar", es_admin: true, es_plataforma: false, tiene_escuela: true });
   assert.equal((await post(cliente(), { accion: "verificar_codigo", tipo: "docente", email: "ana@escuela.edu.ar", codigo: p.body.codigo_dev })).status, 401); // ya usado
   const cookieVieja = c.cookie;
   await post(c, { accion: "logout" });

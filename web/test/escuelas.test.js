@@ -2,7 +2,7 @@
 // Usa el archivo real data/escuelas-santa-fe.json (se carga en PGlite en el primer pedido).
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { baseNueva, cliente, entrarConCodigo } = require("./ayuda");
+const { baseNueva, cliente, entrarConCodigo, altaEscuela } = require("./ayuda");
 const auth = require("../api/auth");
 const escuelas = require("../api/escuelas");
 const solicitudes = require("../api/solicitudes");
@@ -12,23 +12,25 @@ const S = require("../api/_lib/seguridad");
 process.env.DOCENTE_PIN = "4321";
 delete process.env.VERCEL_ENV; delete process.env.RESEND_API_KEY; delete process.env.OPENROUTER_API_KEY; delete process.env.PUENTE_URL; delete process.env.ADMIN_EMAIL;
 const GAVIOTA = "820060800", ALBORADA = "820002100";
-let pg, ana, beto;
+let pg, ana, beto, plata; // plata: la cuenta de la plataforma (ADMIN_EMAIL), sin escuela
 const buscar = (c, q, headers = {}) => c.llamar(escuelas, { query: { q }, headers });
 const post = (c, body, h = escuelas) => c.llamar(h, { method: "POST", body });
 
 test.before(async () => {
   pg = await baseNueva();
   correo.usarBuzonDePrueba(true);
-  const r = await post(cliente(), { accion: "setup", escuela: "lo que sea", cue: GAVIOTA, nombre: "Ana", email: "ana@escuela.edu.ar", pin: "4321" }, auth);
-  assert.equal(r.status, 200, JSON.stringify(r.body));
+  await altaEscuela({ cue: GAVIOTA, nombre: "Ana", email: "ana@escuela.edu.ar" });
   ana = await entrarConCodigo(pg, "ana@escuela.edu.ar");
   await pg.query("INSERT INTO docentes (escuela_id, email, nombre) VALUES (1, 'beto@escuela.edu.ar', 'Beto')");
   beto = await entrarConCodigo(pg, "beto@escuela.edu.ar");
+  process.env.ADMIN_EMAIL = "plata@puente.org";
+  await pg.query("INSERT INTO docentes (escuela_id, email, nombre, es_plataforma) VALUES (NULL, 'plata@puente.org', 'Plata', true)");
+  plata = await entrarConCodigo(pg, "plata@puente.org");
 });
-test.after(() => correo.usarBuzonDePrueba(false));
+test.after(() => { correo.usarBuzonDePrueba(false); delete process.env.ADMIN_EMAIL; });
 test.beforeEach(async () => { await pg.query("DELETE FROM limites"); });
 
-test("alta inicial con CUE: la escuela se crea con los datos del padrón", async () => {
+test("escuela creada desde el padrón: queda con los datos del padrón", async () => {
   const e = (await pg.query("SELECT * FROM escuelas WHERE id = 1")).rows[0];
   assert.equal(e.cue, GAVIOTA);
   assert.equal(e.nombre, "ESCUELA ESPECIAL NRO 2085 JUAN SALVADOR GAVIOTA");
@@ -36,16 +38,19 @@ test("alta inicial con CUE: la escuela se crea con los datos del padrón", async
   assert.match(e.email, /@santafe\.edu\.ar$/);
 });
 
-test("alta inicial: CUE mal escrito o que no está en el padrón no crea nada", async () => {
+test("alta inicial (setup): ya no crea escuelas, aunque mande CUE", async () => {
   await pg.query("DELETE FROM docentes"); // simula una base sin docentes
+  process.env.ADMIN_EMAIL = "x@x.com";
   try {
-    const malo = await post(cliente(), { accion: "setup", cue: "123", nombre: "X", email: "x@x.com", pin: "4321" }, auth);
-    assert.equal(malo.status, 400);
-    const noEsta = await post(cliente(), { accion: "setup", cue: "829999999", nombre: "X", email: "x@x.com", pin: "4321" }, auth);
-    assert.equal(noEsta.status, 404);
+    const r = await post(cliente(), { accion: "setup", cue: "829999999", escuela: "Otra", nombre: "X", email: "x@x.com", pin: "4321" }, auth);
+    assert.equal(r.status, 200, JSON.stringify(r.body));
     assert.equal((await pg.query("SELECT count(*)::int AS n FROM escuelas")).rows[0].n, 1);
+    assert.equal((await pg.query("SELECT escuela_id FROM docentes WHERE email = 'x@x.com'")).rows[0].escuela_id, null);
   } finally {
-    await pg.query("INSERT INTO docentes (id, escuela_id, email, nombre, es_admin, es_plataforma) OVERRIDING SYSTEM VALUE VALUES (1, 1, 'ana@escuela.edu.ar', 'Ana', true, true), (2, 1, 'beto@escuela.edu.ar', 'Beto', false, false)");
+    process.env.ADMIN_EMAIL = "plata@puente.org";
+    await pg.query("DELETE FROM docentes");
+    await pg.query(`INSERT INTO docentes (id, escuela_id, email, nombre, es_admin, es_plataforma) OVERRIDING SYSTEM VALUE VALUES
+      (1, 1, 'ana@escuela.edu.ar', 'Ana', true, false), (2, 1, 'beto@escuela.edu.ar', 'Beto', false, false), (3, NULL, 'plata@puente.org', 'Plata', false, true)`);
   }
 });
 
@@ -150,16 +155,16 @@ test("prefill desde el padrón por CUE", async () => {
   assert.equal((await beto.llamar(escuelas, { query: { cue: "829999999" } })).status, 404);
 });
 
-test("solicitud con CUE: se guarda, la admin ve el padrón y al aprobar se crea la escuela (y queda admin)", async () => {
+test("solicitud con CUE: se guarda, la plataforma ve el padrón y al aprobar se crea la escuela (y queda admin)", async () => {
   const pedido = { accion: "crear", nombre: "Marta", email: "marta@alborada.edu.ar", escuela: "Alborada", cue: ALBORADA };
   assert.equal((await post(cliente(), pedido, solicitudes)).status, 200);
   assert.equal((await post(cliente(), { ...pedido, email: "otra@x.com", cue: "829999999" }, solicitudes)).status, 200); // no está: se ignora
   const filas = (await pg.query("SELECT email, cue FROM solicitudes ORDER BY id")).rows;
   assert.deepEqual(filas.map(f => [f.email, f.cue]), [["marta@alborada.edu.ar", ALBORADA], ["otra@x.com", null]]);
-  const lista = await ana.llamar(solicitudes);
+  const lista = await plata.llamar(solicitudes);
   const marta = lista.body.pendientes.find(s => s.email === "marta@alborada.edu.ar");
   assert.equal(marta.escuela_cue_id, null); assert.equal(marta.padron.nombre, "ESCUELA ESPECIAL PART. INC. NRO 1242 ALBORADA");
-  const r = await post(ana, { accion: "aprobar", id: marta.id }, solicitudes);
+  const r = await post(plata, { accion: "aprobar", id: marta.id }, solicitudes);
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.equal(r.body.escuela.cue, ALBORADA); assert.equal(r.body.docente.es_admin, true);
   const e = (await pg.query("SELECT * FROM escuelas WHERE cue = $1", [ALBORADA])).rows[0];
@@ -167,22 +172,22 @@ test("solicitud con CUE: se guarda, la admin ve el padrón y al aprobar se crea 
   // La segunda seño de la misma escuela: se sugiere la escuela existente y entra sin ser admin.
   await pg.query("DELETE FROM limites");
   await post(cliente(), { ...pedido, nombre: "Rosa", email: "rosa@alborada.edu.ar" }, solicitudes);
-  const rosa = (await ana.llamar(solicitudes)).body.pendientes.find(s => s.email === "rosa@alborada.edu.ar");
+  const rosa = (await plata.llamar(solicitudes)).body.pendientes.find(s => s.email === "rosa@alborada.edu.ar");
   assert.equal(Number(rosa.escuela_cue_id), Number(e.id)); assert.equal(rosa.padron, null);
-  const r2 = await post(ana, { accion: "aprobar", id: rosa.id }, solicitudes);
+  const r2 = await post(plata, { accion: "aprobar", id: rosa.id }, solicitudes);
   assert.equal(Number(r2.body.escuela.id), Number(e.id)); assert.equal(r2.body.docente.es_admin, false);
   assert.equal((await pg.query("SELECT count(*)::int AS n FROM escuelas WHERE cue = $1", [ALBORADA])).rows[0].n, 1);
 });
 
-test("aprobar: la admin puede elegir otra escuela aunque la solicitud traiga CUE; desde_padron sin CUE da error", async () => {
+test("aprobar: la plataforma puede elegir otra escuela aunque la solicitud traiga CUE; desde_padron sin CUE da error", async () => {
   await post(cliente(), { accion: "crear", nombre: "Lía", email: "lia@x.com", escuela: "Gaviota", cue: GAVIOTA }, solicitudes);
   await post(cliente(), { accion: "crear", nombre: "Sin Cue", email: "sincue@x.com", escuela: "Alguna" }, solicitudes);
-  const ps = (await ana.llamar(solicitudes)).body.pendientes;
+  const ps = (await plata.llamar(solicitudes)).body.pendientes;
   const lia = ps.find(s => s.email === "lia@x.com"), sin = ps.find(s => s.email === "sincue@x.com");
   assert.equal(Number(lia.escuela_cue_id), 1); // la escuela de Ana tiene ese CUE
-  assert.equal((await post(ana, { accion: "aprobar", id: sin.id, desde_padron: true }, solicitudes)).status, 400);
+  assert.equal((await post(plata, { accion: "aprobar", id: sin.id, desde_padron: true }, solicitudes)).status, 400);
   const alborada = (await pg.query("SELECT id FROM escuelas WHERE cue = $1", [ALBORADA])).rows[0].id;
-  const r = await post(ana, { accion: "aprobar", id: lia.id, escuela_id: Number(alborada) }, solicitudes);
+  const r = await post(plata, { accion: "aprobar", id: lia.id, escuela_id: Number(alborada) }, solicitudes);
   assert.equal(r.status, 200); assert.equal(Number(r.body.escuela.id), Number(alborada));
 });
 

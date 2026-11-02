@@ -1,7 +1,7 @@
 // Alumno ↔ docentes: la admin ve todos los alumnos de su escuela; una docente no admin, solo los que tiene asignados.
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { baseNueva, cliente, entrarConCodigo } = require("./ayuda");
+const { baseNueva, cliente, entrarConCodigo, altaEscuela } = require("./ayuda");
 const db = require("../api/_lib/db");
 const auth = require("../api/auth");
 const fichas = require("../api/fichas");
@@ -20,7 +20,7 @@ const REG = [{ fecha: "2026-10-01", alumno: "Luz", animo_general: "contento", ac
 test.before(async () => {
   pg = await baseNueva();
   correo.usarBuzonDePrueba(true);
-  assert.equal((await post(cliente(), auth, { accion: "setup", escuela: "Escuela 2001", nombre: "Ana", email: "ana@e.edu.ar", pin: "4321" })).status, 200);
+  await altaEscuela({ escuela: "Escuela 2001", nombre: "Ana", email: "ana@e.edu.ar" });
   await pg.query("INSERT INTO escuelas (nombre) VALUES ('Otra')");
   await pg.query(`INSERT INTO docentes (escuela_id, email, nombre) VALUES (1, 'beto@e.edu.ar', 'Beto'), (1, 'caro@e.edu.ar', 'Caro'), (2, 'zoe@otra.edu.ar', 'Zoe')`);
   for (const d of (await pg.query("SELECT id, email FROM docentes")).rows) ids[d.email.split("@")[0]] = Number(d.id);

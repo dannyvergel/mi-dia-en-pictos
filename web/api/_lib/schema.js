@@ -211,7 +211,10 @@ const SCHEMA = [
     revocado_por BIGINT
   )`,
   `CREATE INDEX IF NOT EXISTS enlaces_escuela ON enlaces (escuela_id, creado DESC)`,
-  `CREATE INDEX IF NOT EXISTS enlaces_alumno ON enlaces (alumno_id) WHERE alumno_id IS NOT NULL`
+  `CREATE INDEX IF NOT EXISTS enlaces_alumno ON enlaces (alumno_id) WHERE alumno_id IS NOT NULL`,
+  // ---------- Panel admin (plataforma) ----------
+  // La primera cuenta (ADMIN_EMAIL) se crea sin escuela: la escuela de una docente pasa a ser opcional (solo la plataforma la deja vacía).
+  `ALTER TABLE docentes ALTER COLUMN escuela_id DROP NOT NULL`
 ];
 
 module.exports = { SCHEMA };

@@ -24,9 +24,16 @@ const normEmail = e => String(e || "").trim().toLowerCase();
 const emailValido = e => /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,}$/.test(e) && e.length <= 254;
 function ipDe(req) { return String(req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "?").split(",")[0].trim(); }
 
-// Plataforma (superadmin): la cuenta de ADMIN_EMAIL siempre, y las que ella promueva (docentes.es_plataforma).
+// Plataforma (superadmin, panel admin.html): SOLO la cuenta de ADMIN_EMAIL. Sin ADMIN_EMAIL no hay plataforma.
+// La columna docentes.es_plataforma (cuentas promovidas) quedó sin efecto: promover a otras cuentas está bloqueado por ahora.
 const emailPlataforma = () => normEmail(process.env.ADMIN_EMAIL);
-const esPlataforma = d => !!d && (!!d.es_plataforma || (!!emailPlataforma() && normEmail(d.email) === emailPlataforma()));
+const esPlataforma = d => !!d && !!emailPlataforma() && normEmail(d.email) === emailPlataforma();
+const NO_PLATAFORMA = "Solo la administración de la plataforma (la cuenta de ADMIN_EMAIL) puede hacer esto.";
+// Corta (403) si quien pide no es la cuenta de ADMIN_EMAIL. Se usa en cada acción de plataforma, del lado del server.
+function exigirPlataforma(yo) {
+  if (!esPlataforma(yo)) throw Object.assign(new Error(NO_PLATAFORMA), { publico: true, status: 403 });
+  return yo;
+}
 
 // ---------- cookies y sesiones ----------
 function leerCookies(req) {
@@ -54,12 +61,13 @@ async function leerSesion(req) {
   const s = await uno("SELECT tipo, usuario_id FROM sesiones WHERE token_hash = $1 AND expira > now()", [sha256(token)]);
   if (!s) return null;
   if (s.tipo === "docente") {
-    // Docente activa de una escuela activa (la plataforma entra aunque su escuela esté desactivada).
+    // Docente activa de una escuela activa. La plataforma (ADMIN_EMAIL) entra aunque no tenga escuela o esté desactivada.
     const d = await uno(`SELECT d.id, d.escuela_id, d.email, d.nombre, d.es_admin, d.es_plataforma, e.activa AS escuela_activa
-      FROM docentes d JOIN escuelas e ON e.id = d.escuela_id WHERE d.id = $1 AND d.activo`, [s.usuario_id]);
+      FROM docentes d LEFT JOIN escuelas e ON e.id = d.escuela_id WHERE d.id = $1 AND d.activo`, [s.usuario_id]);
     if (!d) return null;
     d.es_plataforma = esPlataforma(d);
     if (!d.escuela_activa && !d.es_plataforma) return null;
+    if (d.escuela_id == null) d.es_admin = false; // sin escuela no administra ninguna
     delete d.escuela_activa;
     return { tipo: "docente", usuario: d };
   }
@@ -97,7 +105,7 @@ function formularioOk(tok, ahora = Date.now()) {
 }
 
 module.exports = {
-  esPlataforma, emailPlataforma,
+  esPlataforma, emailPlataforma, exigirPlataforma, NO_PLATAFORMA,
   tokenFormulario, formularioOk,
   COOKIE, esProduccion, secreto,
   sha256, hmac, igualSeguro, normEmail, emailValido, ipDe, leerCookies,

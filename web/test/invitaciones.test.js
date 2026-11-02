@@ -1,7 +1,7 @@
 // Invitación por mail a las familias que se suman en Contactos de la ficha.
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { baseNueva, cliente, entrarConCodigo } = require("./ayuda");
+const { baseNueva, cliente, entrarConCodigo, altaEscuela } = require("./ayuda");
 const auth = require("../api/auth");
 const fichas = require("../api/fichas");
 const correo = require("../api/_lib/correo");
@@ -17,7 +17,7 @@ const guardar = (contactos, c = ana) => post(c, { accion: "guardar", id: juanId,
 test.before(async () => {
   pg = await baseNueva();
   buzon = correo.usarBuzonDePrueba(true);
-  await cliente().llamar(auth, { method: "POST", body: { accion: "setup", escuela: "Escuela 2001", nombre: "Ana <b>Seño</b>", email: "ana@e.edu.ar", pin: "4321" } });
+  await altaEscuela({ escuela: "Escuela 2001", nombre: "Ana <b>Seño</b>", email: "ana@e.edu.ar" });
   await pg.query("INSERT INTO docentes (escuela_id, email, nombre) VALUES (1, 'caro@e.edu.ar', 'Caro')");
   ana = await entrarConCodigo(pg, "ana@e.edu.ar");
   caro = await entrarConCodigo(pg, "caro@e.edu.ar");
