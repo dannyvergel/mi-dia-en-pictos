@@ -19,6 +19,9 @@
   .trampa { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
   .enlace { background: none; border: 0; padding: 0; color: var(--tinta); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
   .opc { font-weight: 400; color: var(--gris); }
+  .google { display: flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; text-align: center; margin-bottom: 6px; }
+  .google svg { width: 20px; height: 20px; flex: none; background: #fff; border-radius: 50%; padding: 2px; }
+  .separador { text-align: center; color: var(--gris); margin: 10px 0 0; }
   .check { display: flex; gap: 8px; align-items: center; font-weight: 700; margin-top: 10px; } .check input { width: auto; }
 </style>
 <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
@@ -60,6 +63,11 @@
   <section id="docente">
     <div class="card cinta" id="loginDocente">
       <span class="rotulo">Hola, seño</span>
+      <!-- "Entrar con Google": solo docentes/directivos y solo si /api/config dice google: true. El código por mail sigue igual. -->
+      <div id="dGoogle" hidden>
+        <a class="big google" id="dGoogleBtn" href="/api/auth?accion=google"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.7 6c4.5-4.2 6.9-10.3 6.9-17.7z"/><path fill="#FBBC05" d="M10.6 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.7-6c-2.2 1.5-5 2.3-8.2 2.3-6.2 0-11.5-4.1-13.4-9.8l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg>Entrar con Google</a>
+        <p class="separador">o con un código por mail</p>
+      </div>
       <form id="dPedir">
         <p class="muted">Escribí tu email de la escuela. Te mandamos un código de 6 números para entrar, sin contraseña.</p>
         <label for="dEmail">Email</label>
@@ -178,6 +186,7 @@ function ocupado(form, si) { form.querySelectorAll("button").forEach(b => b.disa
   if (e.necesita_setup) { $("loginDocente").hidden = true; $("setup").hidden = false; }
   if (location.hash === "#solicitar" && !e.necesita_setup && !e.solo_invitacion) $("abrirSolicitud").click();
   mostrar(location.search.includes("familia") ? "familia" : "docente");
+  googleDocente();
   // Link de la invitación por mail: login.html?familia&email=… deja el email escrito.
   const emailLink = new URLSearchParams(location.search).get("email");
   if (emailLink && /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,}$/.test(emailLink)) {
@@ -186,8 +195,31 @@ function ocupado(form, si) { form.querySelectorAll("button").forEach(b => b.disa
   }
 })();
 
+// "Entrar con Google" (solo docentes): el botón aparece si /api/config dice google: true. Si Google volvió con un error
+// (?google=…), se muestra el mensaje y se limpia la barra.
+const GOOGLE_MSG = {
+  sin_acceso: "Ese mail no tiene acceso a Puente. Pedí una invitación a tu escuela.",
+  cancelado: "No se completó el ingreso con Google. Podés probar de nuevo o entrar con el código por mail.",
+  limite: "Demasiados intentos. Esperá 15 minutos.",
+  error: "No pudimos entrar con Google. Probá de nuevo o entrá con el código por mail."
+};
+async function googleDocente() {
+  const qs = new URLSearchParams(location.search), err = qs.get("google");
+  if (err) {
+    msg("dMsg", GOOGLE_MSG[err] || GOOGLE_MSG.error);
+    qs.delete("google"); history.replaceState(null, "", location.pathname + (qs.toString() ? "?" + qs : ""));
+  }
+  if (location.search.includes("familia")) return;
+  try {
+    const c = await (await fetch("api/config", { credentials: "same-origin" })).json();
+    if (c && c.google === true) {
+      if (qs.get("volver") === "cuaderno") $("dGoogleBtn").href = "/api/auth?accion=google&volver=cuaderno";
+      $("dGoogle").hidden = false;
+    }
+  } catch {}
+}
+
 // Ingreso con código por email: el mismo flujo para docentes (prefijo d) y familias (prefijo f).
-// Cuando haya SSO, los botones van acá según e.metodos.
 function flujoCodigo(p, tipo) {
   const pedir = async email => {
     msg(p + "Msg", "", false);

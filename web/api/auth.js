@@ -14,6 +14,9 @@
 //  POST accion=invitacion_pedir_codigo  { token, email } → manda el código al email (aunque todavía no tenga cuenta)
 //  POST accion=invitacion_verificar     { token, email, codigo, nombre } → usa el link, crea la cuenta aprobada y abre la sesión
 //  GET también devuelve solo_invitacion (PILOTO_SOLO_INVITACION): con true, login.html oculta "Solicitar acceso".
+//  GET ?accion=google              → "Entrar con Google" (solo docentes/directivos/plataforma; ver _lib/google.js). Inicio y callback
+//                                  usan la MISMA URL: https://puentepictos.app/api/auth?accion=google (Google vuelve con ?code&state).
+//                                  Solo con GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET; sin ellas redirige a login.html.
 //  (login_docente y cambiar_password con contraseña quedaron fuera de uso: responden 410.)
 const { dbActiva, uno } = require("./_lib/db");
 const S = require("./_lib/seguridad");
@@ -22,7 +25,8 @@ const codigos = require("./_lib/codigos");
 const { datosSesion, metodos } = require("./_lib/identidad");
 const enlaces = require("./_lib/enlaces");
 const piloto = require("./_lib/piloto");
-const { cuerpo, exigirJson, manejarError, errorPublico } = require("./_lib/http");
+const google = require("./_lib/google");
+const { cuerpo, consulta, exigirJson, manejarError, errorPublico } = require("./_lib/http");
 
 const VENTANA = 15;
 const textoCorto = (s, max) => String(s || "").trim().slice(0, max);
@@ -52,6 +56,10 @@ async function setup(req, res, b) {
 module.exports = async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
   try {
+    if (req.method === "GET" && consulta(req, "accion") === "google") {
+      if (!dbActiva()) { res.setHeader("Location", "/login.html"); res.status(302); return res.end(); }
+      return await google.manejar(req, res);
+    }
     if (!dbActiva()) {
       if (req.method === "GET") return res.status(200).json({ modo: "demo", sesion: null });
       return res.status(400).json({ error: "Puente está en modo demo (sin base de datos): las docentes entran con PIN y las familias con su link." });

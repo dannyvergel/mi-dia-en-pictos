@@ -30,7 +30,9 @@ function cliente(ip = "10.0.0." + Math.floor(Math.random() * 250)) {
     };
     await handler(req, res);
     const sc = res.headers["set-cookie"];
-    if (sc) { const v = sc.split(";")[0]; cookie = v.endsWith("=") ? "" : v; }
+    // Guarda la cookie de sesión (puente_sesion). Otras cookies (ej. puente_google) no la pisan.
+    const v = [].concat(sc || []).map(x => String(x).split(";")[0]).find(x => x.startsWith("puente_sesion="));
+    if (v !== undefined) cookie = v.endsWith("=") ? "" : v;
     return { status: res.statusCode, body: res.payload, headers: res.headers };
   }
   return { llamar, get cookie() { return cookie; }, set cookie(v) { cookie = v; } };

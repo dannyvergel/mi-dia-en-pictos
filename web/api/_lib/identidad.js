@@ -1,12 +1,9 @@
 // Identidad: separa "probar que la persona controla un email" (proveedor) de
 // "qué cuenta de Puente le corresponde a ese email" (cuentaPara + entrar).
 //
-// Hoy hay un solo proveedor para docentes y familias: código de 6 números por email (_lib/codigos.js).
-// Para sumar SSO más adelante (Google Workspace, Microsoft, cualquier OIDC):
-//   1. un endpoint nuevo (ej. api/sso.js) hace el flujo con el proveedor y obtiene un email VERIFICADO
-//      (claim email_verified, y si hace falta el dominio de la escuela);
-//   2. llama a entrar(res, "docente", email, "sso:google");
-//   3. suma "sso:google" en metodos() para que /login.html muestre el botón.
+// Proveedores: código de 6 números por email (_lib/codigos.js, docentes y familias) y Google OIDC (_lib/google.js, solo docentes,
+// dentro de /api/auth para no sumar funciones). Otro proveedor (Microsoft, cualquier OIDC) haría lo mismo que _lib/google.js:
+// obtener un email VERIFICADO y llamar a entrar(res, "docente", email, "sso:<proveedor>"), y sumarse en metodos().
 // Las reglas de acceso (docente activa / familia vinculada a un alumno) quedan acá, iguales para todos los proveedores.
 const { uno } = require("./db");
 const { crearSesion, normEmail, esPlataforma } = require("./seguridad");
@@ -47,7 +44,10 @@ async function entrar(res, tipo, email, proveedor) {
   return datosSesion(tipo, c);
 }
 
-// Métodos de ingreso disponibles (los lee /login.html). SSO: agregar acá cuando exista.
-function metodos() { return { docente: ["codigo"], familia: ["codigo"] }; }
+// Métodos de ingreso disponibles. "google" solo para docentes y solo con GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET (ver _lib/google.js).
+function metodos() {
+  const g = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+  return { docente: g ? ["codigo", "google"] : ["codigo"], familia: ["codigo"] };
+}
 
 module.exports = { TIPOS, cuentaPara, datosSesion, entrar, metodos };
