@@ -12,7 +12,9 @@
 //                                   la escuela de Puente con ese CUE o una nueva desde el padrón. Queda admin si la escuela es nueva,
 //                                   si no tenía admins o si dijo ser director/a.
 //  POST accion=rechazar  (admin)    { id, avisar? }  → marca rechazada; si avisar, le manda un mail amable
-// Piloto cerrado: con PILOTO_SOLO_INVITACION (por defecto con base) "crear" responde 403: se entra solo con link de invitación.
+// Piloto cerrado (PILOTO_SOLO_INVITACION, por defecto con base): "crear" igual acepta el pedido (formulario "Quiero sumarme al
+// piloto" de la portada), pero SIEMPRE con destino 'plataforma': el aviso va solo a la plataforma (ADMIN_EMAIL), nunca a las
+// admins de una escuela, y no crea cuentas ni da acceso. Solo la plataforma la ve y decide.
 // Aprobar respeta el tope de cupos (PILOTO_MAX_USUARIOS).
 const { dbActiva, q, uno } = require("./_lib/db");
 const S = require("./_lib/seguridad");
@@ -46,10 +48,7 @@ async function rutear(d) {
   return { destino: "plataforma", escuela_id: e?.id ?? null };
 }
 
-const CERRADO = "Puente está en un piloto cerrado: se entra solo con un link de invitación. Pedíselo a la dirección de tu escuela.";
-
 async function crear(req, res, b) {
-  if (piloto.soloInvitacion()) return res.status(403).json({ error: CERRADO, solo_invitacion: true });
   const d = validar(b);
   const cue = /^\d{9}$/.test(String(b.cue ?? "").trim()) ? String(b.cue).trim() : "";
   d.cue = cue && await padron.porCue(cue) ? cue : null;
@@ -63,6 +62,8 @@ async function crear(req, res, b) {
   // Ya es docente activa: no hace falta pedir nada (y no lo decimos).
   if (await uno("SELECT 1 AS x FROM docentes WHERE email = $1 AND activo", [d.email])) return res.status(200).json(GENERICO);
   const r = await rutear(d);
+  // Piloto cerrado: todo pedido lo decide la plataforma (se guarda la escuela por CUE, si la hay, solo como sugerencia).
+  if (piloto.soloInvitacion()) r.destino = "plataforma";
   // Ya pidió y está pendiente: actualizamos los datos (y el ruteo), sin volver a avisar.
   const previa = await uno(`UPDATE solicitudes SET nombre = $2, escuela = $3, rol = $4, mensaje = $5, cue = $6, es_director = $7, destino = $8,
       escuela_id = $9, actualizado = now()

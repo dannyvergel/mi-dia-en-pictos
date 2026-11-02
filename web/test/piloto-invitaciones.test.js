@@ -43,16 +43,45 @@ test.before(async () => {
 test.after(() => { correo.usarBuzonDePrueba(false); delete process.env.ADMIN_EMAIL; delete process.env.PUENTE_URL; delete process.env.PILOTO_MAX_USUARIOS; });
 test.beforeEach(async () => { await pg.query("DELETE FROM limites"); buzon.length = 0; });
 
-test("solo invitación por defecto con base: el login lo sabe y la solicitud abierta se bloquea del lado del server", async () => {
+test("solo invitación por defecto con base: el login lo sabe y la solicitud abierta (portada) igual se recibe, solo para la plataforma", async () => {
   const e = await cliente().llamar(auth);
   assert.equal(e.body.solo_invitacion, true);
-  const r = await post(cliente(), solicitudes, { accion: "crear", nombre: "Marta", email: "marta@x.com", escuela: "Escuela Uno" });
-  assert.equal(r.status, 403); assert.match(r.body.error, /solo con un link de invitación/);
-  assert.equal((await pg.query("SELECT count(*)::int AS n FROM solicitudes")).rows[0].n, 0);
+  // Escuela Dos (con directora activa) tiene CUE: sin piloto cerrado el pedido iría a su directora.
+  await pg.query("UPDATE escuelas SET cue = '820060800' WHERE id = $1", [escuelaB]);
+  const antes = (await pg.query("SELECT count(*)::int AS n FROM docentes")).rows[0].n;
+  const r = await post(cliente(), solicitudes, { accion: "crear", nombre: "Marta", email: "marta@x.com", escuela: "Escuela Dos", cue: "820060800",
+    rol: "seño", mensaje: "Ciudad: Rosario, Santa Fe. Alumnos aprox.: 12", sitio_web: "" });
+  assert.equal(r.status, 200);
+  assert.deepEqual(r.body, { ok: true, mensaje: "Recibimos tu pedido, te avisamos por mail." });
+  const [s] = (await pg.query("SELECT * FROM solicitudes")).rows;
+  assert.equal(s.destino, "plataforma"); assert.equal(s.estado, "pendiente");
+  // Aviso solo a la plataforma (ADMIN_EMAIL), con link a su panel; nunca a la directora.
+  assert.equal(buzon.length, 1);
+  assert.deepEqual(buzon[0].to, ["ana@plataforma.org"]);
+  assert.match(buzon[0].text, /admin\.html#solicitudes/);
+  // No crea cuentas ni da acceso.
+  assert.equal((await pg.query("SELECT count(*)::int AS n FROM docentes")).rows[0].n, antes);
+  assert.equal((await pg.query("SELECT count(*)::int AS n FROM docentes WHERE email = 'marta@x.com'")).rows[0].n, 0);
+  // La plataforma la ve; la directora de esa escuela no.
+  const vePlat = await ana.llamar(solicitudes);
+  assert.equal(vePlat.status, 200); assert.deepEqual(vePlat.body.pendientes.map(x => x.email), ["marta@x.com"]);
+  assert.deepEqual((await dire.llamar(solicitudes)).body.pendientes, []);
+  // Repetir el pedido no vuelve a avisar; la trampa para bots no guarda nada.
+  buzon.length = 0;
+  assert.equal((await post(cliente(), solicitudes, { accion: "crear", nombre: "Marta", email: "marta@x.com", escuela: "Escuela Dos" })).status, 200);
+  assert.equal((await post(cliente(), solicitudes, { accion: "crear", nombre: "Bot", email: "bot@x.com", escuela: "Escuela", sitio_web: "http://spam" })).status, 200);
   assert.equal(buzon.length, 0);
-  process.env.PILOTO_SOLO_INVITACION = "0";
-  try { assert.equal((await post(cliente(), solicitudes, { accion: "crear", nombre: "Marta", email: "marta@x.com", escuela: "Escuela Uno" })).status, 200); }
-  finally { delete process.env.PILOTO_SOLO_INVITACION; await pg.query("DELETE FROM solicitudes"); }
+  assert.equal((await pg.query("SELECT count(*)::int AS n FROM solicitudes")).rows[0].n, 1);
+  // Aprobar sigue respetando los cupos.
+  process.env.PILOTO_MAX_USUARIOS = "1"; // la directora ya ocupa el único cupo
+  try {
+    const ap = await post(ana, solicitudes, { accion: "aprobar", id: s.id, escuela_id: escuelaB });
+    assert.equal(ap.status, 409); assert.match(ap.body.error, /piloto está completo/);
+    assert.equal((await pg.query("SELECT count(*)::int AS n FROM docentes WHERE email = 'marta@x.com'")).rows[0].n, 0);
+  } finally {
+    delete process.env.PILOTO_MAX_USUARIOS;
+    await pg.query("DELETE FROM solicitudes"); await pg.query("UPDATE escuelas SET cue = NULL WHERE id = $1", [escuelaB]);
+  }
 });
 
 test("link de docente: un solo uso, crea la cuenta aprobada en esa escuela y queda en la auditoría (solo el hash del token)", async () => {

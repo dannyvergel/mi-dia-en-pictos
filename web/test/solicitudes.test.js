@@ -35,7 +35,7 @@ test("pedido válido: queda pendiente, respuesta genérica, aviso a admins con d
   assert.ok(!buzon[0].html.includes("<script>") && buzon[0].html.includes("&lt;script&gt;"));
   assert.ok(buzon[0].html.includes("&lt;b&gt;seño&lt;/b&gt; &amp; &quot;más&quot;"));
   assert.ok(!/[\r\n]/.test(buzon[0].subject));
-  assert.match(buzon[0].text, /docente\.html#solicitudes/);
+  assert.match(buzon[0].text, /admin\.html#solicitudes/); // va a la plataforma: se resuelve en su panel
 });
 
 test("validación: nombre, email y escuela obligatorios; solo JSON", async () => {

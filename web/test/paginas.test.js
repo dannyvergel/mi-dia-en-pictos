@@ -80,3 +80,26 @@ test("panel admin: separado del panel docente, sin «hacer plataforma»", () => 
   assert.equal(/accion: "plataforma"|hacer plataforma|tabEscs|cargarEscuelas/.test(d), false);
   assert.equal(/accion: "plataforma"/.test(a), false);
 });
+
+test("portada: \"Quiero sumarme al piloto\" es un formulario real (no solo mailto) contra api/solicitudes, con trampa y mailto alternativo", () => {
+  const h = leer("index.html");
+  assert.match(h, /<details[^>]*id="sumarse"/);
+  assert.match(h, /<summary[^>]*id="btnSumarse"[^>]*>Quiero sumarme al piloto<\/summary>/);
+  assert.equal(/id="btnSumarse"[^>]*href="mailto:/.test(h), false);
+  for (const id of ["suNombre", "suEmail", "suEscuela", "suLugar", "suRol", "suAlumnos", "suWeb"]) {
+    assert.ok(h.includes(`id="${id}"`), id);
+    if (id !== "suWeb") assert.ok(h.includes(`<label for="${id}"`), "label " + id);
+  }
+  assert.match(h, /class="trampa" aria-hidden="true"/);
+  assert.match(h, /id="suWeb"[^>]*tabindex="-1"/);
+  assert.ok(h.includes('fetch("api/solicitudes"') && h.includes('accion: "crear"') && h.includes("sitio_web"));
+  assert.ok(h.includes("¡Gracias! Te escribimos a tu mail."));
+  assert.ok(h.includes('href="mailto:soporte@puentepictos.app'));
+  assert.match(h, /aria-live="polite"/);
+});
+
+test("admin: la plataforma ve las solicitudes de la portada", () => {
+  const a = leer("admin.html");
+  assert.ok(a.includes('id="listaSol"') && a.includes('data-a="aprobar"') && a.includes('data-a="rechazar"'));
+  assert.ok(a.includes("Quiero sumarme al piloto"));
+});
