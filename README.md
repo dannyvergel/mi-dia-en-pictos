@@ -6,6 +6,8 @@
 
 App para escuelas de educación especial: niños con TEA, discapacidad intelectual o necesidades de comunicación.
 
+**Páginas**: `/` (`index.html`) es la **portada pública**: qué es Puente, una tira de ejemplo con pictos ARASAAC, para quién es, que es gratuito y está en piloto con invitación, y los botones *Entrar* (`login.html`) y *Soy familia* (`login.html?familia`). El **Cuaderno del día** de la docente se mudó a `/cuaderno.html` (antes era la raíz; el manifest de la PWA arranca ahí). `login.html`, `docente.html`, `familia.html` y los links de invitación (`login.html#invitacion=…`) no cambiaron. El **panel de la plataforma** es `/admin.html` (solo `ADMIN_EMAIL`).
+
 ## El problema
 - Las familias muchas veces no saben cómo fue el día, y los chicos no siempre pueden contarlo.
 - Lo imprevisto genera ansiedad: anticipar la rutina con apoyos visuales es clave.
@@ -68,19 +70,35 @@ Con una base de datos conectada, Puente deja el PIN y los links y pasa a cuentas
 
 ### 👥 Roles
 ```
-Plataforma (ADMIN_EMAIL y quien ella promueva)
-  └─ aprueba directoras / escuelas nuevas, ve todas las escuelas y puede desactivarlas
+Plataforma (solo la cuenta de ADMIN_EMAIL, panel admin.html)
+  └─ da de alta escuelas desde el padrón, genera el link del directivo, ve todas las escuelas y puede desactivarlas
      Admin de escuela (directora o quien ella haga admin)
        └─ aprueba e invita a las docentes de SU escuela, ve y asigna todos sus alumnos
           Docente
             └─ ve solo los alumnos que tiene asignados, carga contactos de familias
                Familia (invitada por mail) → entra con código, da su consentimiento
 ```
-- **Plataforma** (`docentes.es_plataforma`; la cuenta de `ADMIN_EMAIL` siempre lo es, y la primera cuenta del alta inicial también). Desde *Panel → Docentes* puede promover a otra cuenta (*hacer plataforma*). Ve **todas** las solicitudes y la pestaña **Escuelas**: nombre, CUE, cantidad de docentes (y admins) y alumnos, aval sí/no, y **desactivar/reactivar** cada escuela. Una escuela desactivada no entra: se cortan las sesiones de sus docentes, sus docentes y familias no reciben código y sus pedidos nuevos van a la plataforma.
+- **Plataforma**: **solo la cuenta de `ADMIN_EMAIL`** (`S.esPlataforma` / `S.exigirPlataforma` en `api/_lib/seguridad.js`, validado en el server en cada acción). Sin `ADMIN_EMAIL` no hay plataforma. La columna `docentes.es_plataforma` quedó sin efecto: una cuenta que haya sido promovida antes ya no tiene permisos de plataforma, y **promover a otras cuentas está bloqueado** por ahora (`POST /api/docentes accion=plataforma` responde 403 a todos; anotado en el checklist para después). Todo lo de plataforma está en `admin.html` (ver *Panel de la plataforma*). Una escuela desactivada no entra: se cortan las sesiones de sus docentes, sus docentes y familias no reciben código y sus pedidos nuevos van a la plataforma.
 - **Ruteo de solicitudes**: si la seño elige del padrón una escuela que **ya está en Puente** (mismo CUE), activa y con al menos una admin, el pedido va **solo a las admins de esa escuela** (el mail también). Si la escuela no está en Puente, no tiene admins, no eligió del padrón, o marcó **Soy director/a**, va a la **plataforma**. Al aprobar una directora o una escuela nueva, la plataforma crea la escuela desde el padrón (si hace falta) y la deja **admin**.
 - **Admin de escuela**: ve solo los pedidos de su escuela y aprueba solo en su escuela (no puede elegir otra ni crear escuelas). Suma docentes desde *Docentes*, ve **todos** los alumnos de su escuela y les asigna docentes.
 - **Docente**: ve y edita solo los **alumnos asignados** (tabla `alumno_docentes`): ficha, *Cuaderno del día* (`/api/dia`), Agente de Progreso, publicar para la familia y la vista previa del chat. Quien crea un alumno queda asignada. Una docente asignada puede sumar a otra de su escuela (maestra integradora, terapeuta…; puede haber varias); quitar a otra solo lo hace una admin, y cada una se puede quitar a sí misma.
 - **Migración**: se aplica sola. Columnas nuevas idempotentes (`es_plataforma`, `escuelas.activa`, `solicitudes.destino/escuela_id/es_director`) y, **una sola vez** (tabla `migraciones`), cada alumno que ya existía sin asignaciones queda asignado a todas las docentes activas de su escuela, así nadie deja de ver lo que veía. Las solicitudes pendientes de antes quedan para la plataforma.
+
+### 🛠️ Panel de la plataforma (`admin.html`)
+Solo para la cuenta de `ADMIN_EMAIL`. La página muestra *"Este panel es solo de la plataforma"* a cualquier otra cuenta, pero lo que protege es el server: cada acción de plataforma responde **403** si no la pide `ADMIN_EMAIL`, aunque la cuenta sea directora o esté marcada `es_plataforma` en la base (tests: `test/admin-plataforma.test.js`, `test/roles.test.js`). Después de entrar, `ADMIN_EMAIL` va directo a `admin.html`.
+- **Escuelas**: *Dar de alta una escuela* con el buscador del Padrón Oficial (`POST /api/escuelas accion=crear_escuela { cue }`; si ya está en Puente devuelve esa, sin duplicar) y, en el mismo paso, el **link para su directivo/a**. Lista de escuelas (`GET ?todas=1`): CUE, localidad, docentes/admins, alumnos, links de docente pendientes, aval, y por escuela **Ficha** (`GET ?ficha=1&id=`, `POST accion=guardar_ficha { escuela_id, … }`), **Link para directivo/a** y **desactivar/reactivar**. Arriba, **"X de 15 cupos usados"**.
+- **Invitaciones**: cupos, link para un directivo/a (o docente) de cualquier escuela activa y **todos los links** de la plataforma (docentes y familias) con su estado y *anular*.
+- **Solicitudes**: las que hayan quedado de antes del piloto cerrado (aprobar eligiendo escuela, crear desde el padrón o rechazar).
+- **Registro**: el registro de accesos de **toda** la plataforma y los **comentarios recibidos** (*Enviar comentario*).
+- Si `ADMIN_EMAIL` además tiene escuela propia (como la cuenta creada antes de este cambio), en `docente.html` ve solo lo de su escuela y un link *Panel de la plataforma →*. Sin escuela, `docente.html` lo manda a `admin.html`.
+- Las directoras siguen con su panel en `docente.html`, recortado a su escuela (Solicitudes, Escuela, Importar, Invitaciones, Registro, Docentes).
+
+### 🔗 Alta por invitación en cascada
+1. **Primera cuenta** (`login.html` → *Primera vez en Puente*, `POST /api/auth accion=setup`): exige `ADMIN_EMAIL` (y ese email) y `DOCENTE_PIN`. Se crea **sin escuela** (`docentes.escuela_id` es opcional; solo la plataforma lo deja vacío) y sin buscador de escuelas. Sin escuela no carga alumnos ni suma docentes a mano.
+2. **Danny crea la escuela** desde el padrón en `admin.html` y genera el **link del directivo** (es admin). También se puede crear el link directo con el CUE (`POST /api/docentes accion=invitacion_crear { cue, es_admin: true }`): si la escuela no está en Puente, **se crea desde el padrón al crear el link**.
+3. **El directivo** abre el link, pone nombre y email, valida el código y queda **admin de esa escuela**. Desde *Panel → Invitaciones* invita a sus **seños** (links de su escuela).
+4. **Las seños o la dirección** invitan a las **familias** desde la ficha del alumno (*Link de invitación para la familia*, o el mail de *Contactos*).
+Todo respeta el tope de cupos. Test de punta a punta: `test/admin-plataforma.test.js`.
 
 ### 📥 Importación masiva (docentes, alumnos y familias)
 *Panel → Importar* (solo admins de escuela y plataforma; una docente sin admin recibe 403). Sirve para arrancar una escuela sin cargar ficha por ficha.
@@ -103,10 +121,10 @@ Plataforma (ADMIN_EMAIL y quien ella promueva)
 **Migración desde contraseñas**: las tablas se actualizan solas (`pass_hash` pasa a ser opcional y queda sin uso; `codigos` suma la columna `tipo`; se crean `solicitudes` y `chat_turnos`). Las docentes que ya existían entran igual, con su email y código. Las sesiones abiertas siguen valiendo. `login_docente` y `cambiar_password` responden 410.
 
 ### 🏫 Ficha de escuela y Padrón Oficial
-- **Buscar la escuela**: en *Primera vez en Puente*, en *Solicitar acceso* y en la ficha de la escuela hay un buscador (desde 3 letras, 300 ms después de la última tecla, navegable con flechas/Enter/Escape) contra nuestra propia API `GET /api/escuelas?q=`. Encuentra por nombre, número (*"escuela 2085"*, *"2085"*), CUE o localidad, sin importar tildes ni mayúsculas; devuelve hasta 10 y pone primero el número exacto y las escuelas con **Educación Especial**. Si la escuela no aparece, se escribe el nombre a mano.
+- **Buscar la escuela**: en el panel de la plataforma (*Dar de alta una escuela*), en *Solicitar acceso* (si se reabre) y en la ficha de la escuela hay un buscador (el alta inicial ya no lo tiene) (desde 3 letras, 300 ms después de la última tecla, navegable con flechas/Enter/Escape) contra nuestra propia API `GET /api/escuelas?q=`. Encuentra por nombre, número (*"escuela 2085"*, *"2085"*), CUE o localidad, sin importar tildes ni mayúsculas; devuelve hasta 10 y pone primero el número exacto y las escuelas con **Educación Especial**. Si la escuela no aparece, se escribe el nombre a mano.
 - **Quién puede buscar**: docentes con sesión (120 búsquedas cada 10 min) y los dos formularios públicos del login, con un token firmado que entrega `GET /api/auth` a quien no tiene sesión (vence a las 2 h; 40 búsquedas cada 10 min y 300 por día por IP). Desde el formulario público solo se devuelve lo necesario para elegir (sin teléfono ni email).
 - **Ficha de escuela** (*Panel → Escuela*, solo docentes admin de esa escuela): CUE + anexo, nombre, domicilio, localidad, departamento, modalidad y niveles, contacto institucional (email, teléfono), directivo responsable (nombre, email), responsable del tratamiento de datos (nombre y cargo, email), aval firmado (sí/no, fecha, quién lo firmó) y notas. Elegir la escuela del padrón completa los datos institucionales. Un CUE solo puede estar en una escuela de Puente.
-- **Alta y solicitudes con CUE**: la primera docente que elige su escuela del padrón crea la escuela con esos datos. La seño que pide acceso y elige su escuela deja guardado el CUE; al aprobar, por defecto entra en la escuela de Puente con ese CUE, o se crea desde el padrón (y entonces queda como admin). La admin siempre puede elegir otra escuela.
+- **Alta y solicitudes con CUE**: la plataforma da de alta la escuela desde el padrón (o al crear el link del directivo con el CUE) y queda con esos datos. La seño que pide acceso y elige su escuela deja guardado el CUE; al aprobar, por defecto entra en la escuela de Puente con ese CUE, o se crea desde el padrón (y entonces queda como admin). La admin siempre puede elegir otra escuela.
 - **Datos**: `web/data/escuelas-santa-fe.json` (≈1,1 MB, 5044 establecimientos activos de Santa Fe, 154 con Educación Especial) se genera con `cd web && npm run padron` (baja el XLSX oficial; también acepta un archivo: `npm run padron -- padron.xlsx`). Solo datos institucionales públicos: CUE + anexo, nombre, número, domicilio, localidad, departamento, código postal, teléfono y email institucional, sector, ámbito y ofertas (común/especial/adultos/hospitalaria por nivel). El padrón no trae coordenadas. Se carga en la tabla `padron_escuelas` sola en la primera búsqueda (o con `npm run migrar`), por lotes e idempotente; si el archivo cambia de fecha se actualiza y se sacan las escuelas que ya no figuran. Usa `pg_trgm` si la base lo tiene (Neon sí); si no, busca igual con texto normalizado.
 - **Fuente y atribución**: [Padrón Oficial de Establecimientos Educativos](https://www.argentina.gob.ar/educacion/evaluacion-e-informacion-educativa/padron-oficial-de-establecimientos-educativos), Ministerio de Educación de la Nación (Dirección de Información Educativa), archivo actualizado el **07/09/2026**. También publicado en [datos.gob.ar](https://datos.gob.ar) bajo licencia CC BY 4.0. Para actualizar: cambiar `PADRON_URL` (o pasar la nueva URL) y correr `npm run padron`. No se usa Nominatim (su política no permite autocompletar).
 
@@ -141,7 +159,7 @@ Decisión del 1/11/2026: el piloto queda abierto a **15 usuarios en total** (se�
 | `DATABASE_URL` / `POSTGRES_URL` | Postgres de Neon. Sin esto: modo demo | Sí, para cuentas |
 | `SESSION_SECRET` | Firma las cookies de sesión y los códigos. 32+ caracteres al azar (`openssl rand -base64 32`) | Sí en producción (sin esto da error) |
 | `DOCENTE_PIN` | Protege la creación de la primera docente (y el modo demo) | Sí en producción para el alta inicial |
-| `ADMIN_EMAIL` | Cuenta de la **plataforma** (superadmin). Si está, la primera cuenta solo se puede crear con ese email. Recibe los avisos de solicitudes de escuelas nuevas y de directoras | Recomendada |
+| `ADMIN_EMAIL` | Cuenta de la **plataforma** (superadmin, única que entra a `admin.html`). La primera cuenta solo se puede crear con ese email (sin ella, el alta inicial no anda). Recibe los avisos de solicitudes y comentarios | **Sí** |
 | `RESEND_API_KEY` | Envía los códigos de ingreso (docentes y familias), los avisos de solicitudes y las invitaciones a familias ([resend.com](https://resend.com)) | Sí en producción |
 | `RESEND_FROM` | Remitente, ej. `Puente <hola@tudominio.com>` (dominio verificado en Resend) | Recomendada (por defecto `onboarding@resend.dev`, que solo manda a tu propio email) |
 | `PUENTE_URL` | Base de los links en los mails, ej. `https://puente-pictos.vercel.app` (con dominio propio: `https://puentepictos.org`). También es el Referer que se manda a OpenRouter. Si falta se usa el dominio de producción de Vercel (o la URL de la rama en *preview*) | Opcional |
@@ -163,10 +181,10 @@ Decisión del 1/11/2026: el piloto queda abierto a **15 usuarios en total** (se�
    - `RESEND_FROM` = `Puente <hola@puentepictos.org>` (solo cuando el dominio esté **verificado** en Resend; antes, los mails fallan).
    - *Vercel*: proyecto `mi-dia-en-pictos` → Settings → Domains → *Add* `puentepictos.org` (y `www.puentepictos.org`, con redirección a uno de los dos). Cargar en el DNS del registrador los registros que muestra Vercel (normalmente un `A` para el dominio raíz y un `CNAME` para `www`, o delegar los nameservers a Vercel). Esperar *Valid Configuration*; el certificado HTTPS es automático. `puente-pictos.vercel.app` sigue andando.
    - *Resend*: Domains → *Add Domain* → `puentepictos.org` (o un subdominio como `mail.puentepictos.org`) → región. Cargar en el DNS los registros que muestra: `MX` y `TXT` (SPF) del subdominio de envío y `TXT` de DKIM (`resend._domainkey`); recomendable un `TXT` de DMARC en `_dmarc` (ej. `v=DMARC1; p=none;`). Tocar *Verify* y esperar *Verified*. Recién ahí cambiar `RESEND_FROM`.
-   - Después: actualizar a mano las etiquetas Open Graph de `index.html` y `presentacion.html` (y el texto/QR de la última diapositiva) que hoy dicen `puente-pictos.vercel.app`, y mandarse un código de prueba.
+   - Después: actualizar a mano las etiquetas Open Graph (y el `canonical`) de `index.html` (portada) y `presentacion.html` (y el texto/QR de la última diapositiva) que hoy dicen `puente-pictos.vercel.app`, y mandarse un código de prueba.
 
-3. **Primera cuenta (plataforma)**: abrir `/login.html`, completar *Primera vez en Puente* con el `DOCENTE_PIN` (y el email de `ADMIN_EMAIL` si está). Se crea la cuenta admin de su escuela y de la plataforma, **sin contraseña**, y en el momento le llega un código a ese email para entrar. Después aprueba a las directoras en *Panel → Solicitudes*, y cada directora suma a sus docentes.
-4. Cargar alumnos y fichas en `/docente.html`, con los emails de las familias. El *Cuaderno del día* (`/`) publica solo al espacio de la familia.
+3. **Primera cuenta (plataforma)**: abrir `/login.html`, completar *Primera vez en Puente* con el `DOCENTE_PIN` y el email de `ADMIN_EMAIL`. Se crea la cuenta de la plataforma, **sin escuela y sin contraseña**, y en el momento le llega un código a ese email para entrar. Después, en `/admin.html`, da de alta cada escuela desde el padrón y le manda el link a su directivo/a; cada directivo invita a sus docentes (ver *Alta por invitación en cascada*).
+4. Cargar alumnos y fichas en `/docente.html`, con los emails de las familias. El *Cuaderno del día* (`/cuaderno.html`) publica solo al espacio de la familia.
 
 ### Probar en local
 ```bash
@@ -174,10 +192,14 @@ cd web && npm install
 npm test           # node --test: API con base PGlite en memoria y Blob simulado
 npm run local      # http://localhost:3000 con base PGlite en memoria (DEMO=1 para modo demo, DATABASE_URL=... para una base real)
 ```
+En local, si no hay `ADMIN_EMAIL`, se usa `admin@puente.local` (alta inicial con el PIN `2026`; el código aparece en pantalla).
 
 ## Estructura
 ```
-web/            PWA (HTML + JS puro): pestañas Docente, Alumno, Familia y Progreso
+web/index.html  Portada pública (qué es Puente, tira de ejemplo ARASAAC, Entrar / Soy familia, meta tags para compartir)
+web/cuaderno.html Cuaderno del día (PWA): pestañas Docente, Alumno, Familia y Progreso (antes era index.html)
+web/admin.html  Panel de la plataforma (solo ADMIN_EMAIL): escuelas, invitaciones, cupos, solicitudes, registro y comentarios
+web/            PWA (HTML + JS puro)
 web/api/        Funciones de Vercel: agente.js (Agente de Progreso), dia.js (registro diario), familia.js (espacio de familias),
                 auth.js (ingreso con código, alta inicial), solicitudes.js (pedidos de acceso), fichas.js (fichas de familia), docentes.js,
                 escuelas.js (búsqueda en el padrón y ficha de escuela)
@@ -192,8 +214,8 @@ web/privacidad.html, web/terminos.html  Textos legales (BORRADOR pendiente de re
 web/vercel.json Cron diario de limpieza
 web/familia.html Vista de la familia (con sesión, o con link en modo demo)
 web/login.html  Entrar con código por email (docente o familia) y *Solicitar acceso*
-web/docente.html Panel docente: alumnos (con docentes a cargo e invitaciones), fichas, solicitudes (admin/plataforma), escuela (admin),
-                escuelas (plataforma), importar (admin/plataforma), docentes, mi cuenta
+web/docente.html Panel docente: alumnos (con docentes a cargo e invitaciones), fichas, y para la dirección de la escuela: solicitudes,
+                escuela, importar, invitaciones, registro y docentes; mi cuenta (lo de plataforma está en admin.html)
 web/importar.js Pestaña Importar: plantillas, lectura de CSV/XLSX, vista previa y confirmación
 web/vendor/     SheetJS (xlsx.mini 0.20.3, Apache-2.0) para leer y armar planillas Excel en el navegador
 web/escuelas.js Buscador de escuelas accesible (combobox) que usan login.html y docente.html
@@ -210,7 +232,7 @@ Importar el repo en Vercel y elegir `web` como *Root Directory* (sin build, es e
 ## Correr la demo
 ```bash
 cd web && python3 -m http.server 8080
-# abrir http://localhost:8080
+# abrir http://localhost:8080 (portada) y http://localhost:8080/cuaderno.html (Cuaderno del día)
 ```
 - Sin configurar nada funciona en **modo demo** (sin IA, busca pictos igual).
 
