@@ -26,14 +26,15 @@ async function destinatariosAdmin(s = {}) {
 }
 
 async function nuevaSolicitud(req, s) {
-  const link = urlPublica(req) + "/docente.html#solicitudes";
+  // La plataforma resuelve en su panel (admin.html); las admins de escuela, en docente.html.
+  const link = urlPublica(req) + (s.destino === "escuela" && s.escuela_id ? "/docente.html#solicitudes" : "/admin.html#solicitudes");
   const filas = [["Nombre", s.nombre], ["Email", s.email], ["Escuela", s.escuela], ["Rol / grado", s.rol], ["Dice que es", s.es_director ? "directora / director" : ""],
     ["Mensaje", s.mensaje]].filter(([, v]) => v);
   return intentar({
     to: await destinatariosAdmin(s),
     subject: `Nueva solicitud de acceso a Puente: ${linea(s.nombre, 60)}`,
-    text: `Hola!\n\nUna docente pidió acceso a Puente:\n\n${filas.map(([k, v]) => `${k}: ${linea(v, 1000)}`).join("\n")}\n\nPara aprobarla o rechazarla: ${link}\n\n${PIE}`,
-    html: envolver(`<p>Hola!</p><p>Una docente pidió acceso a <b>Puente</b>:</p>
+    text: `Hola!\n\nLlegó un pedido para sumarse a Puente:\n\n${filas.map(([k, v]) => `${k}: ${linea(v, 1000)}`).join("\n")}\n\nPara aprobarla o rechazarla: ${link}\n\n${PIE}`,
+    html: envolver(`<p>Hola!</p><p>Llegó un pedido para sumarse a <b>Puente</b>:</p>
       <table style="border-collapse:collapse">${filas.map(([k, v]) => `<tr><td style="padding:4px 12px 4px 0;color:#6b6f76;vertical-align:top">${k}</td><td style="padding:4px 0;white-space:pre-wrap">${escHtml(v)}</td></tr>`).join("")}</table>
       <p><a href="${escHtml(link)}" style="display:inline-block;background:#2f4a3e;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none;font-weight:700">Ver solicitudes</a></p>`)
   });

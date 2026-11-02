@@ -46,6 +46,16 @@
   .lista-puntos { margin: 6px 0 0; padding-left: 20px; } .lista-puntos li { margin: 4px 0; }
   .piloto { background: #fdf6e1; border-left: 5px solid var(--lapiz); }
   .chiquito { font-size: 14px; }
+  .sumarse { margin: 12px 0 0; }
+  .sumarse > summary.big { margin: 0; text-align: center; }
+  .sumarse > summary.big::after { content: none; }
+  .sumarse > summary:focus-visible { outline: 3px solid #f2b632; outline-offset: 2px; }
+  .sumarse form { margin-top: 4px; }
+  .sumarse .big { width: 100%; }
+  .opc { font-weight: 400; color: var(--gris); }
+  .trampa { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+  .sumarse .error { color: var(--bad); font-weight: 700; }
+  .gracias { font-family: var(--mano); font-size: 24px; margin: 12px 0 0; }
   @media (max-width: 640px) {
     .tira.ejemplo { grid-template-columns: repeat(3, 1fr); }
     .pasos { grid-template-columns: 1fr; }
@@ -107,7 +117,37 @@
     <div class="card piloto">
       <span class="rotulo">Piloto con invitación</span>
       <p style="margin:0">Puente está en una prueba piloto con cupos limitados. Se entra solo con un link de invitación: la dirección de la escuela invita a las seños, y las seños invitan a las familias.</p>
-      <p style="margin:.6em 0 0">¿Tu escuela quiere participar? <a id="btnSumarse" href="mailto:soporte@puentepictos.app?subject=Quiero%20sumarme%20al%20piloto%20de%20Puente&amp;body=Hola%2C%20quiero%20sumar%20mi%20escuela%20al%20piloto%20de%20Puente.%0A%0AEscuela%3A%0ACiudad%20y%20provincia%3A%0ACUE%20%28si%20lo%20ten%C3%A9s%29%3A%0AMi%20nombre%20y%20rol%20%28directora%2C%20se%C3%B1o%2C%20etc.%29%3A%0ACantidad%20aproximada%20de%20alumnos%20que%20usar%C3%ADan%20pictos%3A%0ATel%C3%A9fono%20%28opcional%29%3A%0A%0AGracias." style="color:var(--tinta);font-weight:700">Quiero sumarme al piloto</a> y te escribimos.</p>
+      <details class="sumarse" id="sumarse">
+        <summary class="big" id="btnSumarse">Quiero sumarme al piloto</summary>
+        <form id="fSumarse" novalidate aria-describedby="suAyuda">
+          <p class="muted" id="suAyuda" style="margin:10px 0 0">Dejanos tus datos y te escribimos a tu mail. No crea ninguna cuenta.</p>
+          <label for="suNombre">Nombre y apellido</label>
+          <input id="suNombre" name="nombre" required minlength="2" maxlength="80" autocomplete="name">
+          <label for="suEmail">Email</label>
+          <input id="suEmail" name="email" type="email" required maxlength="160" autocomplete="email" inputmode="email">
+          <label for="suEscuela">Escuela</label>
+          <input id="suEscuela" name="escuela" required minlength="2" maxlength="120" placeholder="Nombre o número de la escuela">
+          <label for="suLugar">Ciudad y provincia</label>
+          <input id="suLugar" name="lugar" maxlength="120" autocomplete="address-level2" placeholder="Ej: Rosario, Santa Fe">
+          <label for="suRol">Tu rol</label>
+          <select id="suRol" name="rol" required>
+            <option value="">Elegí una opción</option>
+            <option value="directora">Directora / director</option>
+            <option value="seño">Seño / docente</option>
+            <option value="familia">Familia</option>
+            <option value="otro">Otro</option>
+          </select>
+          <label for="suAlumnos">Cantidad aproximada de alumnos <span class="opc">(opcional)</span></label>
+          <input id="suAlumnos" name="alumnos" type="number" min="1" max="2000" inputmode="numeric">
+          <label for="suMensaje">Algo más que quieras contarnos <span class="opc">(opcional)</span></label>
+          <textarea id="suMensaje" name="mensaje" maxlength="600" style="min-height:64px"></textarea>
+          <div class="trampa" aria-hidden="true"><label for="suWeb">No completar</label><input id="suWeb" name="sitio_web" tabindex="-1" autocomplete="off"></div>
+          <button class="big" id="suEnviar">Enviar</button>
+          <p id="suMsg" class="muted" role="status" aria-live="polite"></p>
+        </form>
+        <p class="gracias" id="suGracias" role="status" tabindex="-1" hidden>¡Gracias! Te escribimos a tu mail.</p>
+      </details>
+      <p class="muted chiquito" style="margin:.5em 0 0">o escribinos a <a href="mailto:soporte@puentepictos.app?subject=Quiero%20sumarme%20al%20piloto%20de%20Puente" style="color:var(--tinta)">soporte@puentepictos.app</a></p>
     </div>
 
     <div class="botones">
@@ -138,6 +178,33 @@ fetch("api/auth", { credentials: "same-origin" }).then(r => r.ok ? r.json() : nu
   else { entrar.href = s.es_plataforma ? "admin.html" : "docente.html"; entrar.textContent = s.es_plataforma ? "Ir al panel de la plataforma" : "Ir a mi panel"; txt.textContent = "Entraste como " + s.nombre + "."; }
   txt.hidden = false;
 }).catch(() => {});
+// "Quiero sumarme al piloto": manda el pedido a la plataforma (no crea cuentas). Ciudad y alumnos van en el mensaje.
+(() => {
+  const f = document.getElementById("fSumarse"), m = document.getElementById("suMsg"), b = document.getElementById("suEnviar");
+  const v = id => document.getElementById(id).value.trim();
+  const ROLES = { directora: "Directora / director", "seño": "Seño / docente", familia: "Familia", otro: "Otro" };
+  document.getElementById("sumarse").addEventListener("toggle", e => { if (e.target.open && !f.hidden) document.getElementById("suNombre").focus(); });
+  f.onsubmit = async ev => {
+    ev.preventDefault();
+    m.className = "muted"; m.textContent = "";
+    const malo = [...f.querySelectorAll("[required]")].find(x => !x.checkValidity());
+    if (malo) { m.className = "error"; m.textContent = malo.type === "email" ? "Revisá el email." : "Completá: " + f.querySelector(`label[for="${malo.id}"]`).textContent.trim() + "."; malo.focus(); return; }
+    const mensaje = [v("suLugar") && "Ciudad y provincia: " + v("suLugar"), v("suAlumnos") && "Cantidad aproximada de alumnos: " + v("suAlumnos"), v("suMensaje")].filter(Boolean).join("\n");
+    const rol = v("suRol");
+    b.disabled = true; b.textContent = "Enviando…";
+    try {
+      const r = await fetch("api/solicitudes", { method: "POST", headers: { "content-type": "application/json" }, credentials: "same-origin",
+        body: JSON.stringify({ accion: "crear", nombre: v("suNombre"), email: v("suEmail"), escuela: v("suEscuela"), rol: ROLES[rol] || rol,
+          es_director: rol === "directora", mensaje, sitio_web: document.getElementById("suWeb").value }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || "No pudimos mandar tu pedido. Probá de nuevo o escribinos.");
+      f.hidden = true;
+      const g = document.getElementById("suGracias"); g.hidden = false; g.focus();
+      window.va && window.va("event", { name: "sumarse_piloto" });
+    } catch (e) { m.className = "error"; m.textContent = e.message || "No pudimos mandar tu pedido. Probá de nuevo o escribinos."; }
+    finally { b.disabled = false; b.textContent = "Enviar"; }
+  };
+})();
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 </script>
 </body>

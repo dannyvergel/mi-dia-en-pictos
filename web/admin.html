@@ -145,7 +145,7 @@
   <!-- SOLICITUDES -->
   <section id="solicitudes">
     <div class="card"><span class="rotulo">Pedidos de acceso</span>
-      <p class="muted">Con el piloto cerrado no entran pedidos nuevos; acá quedan los que hubiera de antes.</p>
+      <p class="muted">Pedidos del formulario “Quiero sumarme al piloto” de la portada. Llegan solo a la plataforma y no crean cuentas: aprobar da acceso (respeta los cupos), rechazar los cierra.</p>
       <div id="listaSol"><p class="vacio">Cargando…</p></div>
       <p class="muted" id="msgSol"></p>
     </div>
@@ -343,7 +343,7 @@ $("fInv").onsubmit = async ev => {
   } catch (e) { $("invNuevo").innerHTML = ""; msg("msgInv", e.message, true); }
 };
 
-// ---------- solicitudes (las que queden de antes del piloto cerrado) ----------
+// ---------- solicitudes (formulario de la portada; con el piloto cerrado llegan solo a la plataforma) ----------
 async function contarSolicitudes() {
   try { const r = await api("api/solicitudes"); $("nSol").textContent = r.pendientes.length; $("nSol").hidden = !r.pendientes.length; } catch {}
 }
