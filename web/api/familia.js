@@ -61,6 +61,7 @@ async function modoDemo(req, res) {
   const b = cuerpo(req);
   if (b.accion === "verificar_pin") return exigirPin(req, res) && res.status(200).json({ ok: true });
   if (b.accion === "publicar") {
+    if (require("./_lib/pin").demoAbierto()) return res.status(403).json({ error: "En el demo abierto no se crean links para familias: todo queda en este navegador." });
     if (!exigirPin(req, res)) return;
     if (!b.alumno || !Array.isArray(b.registros)) return res.status(400).json({ error: "Faltan datos" });
     const t = tokenOk(b.token) ? b.token : crypto.randomBytes(16).toString("hex");

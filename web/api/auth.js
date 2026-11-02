@@ -61,7 +61,7 @@ module.exports = async (req, res) => {
       return await google.manejar(req, res);
     }
     if (!dbActiva()) {
-      if (req.method === "GET") return res.status(200).json({ modo: "demo", sesion: null });
+      if (req.method === "GET") return res.status(200).json({ modo: "demo", sesion: null, ...(require("./_lib/pin").demoAbierto() ? { abierto: true } : {}) });
       return res.status(400).json({ error: "Puente está en modo demo (sin base de datos): las docentes entran con PIN y las familias con su link." });
     }
     if (req.method === "GET") {
