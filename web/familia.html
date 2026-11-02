@@ -35,8 +35,9 @@
   <script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
+<a class="saltar" href="#contenido">Saltar al contenido</a>
 <header><h1 id="tit">Puente</h1><div class="bajada" id="sub">de la escuela a casa, en pictogramas</div><span class="tiza"></span></header>
-<main><div class="pagina" id="app"><p class="vacio">Cargando…</p></div></main>
+<main id="contenido" tabindex="-1"><div class="pagina" id="app"><p class="vacio">Cargando…</p></div></main>
 <footer><span id="pie">Este espacio es privado: solo lo ve quien tiene el link.</span><div id="puente-pie" data-feedback="si" data-donaciones="no"></div></footer>
 <script src="pie.js" defer></script>
 <script src="cuenta.js"></script>
@@ -111,14 +112,14 @@ function htmlFicha() {
       ${apoyos}
       <dt>Objetivos del PPI</dt><dd>${FICHA.objetivos.length ? FICHA.objetivos.map(o => "• " + esc(o)).join("<br>") : "—"}</dd>
     </dl>
-    ${ESFAMILIA && FICHA.contactos.some(x => x.email) ? `<form id="fTel" class="fila" style="margin-top:10px"><input id="miTel" inputmode="tel" maxlength="30" placeholder="Tu teléfono / WhatsApp"><button class="big chico" style="width:auto;margin:0;padding:0 14px">Actualizar mi teléfono</button></form>` : ""}
+    ${ESFAMILIA && FICHA.contactos.some(x => x.email) ? `<form id="fTel" class="fila" style="margin-top:10px"><input id="miTel" inputmode="tel" maxlength="30" placeholder="Tu teléfono / WhatsApp"><button class="big chico auto">Actualizar mi teléfono</button></form>` : ""}
     <div class="${c.dado ? "logro" : "alerta"}" style="margin-top:12px">${c.dado ? `Consentimiento dado por ${esc(c.quien)} el ${esc(c.fecha)}.` : "Todavía no está el consentimiento de la familia para usar Puente."}</div>
     ${ESFAMILIA ? (c.dado ? `<button class="big alt chico" id="btnCons" data-dar="0">Retirar el consentimiento</button>`
       : `<p class="muted">Al dar tu consentimiento aceptás que la escuela registre en Puente cómo fue el día de ${esc(FICHA.nombre)} (solo su nombre de pila, sin fotos ni diagnósticos) y que lo puedan ver las familias vinculadas, según la <a href="privacidad.html" target="_blank">política de privacidad</a> (versión ${esc(VERSION_PRIV || "vigente")}). Los datos se guardan en servidores fuera de Argentina y una IA ayuda a ordenar los registros.</p><button class="big" id="btnCons" data-dar="1">Doy mi consentimiento</button>`) : ""}
     ${c.dado && c.version ? `<p class="muted">Aceptaste la <a href="privacidad.html" target="_blank">política de privacidad</a> versión ${esc(c.version)}.</p>` : ""}
     ${ESFAMILIA ? `<div class="card" style="margin-top:12px"><span class="rotulo">Tus datos</span>
       <p class="muted">Podés descargar todo lo que Puente guarda de tu familia, o pedir la baja: se borra tu contacto, tu historial de preguntas y, si no tenés otro alumno en Puente, tu cuenta. Los registros de la escuela sobre ${esc(FICHA.nombre)} los maneja la escuela.</p>
-      <div class="fila"><button class="big alt chico" id="btnExport" type="button">Descargar mis datos</button><button class="big alt chico" id="btnBaja" type="button" style="color:var(--bad);border-color:var(--bad)">Pedir la baja y borrar mis datos</button></div></div>` : ""}
+      <div class="fila"><button class="big alt chico" id="btnExport" type="button">Descargar mis datos</button><button class="big alt chico peligro" id="btnBaja" type="button">Pedir la baja y borrar mis datos</button></div></div>` : ""}
     <p class="muted" id="msgFicha"></p></details></div>`;
 }
 function conectarFicha() {

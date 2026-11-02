@@ -14,11 +14,17 @@
   --lapiz: #f2b632;
   --ok: #3e7d4f;
   --warn: #c98200;
+  --warn-txt: #8a5a00; /* el ámbar como texto necesita más contraste */
   --bad: #b5442e;
-  --gris: #6b6f76;
+  --gris: #5d6168; /* AA (≥4.5:1) también sobre las pestañas y fondos crema */
   --borde: #e6dfcf;
   --mano: "Patrick Hand", "Comic Sans MS", cursive;
   --texto: "Atkinson Hyperlegible", system-ui, sans-serif;
+  /* Escala de espacios y foco común */
+  --e1: 4px; --e2: 8px; --e3: 12px; --e4: 16px; --e5: 24px; --e6: 32px;
+  --toque: 44px;
+  --foco: 0 0 0 3px var(--hoja), 0 0 0 6px var(--tinta);
+  --radio: 10px;
 }
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
@@ -115,7 +121,7 @@ pre { white-space: pre-wrap; font-family: var(--texto); background: #fdf9ef; bor
 
 /* Sellos de estado */
 .sello { display: inline-block; padding: 1px 10px; border: 2px solid currentColor; border-radius: 6px; font-size: 12px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; transform: rotate(-2deg); color: var(--gris); }
-.sello.avanzando { color: var(--ok); } .sello.estancado, .sello.retroceso { color: var(--bad); } .sello.estable { color: var(--warn); }
+.sello.avanzando { color: var(--ok); } .sello.estancado, .sello.retroceso { color: var(--bad); } .sello.estable { color: var(--warn-txt); }
 .ppi { padding: 10px 0; border-bottom: 1px dashed var(--borde); }
 .ppi:last-child { border-bottom: 0; }
 .estr { padding: 12px; border: 1px solid var(--borde); border-radius: 10px; margin: 8px 0; background: #fffef9; }
@@ -133,8 +139,8 @@ pre { white-space: pre-wrap; font-family: var(--texto); background: #fdf9ef; bor
 
 details summary { cursor: pointer; list-style: none; }
 details summary::-webkit-details-marker { display: none; }
-details summary::after { content: "＋"; float: right; color: var(--gris); }
-details[open] summary::after { content: "－"; }
+details summary::after { content: "+"; float: right; color: var(--gris); font-weight: 700; }
+details[open] summary::after { content: "\2212"; }
 .hist { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--renglon); cursor: pointer; }
 .hist img { width: 28px; height: 28px; }
 .etiqueta { font-size: 12px; font-weight: 700; color: var(--bad); }
@@ -208,3 +214,95 @@ table.tabla th, table.tabla td { text-align: left; padding: 4px 8px 4px 0; borde
 .borrador { background: #fff4d6; border: 1.5px dashed var(--warn); border-radius: 10px; padding: 10px 12px; margin: 8px 0 14px; }
 .pie-puente .enlace { background: none; border: 0; padding: 0; color: var(--tinta); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
 body.modo-familia .pie-don { display: none !important; }
+
+/* ---------- Pulido general (consistencia, estados, foco, táctil, movimiento) ---------- */
+html { scroll-padding-top: 12px; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+a { color: var(--tinta); text-underline-offset: 2px; }
+a:hover { text-decoration-thickness: 2px; }
+h3 { line-height: 1.3; }
+.muted a, .chiquito a { color: var(--tinta); }
+img { max-width: 100%; }
+
+/* Saltar al contenido (teclado / lector de pantalla) */
+.saltar { position: absolute; left: 8px; top: -60px; z-index: 100; background: var(--lapiz); color: var(--tinta); font-weight: 700; padding: 10px 14px; border-radius: 0 0 10px 10px; text-decoration: none; }
+.saltar:focus { top: 0; }
+
+/* Foco visible y consistente en todo lo que se puede tocar con teclado */
+:focus { outline: none; }
+:focus-visible { outline: 3px solid var(--tinta); outline-offset: 2px; box-shadow: 0 0 0 6px #f2b63299; }
+select:focus-visible, textarea:focus-visible, input:focus-visible { outline: 3px solid var(--tinta); outline-offset: 1px; box-shadow: none; }
+header :focus-visible, .gate :focus-visible { outline-color: var(--lapiz); }
+select:focus, textarea:focus, input:focus { border-color: var(--tinta); }
+input::placeholder, textarea::placeholder { color: #767a80; }
+
+/* Formularios: errores visibles, campos inválidos marcados después de tocarlos */
+input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="true"],
+input:user-invalid, select:user-invalid, textarea:user-invalid { border-color: var(--bad); background-color: #fff8f5; }
+.error { color: var(--bad); font-weight: 700; }
+.error:not(:empty)::before { content: "⚠ "; }
+.ok { color: var(--ok); }
+input[type="checkbox"], input[type="radio"] { width: 22px; height: 22px; accent-color: var(--pizarron); flex: none; margin: 0; }
+.check { min-height: var(--toque); cursor: pointer; }
+textarea.corto { min-height: 64px; }
+input:disabled, select:disabled, textarea:disabled { background: #f3efe5; color: var(--gris); cursor: not-allowed; }
+
+/* Botones: tamaño táctil, hover, presionado, deshabilitado y cargando */
+.big { min-height: var(--toque); line-height: 1.25; text-align: center; text-decoration: none; position: relative;
+  transition: background-color .15s, box-shadow .15s, transform .1s, filter .15s; -webkit-tap-highlight-color: transparent; }
+a.big { display: flex; align-items: center; justify-content: center; }
+.big:hover:not(:disabled) { filter: brightness(1.12); }
+.big.alt:hover:not(:disabled) { filter: none; background: #f4f7f5; }
+.big.alt:disabled { background: #fff; }
+.big:disabled { opacity: .55; filter: grayscale(.3); box-shadow: none; }
+.big.chico { min-height: var(--toque); }
+.big.auto { width: auto; margin: 0; padding: 0 16px; }
+.big.peligro, .big.alt.peligro { color: var(--bad); border-color: var(--bad); }
+.big.alt.peligro:hover:not(:disabled) { background: #fbefe9; }
+.big[aria-busy="true"] { color: transparent !important; pointer-events: none; }
+.big[aria-busy="true"]::after { content: ""; position: absolute; inset: 0; margin: auto; width: 18px; height: 18px; border-radius: 50%;
+  border: 2.5px solid currentColor; border-color: var(--tiza) var(--tiza) transparent transparent; animation: gira .8s linear infinite; }
+.big.alt[aria-busy="true"]::after { border-color: var(--tinta) var(--tinta) transparent transparent; }
+.enlace { min-height: 32px; border-radius: 4px; }
+.quitar { min-width: 36px; min-height: 36px; border-radius: 8px; }
+.quitar:hover { background: #fbefe9; }
+.quitar.txt { font-size: 14px; font-weight: 700; }
+.boton-don { min-height: 40px; display: inline-flex; align-items: center; }
+nav button { min-height: var(--toque); transition: background-color .15s, color .15s; }
+nav button:hover:not(.on) { background: #f8f2e4; color: var(--tinta); }
+.picto { transition: transform .12s, box-shadow .12s; }
+.picto:active { transform: scale(.98); }
+.ac-lista li { min-height: var(--toque); }
+details > summary { min-height: 32px; }
+
+/* Pestañas: en celular no se aprietan, se deslizan */
+@media (max-width: 520px) {
+  nav { scroll-snap-type: x proximity; scrollbar-width: none; }
+  nav::-webkit-scrollbar { display: none; }
+  nav button { flex: 1 0 auto; min-width: 0; padding: 9px 10px 8px; scroll-snap-align: start; }
+  .big.auto { padding: 0 14px; }
+  h2, .titulo { font-size: 24px; }
+  .card > b:first-child, .card .rotulo { font-size: 21px; }
+}
+/* Pantallas muy angostas (360px) */
+@media (max-width: 380px) {
+  header h1 { font-size: 28px; }
+  .pagina { padding-left: 20px; }
+  .pagina::before { left: 10px; }
+  .gate form { flex-direction: column; } .gate form .big { padding: 0 18px; }
+}
+/* Desktop ancho: un poco más de aire */
+@media (min-width: 900px) {
+  .pagina { padding: 24px 28px 14px 44px; }
+  .pagina::before { left: 24px; }
+}
+
+/* Movimiento reducido: sin animaciones ni transiciones (el spinner queda, más lento) */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+  .spin, .big[aria-busy="true"]::after { animation-duration: 1.6s !important; animation-iteration-count: infinite !important; }
+  .picto:hover { transform: none; }
+}
+/* Alto contraste del sistema */
+@media (forced-colors: active) { .big, nav button, .picto { border: 1px solid ButtonText; } }
+main[tabindex="-1"]:focus, main[tabindex="-1"]:focus-visible { outline: none; box-shadow: none; }

@@ -31,6 +31,7 @@
   <script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
+<a class="saltar" href="#contenido">Saltar al contenido</a>
 <div id="pinGate" class="gate" hidden>
   <div class="card cinta">
     <span class="rotulo">Hola, seño</span>
@@ -46,7 +47,7 @@
   <button data-s="familia">Familia</button>
   <button data-s="progreso">Progreso</button>
 </nav>
-<main><div class="pagina">
+<main id="contenido" tabindex="-1"><div class="pagina">
   <!-- DOCENTE -->
   <section id="docente" class="on">
     <h2>Cuaderno del día</h2>
@@ -117,11 +118,11 @@
     <div class="card">
       <details id="perfilBox">
         <summary><b style="font-family:var(--mano);font-size:22px;font-weight:400">Perfil de <span id="perfilNom">Juan</span></b> <span class="muted">(sin diagnósticos ni datos de salud)</span></summary>
-        <label>Cómo se comunica</label><textarea class="pf" data-k="comunicacion" style="min-height:50px"></textarea>
-        <label>Qué le molesta</label><textarea class="pf" data-k="sensibilidades" style="min-height:50px" placeholder="Ej: ruido fuerte, cambios sin aviso"></textarea>
-        <label>Qué lo calma</label><textarea class="pf" data-k="lo_calma" style="min-height:50px" placeholder="Ej: auriculares, rincón tranquilo"></textarea>
-        <label>Qué le gusta</label><textarea class="pf" data-k="le_gusta" style="min-height:50px"></textarea>
-        <label>Observaciones</label><textarea class="pf" data-k="observaciones" style="min-height:50px"></textarea>
+        <label>Cómo se comunica</label><textarea class="pf corto" data-k="comunicacion"></textarea>
+        <label>Qué le molesta</label><textarea class="pf corto" data-k="sensibilidades" placeholder="Ej: ruido fuerte, cambios sin aviso"></textarea>
+        <label>Qué lo calma</label><textarea class="pf corto" data-k="lo_calma" placeholder="Ej: auriculares, rincón tranquilo"></textarea>
+        <label>Qué le gusta</label><textarea class="pf corto" data-k="le_gusta"></textarea>
+        <label>Observaciones</label><textarea class="pf corto" data-k="observaciones"></textarea>
         <button class="big alt chico" id="btnPerfil">Guardar perfil</button>
       </details>
     </div>

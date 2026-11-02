@@ -28,12 +28,13 @@
 <script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
+<a class="saltar" href="#contenido">Saltar al contenido</a>
 <header><h1>Puente</h1><div class="bajada">de la escuela a casa, en pictogramas</div><span class="tiza"></span></header>
 <nav id="tabs">
   <button class="on" data-s="docente">Soy docente</button>
   <button data-s="familia">Soy familia</button>
 </nav>
-<main class="login"><div class="pagina">
+<main id="contenido" tabindex="-1" class="login"><div class="pagina">
   <p class="vacio" id="cargando">Cargando…</p>
 
   <!-- INVITACIÓN (piloto cerrado): login.html#invitacion=… -->
@@ -54,8 +55,8 @@
         <button class="big">Entrar</button>
         <button type="button" class="big alt chico" id="iOtro">Usar otro email</button>
       </form>
-      <p class="muted" id="iMsg"></p>
-      <p class="muted"><a href="login.html" style="color:var(--tinta)">¿Ya tenés cuenta? Entrá acá</a></p>
+      <p class="muted" id="iMsg" role="status" aria-live="polite"></p>
+      <p class="muted"><a href="login.html">¿Ya tenés cuenta? Entrá acá</a></p>
     </div>
   </section>
 
@@ -81,7 +82,7 @@
         <button class="big">Entrar</button>
         <button type="button" class="big alt chico" id="dOtro">Usar otro email</button>
       </form>
-      <p class="muted" id="dMsg"></p>
+      <p class="muted" id="dMsg" role="status" aria-live="polite"></p>
       <p class="muted" id="dPie">¿Todavía no tenés cuenta? <button type="button" class="enlace" id="abrirSolicitud">Solicitar acceso</button></p>
     </div>
 
@@ -96,12 +97,12 @@
         <label class="check"><input type="checkbox" id="soDirector"> Soy director/a de la escuela</label>
         <p class="muted" style="margin:2px 0 0">Si tu escuela ya usa Puente, tu pedido le llega a su administradora. Si sos director/a o la escuela todavía no está, lo revisa el equipo de Puente.</p>
         <label for="soRol">Rol o grado <span class="opc">(opcional)</span></label><input id="soRol" maxlength="80" placeholder="Ej: seña de 2.º, maestra integradora">
-        <label for="soMensaje">Mensaje <span class="opc">(opcional)</span></label><textarea id="soMensaje" maxlength="1000" style="min-height:64px"></textarea>
+        <label for="soMensaje">Mensaje <span class="opc">(opcional)</span></label><textarea class="corto" id="soMensaje" maxlength="1000"></textarea>
         <div class="trampa" aria-hidden="true"><label for="soWeb">No completar</label><input id="soWeb" tabindex="-1" autocomplete="off"></div>
         <button class="big">Mandar pedido</button>
         <button type="button" class="big alt chico" id="cerrarSolicitud">Volver</button>
       </form>
-      <p class="muted" id="soMsg"></p>
+      <p class="muted" id="soMsg" role="status" aria-live="polite"></p>
     </div>
 
     <div class="card cinta" id="setup" hidden>
@@ -113,7 +114,7 @@
         <label for="sPin">PIN de docente</label><input id="sPin" type="password" inputmode="numeric" required>
         <button class="big">Crear mi cuenta</button>
       </form>
-      <p class="muted" id="sMsg"></p>
+      <p class="muted" id="sMsg" role="status" aria-live="polite"></p>
     </div>
   </section>
 
@@ -134,7 +135,7 @@
         <button class="big">Entrar</button>
         <button type="button" class="big alt chico" id="fOtro">Usar otro email</button>
       </form>
-      <p class="muted" id="fMsg"></p>
+      <p class="muted" id="fMsg" role="status" aria-live="polite"></p>
     </div>
   </section>
 
@@ -142,7 +143,7 @@
     <div class="card cinta">
       <span class="rotulo">Puente está en modo demo</span>
       <p>Todavía no hay base de datos conectada: las docentes entran con el PIN desde el inicio y las familias con el link privado que les manda la escuela.</p>
-      <a class="big" href="cuaderno.html" style="text-align:center;text-decoration:none">Ir al Cuaderno del día</a>
+      <a class="big" href="cuaderno.html">Ir al Cuaderno del día</a>
     </div>
   </section>
 </div></main>
@@ -169,7 +170,12 @@ const msg = (id, texto, error = true) => { $(id).textContent = texto; $(id).clas
 const destino = s => s.tipo !== "docente" ? "familia.html"
   : new URLSearchParams(location.search).get("volver") === "cuaderno" ? "cuaderno.html" : s.es_plataforma ? "admin.html" : "docente.html";
 const ir = s => location.href = destino(s);
-function ocupado(form, si) { form.querySelectorAll("button").forEach(b => b.disabled = si); }
+// Mientras espera al servidor: botones deshabilitados y el de enviar con indicador de "cargando".
+function ocupado(form, si) {
+  form.querySelectorAll("button").forEach(b => b.disabled = si);
+  const enviar = form.querySelector("button:not([type=button])");
+  if (enviar) si ? enviar.setAttribute("aria-busy", "true") : enviar.removeAttribute("aria-busy");
+}
 
 (async () => {
   let e;
