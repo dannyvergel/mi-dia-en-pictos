@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin.html
+Disallow: /docente.html
+Disallow: /familia.html
+Disallow: /login.html
+Disallow: /firma/
+
+Sitemap: https://puentepictos.app/sitemap.xml
