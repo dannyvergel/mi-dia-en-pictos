@@ -1,5 +1,5 @@
 // Red primero (para ver siempre la última versión), caché si no hay conexión.
-const C = 'pictos-v14';
+const C = 'pictos-v15';
 self.addEventListener('install', e => { self.skipWaiting(); e.waitUntil(caches.open(C).then(c => c.addAll(['./', 'index.html', 'cuaderno.html', 'admin.html', 'seed.js', 'estilo.css', 'familia.html', 'login.html', 'docente.html', 'cuenta.js', 'pie.js', 'pizarron.js', 'privacidad.html', 'terminos.html', 'manifest.json', 'icono.svg', 'icono-192.png', 'icono-512.png']))); });
 self.addEventListener('activate', e => e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== C).map(k => caches.delete(k)))).then(() => self.clients.claim())));
 self.addEventListener('fetch', e => {
