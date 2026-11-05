@@ -91,7 +91,7 @@ async function guardarFicha(res, yo, b, escuelaId = yo.escuela_id) {
 
 // ---------- plataforma ----------
 async function todas() {
-  const filas = await q(`SELECT e.id, e.nombre, e.cue, e.localidad, e.aval_firmado, e.activa,
+  const filas = await q(`SELECT e.id, e.nombre, e.cue, e.localidad, e.aval_firmado, e.activa, e.tipo,
       (SELECT count(*)::int FROM docentes d WHERE d.escuela_id = e.id AND d.activo) AS docentes,
       (SELECT count(*)::int FROM docentes d WHERE d.escuela_id = e.id AND d.activo AND d.es_admin) AS admins,
       (SELECT count(*)::int FROM alumnos a WHERE a.escuela_id = e.id) AS alumnos,

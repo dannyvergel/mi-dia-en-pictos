@@ -214,7 +214,11 @@ const SCHEMA = [
   `CREATE INDEX IF NOT EXISTS enlaces_alumno ON enlaces (alumno_id) WHERE alumno_id IS NOT NULL`,
   // ---------- Panel admin (plataforma) ----------
   // La primera cuenta (ADMIN_EMAIL) se crea sin escuela: la escuela de una docente pasa a ser opcional (solo la plataforma la deja vacía).
-  `ALTER TABLE docentes ALTER COLUMN escuela_id DROP NOT NULL`
+  `ALTER TABLE docentes ALTER COLUMN escuela_id DROP NOT NULL`,
+  // ---------- Profesionales sin escuela ----------
+  // Un/a profesional independiente (terapeuta, acompañante) tiene su propio "espacio": una fila de escuelas con tipo
+  // 'independiente', sin CUE, donde es admin. Ocupa un cupo del piloto como cualquier docente.
+  `ALTER TABLE escuelas ADD COLUMN IF NOT EXISTS tipo TEXT NOT NULL DEFAULT 'escuela'`
 ];
 
 module.exports = { SCHEMA };

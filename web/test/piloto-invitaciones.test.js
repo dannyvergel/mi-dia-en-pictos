@@ -270,3 +270,35 @@ test("el alta de la primera cuenta (setup) no depende del modo solo invitación"
     assert.equal(r.status, 200, JSON.stringify(r.body));
   } finally { usarBaseDePrueba(pg); }
 });
+
+test("profesional sin escuela: solo la plataforma crea el link, se crea su espacio propio, queda admin y ocupa cupo", async () => {
+  sinTope();
+  try {
+    // Una directora de escuela no puede.
+    const no = await post(dire, docentes, { accion: "invitacion_crear", independiente: true, nombre: "Lic. Ana Pérez" });
+    assert.equal(no.status, 403);
+    assert.equal((await post(ana, docentes, { accion: "invitacion_crear", independiente: true, nombre: "" })).status, 400);
+    const r = await post(ana, docentes, { accion: "invitacion_crear", independiente: true, nombre: "Lic. Ana Pérez", espacio: "Consultorio TO Ana" });
+    assert.equal(r.status, 200);
+    const l = r.body.enlace;
+    assert.equal(l.independiente, true); assert.equal(l.es_admin, true); assert.equal(l.usos_max, 1); assert.equal(l.escuela, "Consultorio TO Ana");
+    assert.match(l.mensaje, /sin depender de una escuela/);
+    const [e] = (await pg.query("SELECT * FROM escuelas WHERE id = $1", [l.escuela_id])).rows;
+    assert.equal(e.tipo, "independiente"); assert.equal(e.cue, null); assert.equal(e.activa, true);
+    // Info pública del link.
+    const inf = await post(cliente(), auth, { accion: "invitacion_info", token: tokenDe(l) });
+    assert.equal(inf.body.independiente, true);
+    // La persona lo usa: queda admin de su espacio.
+    const { r: v } = await usar(tokenDe(l), "ana.perez@to.com", "Ana Pérez");
+    assert.equal(v.status, 200);
+    const [d] = (await pg.query("SELECT * FROM docentes WHERE email = 'ana.perez@to.com'")).rows;
+    assert.equal(Number(d.escuela_id), l.escuela_id); assert.equal(d.es_admin, true);
+    // Sin nombre de espacio: "Espacio de …". Y con el piloto completo no se crea nada.
+    const r2 = await post(ana, docentes, { accion: "invitacion_crear", independiente: true, nombre: "Juan Gómez" });
+    assert.equal(r2.body.enlace.escuela, "Espacio de Juan Gómez");
+    const n = (await pg.query("SELECT count(*)::int AS n FROM escuelas")).rows[0].n;
+    process.env.PILOTO_MAX_USUARIOS = "1";
+    assert.equal((await post(ana, docentes, { accion: "invitacion_crear", independiente: true, nombre: "Otra" })).status, 409);
+    assert.equal((await pg.query("SELECT count(*)::int AS n FROM escuelas")).rows[0].n, n);
+  } finally { delete process.env.PILOTO_MAX_USUARIOS; }
+});

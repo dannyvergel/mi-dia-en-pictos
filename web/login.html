@@ -262,7 +262,8 @@ async function invitacion(token) {
   const familia = info.tipo === "familia";
   document.body.classList.toggle("modo-familia", familia);
   $("iDesc").textContent = familia
-    ? `${info.escuela} te invita a seguir el día de ${info.alumno} en la escuela, con pictogramas. Después de entrar vas a ver el consentimiento para leerlo y aceptarlo.`
+    ? `${info.escuela} te invita a seguir el día de ${info.alumno}${info.independiente ? "" : " en la escuela"}, con pictogramas. Después de entrar vas a ver el consentimiento para leerlo y aceptarlo.`
+    : info.independiente ? `Te invitaron a Puente como profesional, con tu propio espacio (${info.escuela}): vas a sumar a tus alumnos y sus familias.`
     : `Te invitaron a entrar como ${info.es_admin ? "directivo/a (admin)" : "docente"} de ${info.escuela}.`;
   if (info.completo) return msg("iMsg", info.mensaje);
   $("iNombreLbl").innerHTML = familia ? 'Tu nombre <span class="opc">(opcional)</span>' : "Tu nombre y apellido";
