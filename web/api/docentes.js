@@ -12,6 +12,8 @@
 //                                 → link para una seño (la admin de escuela, solo para la suya). Devuelve la URL una sola vez.
 //                                 La plataforma (ADMIN_EMAIL) lo usa desde admin.html para el link del directivo de una escuela:
 //                                 con cue de una escuela que todavía no está en Puente, la escuela se crea desde el padrón al crear el link.
+//                                 Con independiente: true (solo plataforma) { nombre, espacio? }: crea el espacio propio de un/a
+//                                 profesional sin escuela (terapeuta, acompañante) y el link que lo deja como admin. Ocupa cupo.
 //  POST accion=invitacion_revocar { id }   (admins de esa escuela, plataforma, o la docente que ve al alumno en links de familia)
 //  "crear" respeta el tope de cupos.
 const { dbActiva, q, uno } = require("./_lib/db");
@@ -45,7 +47,7 @@ module.exports = async (req, res) => {
     }
     if (req.method !== "POST") return res.status(405).json({ error: "Método no permitido" });
     const b = cuerpo(req);
-    if (b.accion === "invitacion_crear") return res.status(200).json({ enlace: await enlaces.crearDocente(req, yo, b), cupos: await piloto.cupos() });
+    if (b.accion === "invitacion_crear") return res.status(200).json({ enlace: await (b.independiente ? enlaces.crearIndependiente : enlaces.crearDocente)(req, yo, b), cupos: await piloto.cupos() });
     if (b.accion === "invitacion_revocar") return res.status(200).json({ enlace: await enlaces.revocar(req, yo, b.id) });
     // Promover a otra cuenta como plataforma: bloqueado por ahora para todos (también para ADMIN_EMAIL).
     if (b.accion === "plataforma") throw errorPublico("Por ahora la plataforma es solo la cuenta de ADMIN_EMAIL: no se puede promover a otras cuentas.", 403);

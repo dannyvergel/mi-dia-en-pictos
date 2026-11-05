@@ -142,6 +142,20 @@
       <div id="invNuevo"></div>
       <p class="muted" id="msgInv"></p>
     </div>
+    <div class="card cinta">
+      <span class="rotulo">Link para un/a profesional sin escuela</span>
+      <p class="muted">Para terapeutas, acompañantes o docentes particulares. Le crea un espacio propio donde queda como admin: suma alumnos y familias igual que una escuela. Ocupa un cupo del piloto.</p>
+      <form id="fIndep">
+        <label for="indNombre">Nombre y apellido</label>
+        <input id="indNombre" maxlength="80" required placeholder="Ej: Lic. Ana Pérez">
+        <label for="indEspacio">Nombre del espacio <span class="muted">(opcional)</span></label>
+        <input id="indEspacio" maxlength="100" placeholder="Ej: Consultorio de TO Ana Pérez">
+        <p class="muted">El link sirve una sola vez y vence a los 7 días. Copialo apenas lo creás.</p>
+        <button class="big">Crear link de invitación</button>
+      </form>
+      <div id="indNuevo"></div>
+      <p class="muted" id="msgInd"></p>
+    </div>
     <div class="card"><span class="rotulo">Todos los links</span><div id="invLista"><p class="vacio">Cargando…</p></div></div>
   </section>
 
@@ -223,7 +237,7 @@ document.querySelectorAll("[data-ir]").forEach(b => b.onclick = () => mostrar(b.
 
 // ---------- links ----------
 function cajaLink(el, l) {
-  el.innerHTML = `<div class="link-nuevo"><b>Link listo</b> <span class="muted">· ${esc(l.escuela || "")} · ${l.es_admin ? "directivo/a (admin)" : "docente"} · vence ${esc(fecha(l.expira))} · ${l.usos_max === 1 ? "un solo uso" : l.usos_max + " usos"}</span>
+  el.innerHTML = `<div class="link-nuevo"><b>Link listo</b> <span class="muted">· ${esc(l.escuela || "")} · ${l.independiente ? "profesional (admin de su espacio)" : l.es_admin ? "directivo/a (admin)" : "docente"} · vence ${esc(fecha(l.expira))} · ${l.usos_max === 1 ? "un solo uso" : l.usos_max + " usos"}</span>
     <input readonly value="${esc(l.url)}" aria-label="Link de invitación">
     <div class="link-acciones"><button type="button" class="big chico" data-copiar>Copiar link</button>
     <a class="big alt chico" href="${esc(l.whatsapp)}" target="_blank" rel="noopener">Compartir por WhatsApp</a></div>
@@ -271,9 +285,9 @@ async function cargarEscuelas() {
     $("listaEscs").innerHTML = r.escuelas.length ? r.escuelas.map(e => `<div class="esc" data-id="${e.id}">
         <b>${esc(Puente.tituloEscuela(e.nombre))}</b> <span class="muted">· ${e.cue ? "CUE " + esc(e.cue) : "sin CUE"}${e.localidad ? " · " + esc(Puente.tituloEscuela(e.localidad)) : ""}</span>
         <div class="muted">${e.docentes} docente${e.docentes === 1 ? "" : "s"} (${e.admins} admin) · ${e.alumnos} alumno${e.alumnos === 1 ? "" : "s"}${e.links_pendientes ? ` · ${e.links_pendientes} link${e.links_pendientes === 1 ? "" : "s"} de docente pendiente${e.links_pendientes === 1 ? "" : "s"}` : ""}</div>
-        <div><span class="sello ${e.aval_firmado ? "avanzando" : "estancado"}">${e.aval_firmado ? "con aval" : "sin aval"}</span> ${!e.activa ? '<span class="sello">desactivada</span>' : ""}</div>
+        <div>${e.tipo === "independiente" ? '<span class="sello">profesional sin escuela</span>' : `<span class="sello ${e.aval_firmado ? "avanzando" : "estancado"}">${e.aval_firmado ? "con aval" : "sin aval"}</span>`} ${!e.activa ? '<span class="sello">desactivada</span>' : ""}</div>
         <div class="acc"><button type="button" class="enlace" data-a="ficha">Ficha</button>
-          ${e.activa ? `<button type="button" class="enlace" data-a="link">Link para directivo/a</button>` : ""}
+          ${e.activa ? `<button type="button" class="enlace" data-a="link">${e.tipo === "independiente" ? "Nuevo link para el/la profesional" : "Link para directivo/a"}</button>` : ""}
           ${e.id !== r.mi_escuela ? `<button type="button" class="enlace" data-a="${e.activa ? "desactivar" : "activar"}" style="${e.activa ? "color:var(--bad)" : ""}">${e.activa ? "desactivar" : "reactivar"}</button>` : ""}</div>
         <div data-link></div></div>`).join("")
       : `<p class="vacio">Todavía no hay escuelas. Dá de alta la primera arriba.</p>`;
@@ -337,6 +351,13 @@ async function cargarInvitaciones() {
     });
   } catch (e) { $("invLista").innerHTML = `<p class="error">${esc(e.message)}</p>`; }
 }
+$("fIndep").onsubmit = async ev => {
+  ev.preventDefault(); msg("msgInd", "");
+  try {
+    cajaLink($("indNuevo"), await crearLink({ independiente: true, nombre: $("indNombre").value, espacio: $("indEspacio").value }));
+    $("indNombre").value = ""; $("indEspacio").value = ""; cargarInvitaciones();
+  } catch (e) { $("indNuevo").innerHTML = ""; msg("msgInd", e.message, true); }
+};
 $("fInv").onsubmit = async ev => {
   ev.preventDefault(); msg("msgInv", "");
   if (!$("invEscuela").value) return msg("msgInv", "Primero dá de alta una escuela.", true);

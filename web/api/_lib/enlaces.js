@@ -2,6 +2,8 @@
 //  · Docente: lo crea una admin de escuela (solo para su escuela) o la plataforma (para cualquier escuela, o una nueva desde
 //    el padrón por CUE). La persona abre el link, pone su nombre y su email, valida el código de siempre y la cuenta queda
 //    creada y aprobada en esa escuela (admin si el link lo dice).
+//  · Profesional sin escuela: lo crea solo la plataforma. Crea un espacio propio (escuelas.tipo = 'independiente') y el link
+//    deja a la persona como admin de ese espacio: suma alumnos y familias como cualquier escuela. Ocupa un cupo.
 //  · Familia: lo crea desde la ficha una docente que ve a ese alumno. Queda ligado al alumno: al usarlo, el email se suma a
 //    los contactos de la ficha y la familia entra a su espacio (después da el consentimiento ahí, como siempre).
 // Por defecto: un solo uso y 7 días. Se pueden revocar. Solo se guarda el hash del token (SHA-256): el link completo se
@@ -37,6 +39,7 @@ function estadoDe(l) {
 }
 const forma = l => ({
   id: Number(l.id), tipo: l.tipo, estado: estadoDe(l), escuela_id: Number(l.escuela_id), escuela: l.escuela_nombre || undefined,
+  independiente: l.escuela_tipo === "independiente",
   alumno_id: l.alumno_id != null ? Number(l.alumno_id) : null, alumno: l.alumno_nombre || undefined, es_admin: !!l.es_admin,
   etiqueta: l.etiqueta || "", vinculo: l.vinculo || "", usos: Number(l.usos), usos_max: Number(l.usos_max), expira: l.expira, creado: l.creado,
   creado_por: l.creador_nombre || undefined, usado: l.usado || null, revocado: l.revocado || null
@@ -44,12 +47,17 @@ const forma = l => ({
 
 function mensajeWhatsapp(l, url) {
   const vence = fechaCorta(l.expira);
+  const indep = l.escuela_tipo === "independiente";
+  if (indep && l.tipo === "familia")
+    return `Hola! Te invito a Puente para seguir el día de ${l.alumno_nombre} con pictogramas. Entrá con este link, poné tu email y el código que te llega (sin contraseña): ${url} . Es personal, sirve una sola vez y vence el ${vence}.`;
+  if (indep)
+    return `Hola! Te invito a Puente (piloto) para que armes las tiras de pictogramas de tus pacientes o alumnos, sin depender de una escuela. Entrá con este link, poné tu email y el código que te llega (sin contraseña): ${url} . Es personal, sirve una sola vez y vence el ${vence}.`;
   return l.tipo === "familia"
     ? `Hola! Desde ${l.escuela_nombre} te invitamos a Puente para seguir el día de ${l.alumno_nombre} en la escuela, con pictogramas. Entrá con este link, poné tu email y el código que te llega (sin contraseña): ${url} . Es personal, sirve una sola vez y vence el ${vence}.`
     : `Hola! Te invito a Puente (piloto) en ${l.escuela_nombre}. Entrá con este link, poné tu email y el código que te llega (sin contraseña): ${url} . Es personal${Number(l.usos_max) === 1 ? ", sirve una sola vez" : ""} y vence el ${vence}.`;
 }
 
-const SELECT = `SELECT l.*, es.nombre AS escuela_nombre, es.activa AS escuela_activa, a.nombre AS alumno_nombre, d.nombre AS creador_nombre
+const SELECT = `SELECT l.*, es.nombre AS escuela_nombre, es.activa AS escuela_activa, es.tipo AS escuela_tipo, a.nombre AS alumno_nombre, d.nombre AS creador_nombre
   FROM enlaces l JOIN escuelas es ON es.id = l.escuela_id LEFT JOIN alumnos a ON a.id = l.alumno_id LEFT JOIN docentes d ON d.id = l.creado_por`;
 
 async function insertar(req, yo, datos) {
@@ -85,6 +93,20 @@ async function crearDocente(req, yo, b) {
   await piloto.exigirCupo(1);
   return insertar(req, yo, { tipo: "docente", escuela_id: Number(escuela.id), es_admin: !!b.es_admin, etiqueta: txt(b.etiqueta, 80),
     usos_max: entero(b.usos, 1, 1, USOS_MAX), dias: entero(b.dias, DIAS_DEFECTO, 1, DIAS_MAX) });
+}
+
+// Link para un/a profesional sin escuela (solo plataforma). b: { nombre (de la persona), espacio? (nombre del espacio), dias? }
+// Crea su espacio (escuelas.tipo = 'independiente') y un link de un solo uso que la deja como admin de ese espacio.
+async function crearIndependiente(req, yo, b) {
+  if (!S.esPlataforma(yo)) throw errorPublico("Solo la plataforma puede invitar profesionales sin escuela.", 403);
+  const nombre = txt(b.nombre ?? b.etiqueta, 80);
+  if (nombre.length < 2) throw errorPublico("Escribí el nombre de la persona que invitás.");
+  const espacio = txt(b.espacio, 100) || `Espacio de ${nombre}`;
+  await piloto.exigirCupo(1);
+  const e = await uno(`INSERT INTO escuelas (nombre, tipo, notas, actualizado, actualizado_por) VALUES ($1, 'independiente', $2, now(), 'plataforma')
+    RETURNING id`, [espacio, "Profesional sin escuela: " + nombre]);
+  return insertar(req, yo, { tipo: "docente", escuela_id: Number(e.id), es_admin: true, etiqueta: nombre,
+    usos_max: 1, dias: entero(b.dias, DIAS_DEFECTO, 1, DIAS_MAX) });
 }
 
 // Link para la familia de un alumno (quien llama ya verificó que la docente ve a ese alumno). Siempre de un solo uso.
@@ -164,7 +186,7 @@ async function info(req, token) {
   await limitar("invitacion:info:" + S.ipDe(req), MAX_INFO_IP);
   const l = await usable(token);
   const c = await piloto.cupos();
-  return { ok: true, tipo: l.tipo, escuela: l.escuela_nombre, alumno: l.tipo === "familia" ? l.alumno_nombre : undefined, es_admin: !!l.es_admin,
+  return { ok: true, tipo: l.tipo, escuela: l.escuela_nombre, independiente: l.escuela_tipo === "independiente", alumno: l.tipo === "familia" ? l.alumno_nombre : undefined, es_admin: !!l.es_admin,
     nombre: l.etiqueta || "", expira: l.expira, completo: c.completo, ...(c.completo ? { mensaje: piloto.textoCompleto(c) } : {}) };
 }
 
@@ -259,4 +281,4 @@ async function verificar(req, res, b) {
   return sesion;
 }
 
-module.exports = { crearDocente, crearFamilia, listar, pendientesFamilia, revocar, info, pedirCodigo, verificar, estadoDe, hashToken, DIAS_DEFECTO };
+module.exports = { crearDocente, crearIndependiente, crearFamilia, listar, pendientesFamilia, revocar, info, pedirCodigo, verificar, estadoDe, hashToken, DIAS_DEFECTO };
