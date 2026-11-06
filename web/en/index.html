@@ -53,8 +53,29 @@
   .tira.ejemplo { grid-template-columns: repeat(6, 1fr); gap: 8px; }
   .tira.ejemplo .picto { padding: 8px 6px; }
   .tira.ejemplo .picto .t { font-size: 13px; letter-spacing: .3px; }
-  .lista-puntos { margin: 6px 0 0; padding-left: 20px; } .lista-puntos li { margin: 4px 0; }
+  /* ---------- Arriba: qué es y una sola acción principal; lo demás, con menos peso ---------- */
+  .arriba .principal { display: inline-block; width: auto; min-width: 280px; margin: 14px 0 0; padding: 14px 26px; text-align: center; text-decoration: none; font-size: 18px; }
+  .acceso { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 0; }
+  .acceso .big { width: auto; margin: 0; padding: 8px 14px; text-align: center; text-decoration: none; font-weight: 700; box-shadow: none; }
+  .acceso .big.alt { border-width: 1px; }
+  .demo-txt { margin: 6px 0 0; }
   .piloto { background: #fdf6e1; border-left: 5px solid var(--lapiz); }
+  /* ---------- Por público: pestañas (con JS) o secciones seguidas (sin JS) ---------- */
+  .publicos { margin-top: 26px; }
+  .pestanas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 0 0 12px; }
+  .pestanas [role="tab"] { min-height: 48px; padding: 8px 10px; border: 1.5px solid var(--tinta); border-radius: 10px; background: #fff; color: var(--tinta);
+    font: 700 15px/1.2 var(--texto); cursor: pointer; }
+  .pestanas [role="tab"]:hover { background: #f8f2e4; }
+  .pestanas [role="tab"][aria-selected="true"] { background: var(--pizarron); border-color: var(--pizarron); color: var(--tiza); box-shadow: inset 0 -4px 0 var(--lapiz); }
+  .pestanas [role="tab"]:focus-visible, .panel:focus-visible { outline: 3px solid var(--lapiz); outline-offset: 2px; }
+  .panel { padding: 0; }
+  .panel + .panel { margin-top: 26px; }
+  .con-pestanas .panel + .panel { margin-top: 0; }
+  .panel-titulo { margin: 0 0 8px; }
+  .con-pestanas .panel-titulo { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  .panel-bajada { font-size: 17px; margin: 0 0 4px; }
+  .panel h3.sub { margin: 16px 0 8px; }
+  .panel .datos { margin: 16px 0 0; }
   .chiquito { font-size: 14px; }
   .sumarse { margin: 12px 0 0; }
   .sumarse > summary.big { margin: 0; text-align: center; }
@@ -121,28 +142,28 @@
     .pz-form .big { padding: 0 14px; }
   }
   /* ---------- Comunicador: libre y sin cuenta, visible arriba ---------- */
-  .com-promo { margin: 18px 0 0; border-left: 5px solid var(--lapiz); }
+  .com-promo { margin: 0; }
   .com-promo h3 { font-family: var(--mano); font-size: 23px; font-weight: 400; line-height: 1.15; margin: 0 0 4px; }
   .com-promo .rotulo { font-family: var(--texto); font-size: 13px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; color: var(--gris); margin-bottom: 4px; }
   .com-cab { display: flex; gap: 12px; align-items: center; }
   .com-frase { display: flex; gap: 4px; flex: none; }
   .com-frase img { width: 52px; height: 52px; object-fit: contain; background: #fff; border: 1px solid var(--borde); border-radius: 8px; padding: 3px; }
   .com-promo p { margin: 6px 0 0; }
-  .com-promo .botones { margin: 10px 0 4px; }
+  .com-promo .botones { margin: 12px 0 4px; }
   @media (max-width: 640px) { .com-cab { flex-direction: column; align-items: flex-start; gap: 8px; } .com-frase img { width: 48px; height: 48px; } }
   /* ---------- Sumate a Puente: tester Android, piloto y donaciones (mismo estilo que el bloque del Comunicador) ---------- */
-  .sumate { margin: 22px 0 14px; }
-  .sumate > h2 { margin: 0 0 10px; }
   .sumate-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; align-items: stretch; }
   .sumate-grid .card { margin: 0; border-left: 5px solid var(--lapiz); display: flex; flex-direction: column; }
+  .sumate-grid .card.piloto { grid-column: 1 / -1; display: block; }
   .sumate-grid h3 { font-family: var(--mano); font-size: 23px; font-weight: 400; line-height: 1.15; margin: 0 0 4px; }
   .sumate-grid p { margin: 6px 0 0; }
   .sumate-grid .acciones { margin-top: auto; padding-top: 10px; display: flex; flex-direction: column; gap: 8px; }
   .sumate-grid .acciones .big { margin: 0; }
   .sumate-codigo { margin: 12px 0 0; }
-  .tarjetas { margin-top: 22px; }
-  .quien { border-left: 5px solid var(--pizarron); }
-  @media (min-width: 1000px) { .quien { margin-top: 14px; } }
+  .quien { border-left: 5px solid var(--pizarron); margin: 22px 0 0; }
+  .mas { text-align: center; margin: 10px 0 0; }
+  @media (max-width: 999px) { .col-der { margin-top: 30px; padding-top: 4px; border-top: 2px dashed var(--borde); } }
+  .mas:first-of-type { margin-top: 22px; }
   /* ---------- Escritorio: todo a la vista, pizarrón a la derecha ---------- */
   @media (min-width: 1000px) {
     main.portada { max-width: 1240px; }
@@ -151,8 +172,7 @@
     .col-der .pz { margin-top: 0; }
     .lema { font-size: 32px; }
     .intro { font-size: 17px; }
-    .botones { margin: 12px 0 4px; }
-    .portada h3.sub { margin-top: 16px !important; }
+    .demo-txt { text-align: left; }
     .pasos { gap: 10px; }
     .pasos li { padding: 8px 10px; }
     .pasos img { width: 56px; height: 56px; }
@@ -164,13 +184,7 @@
     .pz-tiza { font-size: 20px; min-height: 5.2em; }
     .pz-chips { gap: 6px; }
     .pz-chip { font-size: 14px; padding: 4px 12px; }
-    .tarjetas { display: grid; grid-template-columns: 1fr 1fr 1.25fr; gap: 14px; align-items: start; margin-top: 20px; }
-    .tarjetas .card { margin: 0; height: 100%; }
-    .tarjetas .card.piloto { height: auto; }
-    .botones.final { display: none; }
-    .com-promo { margin-top: 14px; padding: 12px 14px; }
-    .com-promo .botones { margin: 8px 0 2px; }
-    .com-promo .big { padding: 10px; font-size: 15px; }
+    .com-promo .big { padding: 12px; font-size: 16px; }
     .sumate-grid .card { padding: 12px 14px; }
     .sumate-grid .big { padding: 10px; font-size: 15px; }
   }
@@ -180,6 +194,12 @@
     .intro { margin-bottom: 0; }
     .tira.ejemplo .picto img { max-height: 76px; }
   }
+  @media (max-width: 560px) {
+    .pestanas { grid-template-columns: 1fr 1fr; }
+    .arriba .principal { display: block; width: 100%; min-width: 0; }
+    .acceso .big { flex: 1 1 auto; }
+    .acceso .demo-btn { flex-basis: 100%; }
+  }
   @media (max-width: 640px) {
     .tira.ejemplo { grid-template-columns: repeat(3, 1fr); }
     .pasos { grid-template-columns: 1fr; }
@@ -188,6 +208,7 @@
     .pasos .n { display: none; }
     .lema { font-size: 26px; }
     .botones { flex-direction: column; }
+    .publicos { margin-top: 22px; }
   }
 </style>
 <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
@@ -197,21 +218,64 @@
 <a class="saltar" href="#contenido">Skip to content</a>
 <header><!-- idiomas --><nav class="idiomas" aria-label="Idioma / Language"><a href="/" hreflang="es-AR" lang="es-AR" data-idioma="es">Español</a><span aria-hidden="true"> · </span><a href="/en/" hreflang="en" lang="en" data-idioma="en" aria-current="page">English</a></nav><!-- /idiomas --><h1>Puente</h1><div class="bajada">from school to home, in pictograms</div><span class="tiza"></span></header>
 <main id="contenido" tabindex="-1" class="portada" style="margin-top:14px"><div class="pagina" style="border-radius:14px">
+ <div class="portada-grid">
+  <div class="col-izq">
 
-  <section class="on" aria-labelledby="lema">
-   <div class="portada-grid">
-    <div class="col-izq">
+   <section class="on arriba" aria-labelledby="lema">
     <h2 class="lema" id="lema">How the school day went, told in pictograms.</h2>
     <p class="intro">The teacher says how the day went, Puente lays it out in pictograms and the family sees it at home. The child can use the pictures to tell their day, and the family knows what happened.</p>
-    <div class="botones">
-      <a class="big" id="btnEntrar" href="/login.html">Sign in</a>
-      <a class="big alt" id="btnFamilia" href="/login.html?familia">I'm a family member</a>
+    <a class="big principal" id="btnIrPiloto" href="#sumarse">Join the pilot</a>
+    <div class="acceso">
+      <a class="big alt chico" id="btnEntrar" href="/login.html">Sign in</a>
+      <a class="big alt chico" id="btnFamilia" href="/login.html?familia">I'm a family member</a>
+      <a class="big alt chico demo-btn" id="btnDemo" href="https://puente-pictos-demo.vercel.app/cuaderno.html">Try the demo, no account needed</a>
     </div>
-    <a class="big alt chico demo-btn" id="btnDemo" href="https://puente-pictos-demo.vercel.app/cuaderno.html">Try the demo, no account needed</a>
     <p class="muted chiquito demo-txt">It uses test data, and what you enter stays in your browser. The demo and the signed-in areas are in Spanish for now.</p>
     <p class="muted" id="sesionTxt" hidden></p>
+   </section>
 
-    <div class="card com-promo" id="comunicador" role="region" aria-labelledby="comTitulo">
+   <!-- Lo demás, por público. Con JavaScript son pestañas (patrón WAI-ARIA tabs); sin JavaScript se ven las cuatro secciones seguidas. -->
+   <div class="publicos" id="publicos">
+    <div class="pestanas" role="tablist" aria-label="Puente for each of you" hidden>
+      <button type="button" role="tab" id="tabEscuelas" aria-controls="escuelas" aria-selected="true">Teachers and schools</button>
+      <button type="button" role="tab" id="tabFamilias" aria-controls="familias" aria-selected="false" tabindex="-1">Families</button>
+      <button type="button" role="tab" id="tabComunicador" aria-controls="comunicador" aria-selected="false" tabindex="-1">Communicator</button>
+      <button type="button" role="tab" id="tabSumate" aria-controls="sumate" aria-selected="false" tabindex="-1">Get involved</button>
+    </div>
+
+    <section class="on panel" id="escuelas" aria-labelledby="escuelasTitulo">
+      <h2 class="panel-titulo" id="escuelasTitulo">Teachers and schools</h2>
+      <p class="panel-bajada">For <b>special education</b> schools: children with autism, intellectual disability or communication needs. Teachers and school leaders record the day in seconds and it is saved automatically.</p>
+      <h3 class="sub">How it works</h3>
+      <ol class="pasos">
+        <li><img src="https://static.arasaac.org/pictograms/2456/2456_300.png" alt="" width="72" height="72" loading="lazy"><span class="n">1</span><b>The teacher dictates the day</b><span>Spoken or typed, in about 20 seconds.</span></li>
+        <li><img src="https://static.arasaac.org/pictograms/24791/24791_300.png" alt="" width="72" height="72" loading="lazy"><span class="n">2</span><b>It becomes pictograms</b><span>Each activity in order, with a picture you can tap and hear.</span></li>
+        <li><img src="https://static.arasaac.org/pictograms/6964/6964_300.png" alt="" width="72" height="72" loading="lazy"><span class="n">3</span><b>The family sees it at home</b><span>They sign in with their email and see the day, what went well and what is coming up.</span></li>
+      </ol>
+    </section>
+
+    <section class="on panel" id="familias" aria-labelledby="familiasTitulo">
+      <h2 class="panel-titulo" id="familiasTitulo">Families</h2>
+      <p class="panel-bajada">The family sees how the child's day went, in pictograms, and can ask about it.</p>
+      <h3 class="sub">A sample day</h3>
+      <p class="muted" style="margin-top:0">Tap a picture to hear it. (Made-up example.)</p>
+      <div class="tira ejemplo" id="ejemplo">
+        <div class="picto bien" data-h="We got to school"><img src="https://static.arasaac.org/pictograms/32446/32446_300.png" alt="School" width="120" height="120"><div class="t">Arrive</div><div class="h">08:00</div></div>
+        <div class="picto bien" data-h="We had breakfast"><img src="https://static.arasaac.org/pictograms/4625/4625_300.png" alt="Breakfast" width="120" height="120"><div class="t">Breakfast</div><div class="h">08:30</div></div>
+        <div class="picto bien" data-h="We had music"><img src="https://static.arasaac.org/pictograms/24791/24791_300.png" alt="Music" width="120" height="120"><div class="t">Music</div><div class="h">09:00</div></div>
+        <div class="picto dificil" data-h="Break time was very noisy"><img src="https://static.arasaac.org/pictograms/33064/33064_300.png" alt="Break time" width="120" height="120"><div class="t">Break</div><div class="h">11:00</div></div>
+        <div class="picto bien" data-h="We had lunch"><img src="https://static.arasaac.org/pictograms/28207/28207_300.png" alt="Lunch" width="120" height="120"><div class="t">Lunch</div><div class="h">12:00</div></div>
+        <div class="picto bien" data-h="We said goodbye and went home"><img src="https://static.arasaac.org/pictograms/6610/6610_300.png" alt="Saying goodbye" width="120" height="120"><div class="t">Goodbye</div><div class="h">15:00</div></div>
+      </div>
+      <div class="card datos">
+        <span class="rotulo">Free and non-profit</span>
+        <p style="margin:0">Puente does not charge schools or families. It is careful with children's data: first name only, no photos or diagnoses, and the family gives consent.</p>
+      </div>
+    </section>
+
+    <section class="on panel" id="comunicador" aria-labelledby="comunicadorTitulo">
+      <h2 class="panel-titulo" id="comunicadorTitulo">Communicator</h2>
+      <div class="com-promo">
       <div class="com-cab">
         <div class="com-frase" aria-hidden="true"><img src="https://static.arasaac.org/pictograms/6632/6632_300.png" alt="" width="52" height="52" loading="lazy"><img src="https://static.arasaac.org/pictograms/5441/5441_300.png" alt="" width="52" height="52" loading="lazy"><img src="https://static.arasaac.org/pictograms/23392/23392_300.png" alt="" width="52" height="52" loading="lazy"></div>
         <div>
@@ -225,28 +289,68 @@
         <a class="big alt" id="btnComApk" href="/descargar/comunicador.apk" download>Get the Android app</a>
       </div>
       <p class="muted chiquito">The Android app is not on Google Play yet. For now it installs from the APK file.</p>
-    </div>
+      </div>
+    </section>
 
-    <h3 class="sub" style="margin-top:22px">How it works</h3>
-    <ol class="pasos">
-      <li><img src="https://static.arasaac.org/pictograms/2456/2456_300.png" alt="" width="72" height="72" loading="lazy"><span class="n">1</span><b>The teacher dictates the day</b><span>Spoken or typed, in about 20 seconds.</span></li>
-      <li><img src="https://static.arasaac.org/pictograms/24791/24791_300.png" alt="" width="72" height="72" loading="lazy"><span class="n">2</span><b>It becomes pictograms</b><span>Each activity in order, with a picture you can tap and hear.</span></li>
-      <li><img src="https://static.arasaac.org/pictograms/6964/6964_300.png" alt="" width="72" height="72" loading="lazy"><span class="n">3</span><b>The family sees it at home</b><span>They sign in with their email and see the day, what went well and what is coming up.</span></li>
-    </ol>
+    <section class="on sumate panel" id="sumate" aria-labelledby="sumateTitulo">
+      <h2 class="panel-titulo" id="sumateTitulo">Get involved with Puente</h2>
+      <div class="sumate-grid">
+        <div class="card piloto" id="sumatePiloto">
+          <span class="rotulo">Invitation-only pilot</span>
+          <p style="margin:0">The pilot is by invitation and has 15 places, open to teachers, school leaders, therapists and families alike, wherever you are. Tell us who you are and we will email you.</p>
+          <p class="muted chiquito" style="margin:.5em 0 0">You can only join with an invitation link: the school's leadership invites teachers, and teachers invite families.</p>
+          <details class="sumarse" id="sumarse">
+            <summary class="big" id="btnSumarse">Join the pilot</summary>
+            <form id="fSumarse" novalidate aria-describedby="suAyuda">
+              <p class="muted" id="suAyuda" style="margin:10px 0 0">Leave your details and we will email you. This does not create an account.</p>
+              <label for="suNombre">Full name</label>
+              <input id="suNombre" name="nombre" required minlength="2" maxlength="80" autocomplete="name">
+              <label for="suEmail">Email</label>
+              <input id="suEmail" name="email" type="email" required maxlength="160" autocomplete="email" inputmode="email">
+              <label for="suEscuela">School</label>
+              <input id="suEscuela" name="escuela" required minlength="2" maxlength="120" placeholder="School name or number">
+              <label for="suLugar">City and province or state</label>
+              <input id="suLugar" name="lugar" maxlength="120" autocomplete="address-level2" placeholder="e.g. Rosario, Santa Fe">
+              <label for="suRol">Your role</label>
+              <select id="suRol" name="rol" required>
+                <option value="">Choose one</option>
+                <option value="directora">School leader</option>
+                <option value="seño">Teacher</option>
+                <option value="familia">Family</option>
+                <option value="otro">Other</option>
+              </select>
+              <label for="suAlumnos">Approximate number of students <span class="opc">(optional)</span></label>
+              <input id="suAlumnos" name="alumnos" type="number" min="1" max="2000" inputmode="numeric">
+              <label for="suMensaje">Anything else you would like to tell us <span class="opc">(optional)</span></label>
+              <textarea class="corto" id="suMensaje" name="mensaje" maxlength="600"></textarea>
+              <div class="trampa" aria-hidden="true"><label for="suWeb">Leave empty</label><input id="suWeb" name="sitio_web" tabindex="-1" autocomplete="off"></div>
+              <button class="big" id="suEnviar">Send</button>
+              <p id="suMsg" class="muted" role="status" aria-live="polite"></p>
+            </form>
+            <p class="gracias" id="suGracias" role="status" tabindex="-1" hidden>Thank you. We will email you.</p>
+          </details>
+          <p class="muted chiquito" style="margin:.5em 0 0">or email us at <a href="mailto:soporte@puentepictos.app?subject=Quiero%20sumarme%20al%20piloto%20de%20Puente">soporte@puentepictos.app</a></p>
+          <p class="muted chiquito" style="margin:.5em 0 0">Already in the pilot? <a href="/descargar/puente.apk" id="linkPuenteApk" download>Get the Puente app for Android</a> (APK, not on Google Play yet).</p>
+        </div>
+        <div class="card" id="sumateTester">
+          <h3>Test the Android app</h3>
+          <p>We are about to open a closed test on Google Play. For that we need 12 people with Android phones who keep the app installed for 14 days in a row. If you are up for it, email us.</p>
+          <p class="muted chiquito">All we need is the email of the Google account you use on Play, to add you to the testers list.</p>
+          <div class="acciones"><a class="big" id="btnTester" href="mailto:soporte@puentepictos.app?subject=Android%20tester&amp;body=Hi%2C%20I%27d%20like%20to%20test%20the%20Puente%20app%20on%20Android.%0AThe%20email%20of%20my%20Google%20account%20(the%20one%20I%20use%20on%20Play)%20is%3A%20">I want to be a tester</a></div>
+        </div>
+        <div class="card" id="sumateDonar" hidden>
+          <h3>Help keep it going</h3>
+          <p>Puente is free and non-profit. Donations pay for the servers and the AI. Families are never charged.</p>
+          <div class="acciones" id="sumateDonBotones"></div>
+        </div>
+      </div>
+      <p class="muted chiquito sumate-codigo">Do you write code? Puente is open source (AGPL-3.0) and the code is on <a href="https://github.com/dannyvergel/mi-dia-en-pictos" target="_blank" rel="noopener">GitHub</a>.</p>
+    </section>
+   </div><!-- /publicos -->
+  </div><!-- /col-izq -->
 
-    <h3 class="sub" style="margin-top:22px">A sample day</h3>
-    <p class="muted" style="margin-top:0">Tap a picture to hear it. (Made-up example.)</p>
-    <div class="tira ejemplo" id="ejemplo">
-      <div class="picto bien" data-h="We got to school"><img src="https://static.arasaac.org/pictograms/32446/32446_300.png" alt="School" width="120" height="120"><div class="t">Arrive</div><div class="h">08:00</div></div>
-      <div class="picto bien" data-h="We had breakfast"><img src="https://static.arasaac.org/pictograms/4625/4625_300.png" alt="Breakfast" width="120" height="120"><div class="t">Breakfast</div><div class="h">08:30</div></div>
-      <div class="picto bien" data-h="We had music"><img src="https://static.arasaac.org/pictograms/24791/24791_300.png" alt="Music" width="120" height="120"><div class="t">Music</div><div class="h">09:00</div></div>
-      <div class="picto dificil" data-h="Break time was very noisy"><img src="https://static.arasaac.org/pictograms/33064/33064_300.png" alt="Break time" width="120" height="120"><div class="t">Break</div><div class="h">11:00</div></div>
-      <div class="picto bien" data-h="We had lunch"><img src="https://static.arasaac.org/pictograms/28207/28207_300.png" alt="Lunch" width="120" height="120"><div class="t">Lunch</div><div class="h">12:00</div></div>
-      <div class="picto bien" data-h="We said goodbye and went home"><img src="https://static.arasaac.org/pictograms/6610/6610_300.png" alt="Saying goodbye" width="120" height="120"><div class="t">Goodbye</div><div class="h">15:00</div></div>
-    </div>
-    </div><!-- /col-izq -->
-
-    <aside class="col-der" aria-label="Frequently asked questions">
+  <div class="col-der">
+   <aside aria-label="Frequently asked questions">
     <!-- Preguntale al pizarrón: FAQ 100 % en el navegador (pizarron.js), sin IA ni API. Sin JavaScript queda la lista de abajo. -->
     <section class="on pz" id="preguntale" aria-labelledby="pzTitulo">
       <h3 id="pzTitulo">Ask the chalkboard</h3>
@@ -297,105 +401,72 @@
         </dl>
       </details>
     </section>
-    </aside>
-   </div><!-- /portada-grid -->
-
-   <div class="tarjetas">
-    <div class="card">
-      <span class="rotulo">Who it is for</span>
-      <ul class="lista-puntos">
-        <li><b>Special education</b> schools: children with autism, intellectual disability or communication needs.</li>
-        <li><b>Teachers and school leaders</b>: they record the day in seconds and it is saved automatically.</li>
-        <li><b>Families</b>: they see how the day went, in pictograms, and can ask about it.</li>
-      </ul>
-    </div>
-
-    <div class="card">
-      <span class="rotulo">Free and non-profit</span>
-      <p style="margin:0">Puente does not charge schools or families. It is careful with children's data: first name only, no photos or diagnoses, and the family gives consent.</p>
-    </div>
-
-    <div class="card piloto">
-      <span class="rotulo">Invitation-only pilot</span>
-      <p style="margin:0">Puente is in a pilot with limited places. You can only join with an invitation link: the school's leadership invites teachers, and teachers invite families.</p>
-      <details class="sumarse" id="sumarse">
-        <summary class="big" id="btnSumarse">Join the pilot</summary>
-        <form id="fSumarse" novalidate aria-describedby="suAyuda">
-          <p class="muted" id="suAyuda" style="margin:10px 0 0">Leave your details and we will email you. This does not create an account.</p>
-          <label for="suNombre">Full name</label>
-          <input id="suNombre" name="nombre" required minlength="2" maxlength="80" autocomplete="name">
-          <label for="suEmail">Email</label>
-          <input id="suEmail" name="email" type="email" required maxlength="160" autocomplete="email" inputmode="email">
-          <label for="suEscuela">School</label>
-          <input id="suEscuela" name="escuela" required minlength="2" maxlength="120" placeholder="School name or number">
-          <label for="suLugar">City and province or state</label>
-          <input id="suLugar" name="lugar" maxlength="120" autocomplete="address-level2" placeholder="e.g. Rosario, Santa Fe">
-          <label for="suRol">Your role</label>
-          <select id="suRol" name="rol" required>
-            <option value="">Choose one</option>
-            <option value="directora">School leader</option>
-            <option value="seño">Teacher</option>
-            <option value="familia">Family</option>
-            <option value="otro">Other</option>
-          </select>
-          <label for="suAlumnos">Approximate number of students <span class="opc">(optional)</span></label>
-          <input id="suAlumnos" name="alumnos" type="number" min="1" max="2000" inputmode="numeric">
-          <label for="suMensaje">Anything else you would like to tell us <span class="opc">(optional)</span></label>
-          <textarea class="corto" id="suMensaje" name="mensaje" maxlength="600"></textarea>
-          <div class="trampa" aria-hidden="true"><label for="suWeb">Leave empty</label><input id="suWeb" name="sitio_web" tabindex="-1" autocomplete="off"></div>
-          <button class="big" id="suEnviar">Send</button>
-          <p id="suMsg" class="muted" role="status" aria-live="polite"></p>
-        </form>
-        <p class="gracias" id="suGracias" role="status" tabindex="-1" hidden>Thank you! We will email you.</p>
-      </details>
-      <p class="muted chiquito" style="margin:.5em 0 0">or email us at <a href="mailto:soporte@puentepictos.app?subject=Quiero%20sumarme%20al%20piloto%20de%20Puente">soporte@puentepictos.app</a></p>
-      <p class="muted chiquito" style="margin:.5em 0 0">Already in the pilot? <a href="/descargar/puente.apk" id="linkPuenteApk" download>Get the Puente app for Android</a> (APK, not on Google Play yet).</p>
-    </div>
-   </div><!-- /tarjetas -->
-
-    <section class="on sumate" id="sumate" aria-labelledby="sumateTitulo">
-      <h2 id="sumateTitulo">Get involved</h2>
-      <div class="sumate-grid">
-        <div class="card" id="sumateTester">
-          <h3>Test the Android app</h3>
-          <p>We are about to open a closed test on Google Play. For that we need 12 people with Android phones who keep the app installed for 14 days in a row. If you are up for it, email us.</p>
-          <p class="muted chiquito">All we need is the email of the Google account you use on Play, to add you to the testers list.</p>
-          <div class="acciones"><a class="big" id="btnTester" href="mailto:soporte@puentepictos.app?subject=Android%20tester&amp;body=Hi%2C%20I%27d%20like%20to%20test%20the%20Puente%20app%20on%20Android.%0AThe%20email%20of%20my%20Google%20account%20(the%20one%20I%20use%20on%20Play)%20is%3A%20">I want to be a tester</a></div>
-        </div>
-        <div class="card" id="sumateEscuela">
-          <h3>Bring it to your school</h3>
-          <p>The pilot is by invitation and has 15 places, open to teachers, school leaders, therapists and families alike, wherever you are. Tell us who you are and we will email you.</p>
-          <div class="acciones"><a class="big alt" id="btnIrPiloto" href="#sumarse">Join the pilot</a></div>
-        </div>
-        <div class="card" id="sumateDonar" hidden>
-          <h3>Help keep it going</h3>
-          <p>Puente is free and non-profit. Donations pay for the servers and the AI. Families are never charged.</p>
-          <div class="acciones" id="sumateDonBotones"></div>
-        </div>
-      </div>
-      <p class="muted chiquito sumate-codigo">Do you write code? Puente is open source (AGPL-3.0) and the code is on <a href="https://github.com/dannyvergel/mi-dia-en-pictos" target="_blank" rel="noopener">GitHub</a>.</p>
-    </section>
-
+   </aside>
     <div class="card quien" id="quien">
       <span class="rotulo">Who makes Puente</span>
       <p style="margin:0">I'm Danny Vergel, from Rosario, Argentina. I work in tech, and I built Puente because I want to help: to give something back with what I know how to do, and with what AI now lets me do. As the Spanish saying goes, «el que no vive para servir, no sirve para vivir»: if you don't live to serve, you're not fit to live.</p>
       <p class="muted chiquito" style="margin:.5em 0 0"><a href="https://www.linkedin.com/in/dvergel/" target="_blank" rel="noopener">My LinkedIn</a> · <a href="mailto:soporte@puentepictos.app">soporte@puentepictos.app</a> · <a href="https://github.com/dannyvergel/mi-dia-en-pictos" target="_blank" rel="noopener">Open source (AGPL-3.0)</a></p>
     </div>
+  </div><!-- /col-der -->
+ </div><!-- /portada-grid -->
 
-    <div class="botones final">
-      <a class="big" href="/login.html">Sign in</a>
-      <a class="big alt" href="/login.html?familia">I'm a family member</a>
-    </div>
-    <p style="text-align:center;margin:6px 0"><a class="demo-link" href="https://puente-pictos-demo.vercel.app/cuaderno.html">Try the demo, no account needed</a></p>
-    <p class="muted chiquito" style="text-align:center">Want to know more? <a href="/en/presentacion.html">See the presentation</a>.</p>
-    <p class="muted chiquito" style="text-align:center"><a href="/en/comunicador.html" id="linkComunicador">Communicator</a>: a pictogram board for talking by tapping pictures, free and with no account.</p>
-  </section>
+  <p class="muted chiquito mas">Want to know more? <a href="/en/presentacion.html">See the presentation</a>.</p>
+  <p class="muted chiquito mas"><a href="/en/comunicador.html" id="linkComunicador">Communicator</a>: a pictogram board for talking by tapping pictures, free and with no account.</p>
 </div></main>
 <a class="pz-burbuja" id="pzBurbuja" href="#preguntale" hidden><svg viewBox="0 0 64 56" aria-hidden="true" focusable="false"><rect x="2" y="2" width="60" height="46" rx="6" fill="#2f4a3e" stroke="#8b5e3c" stroke-width="4"/><path d="M14 22 Q32 6 50 22" fill="none" stroke="#f4f1e8" stroke-width="3" stroke-linecap="round"/><ellipse cx="25" cy="29" rx="3" ry="4" fill="#f4f1e8"/><ellipse cx="39" cy="29" rx="3" ry="4" fill="#f4f1e8"/><path d="M27 37 Q32 42 37 37" fill="none" stroke="#f4f1e8" stroke-width="2.5" stroke-linecap="round"/><rect x="40" y="50" width="16" height="5" rx="2" fill="#f2b632"/></svg><span>Questions? Ask here</span></a>
 <footer>Children's data is protected: first name only, no photos or diagnoses.<div id="puente-pie" data-donaciones="no"></div></footer>
 <script src="/pie.js" defer></script>
 <script src="/pizarron.js" defer></script>
 <script>
+// Pestañas por público (patrón WAI-ARIA tabs: flechas, Inicio/Fin, foco en la pestaña elegida).
+// Sin JavaScript no corre: la lista de pestañas queda oculta y las cuatro secciones se ven una debajo de la otra.
+(() => {
+  const lista = document.querySelector('.pestanas[role="tablist"]');
+  if (!lista) return;
+  const tabs = [...lista.querySelectorAll('[role="tab"]')];
+  const panel = t => document.getElementById(t.getAttribute("aria-controls"));
+  if (!tabs.length || tabs.some(t => !panel(t))) return;
+  const elegir = (t, foco) => {
+    for (const x of tabs) {
+      const si = x === t;
+      x.setAttribute("aria-selected", si ? "true" : "false");
+      x.tabIndex = si ? 0 : -1;
+      panel(x).hidden = !si;
+    }
+    if (foco) t.focus();
+  };
+  for (const t of tabs) {
+    const p = panel(t);
+    p.setAttribute("role", "tabpanel");
+    p.setAttribute("aria-labelledby", t.id);
+    p.tabIndex = 0;
+    t.addEventListener("click", () => elegir(t));
+    t.addEventListener("keydown", e => {
+      const i = tabs.indexOf(t), n = tabs.length;
+      const j = { ArrowRight: i + 1, ArrowLeft: i - 1 + n, Home: 0, End: n - 1 }[e.key];
+      if (j === undefined) return;
+      e.preventDefault();
+      elegir(tabs[j % n], true);
+    });
+  }
+  // Si algo apunta a un elemento que está en otra pestaña (#sumarse, el pizarrón, un link con ancla), se abre esa pestaña primero.
+  const mostrar = el => {
+    const p = el && el.closest && el.closest('[role="tabpanel"]');
+    const t = p && tabs.find(x => panel(x) === p);
+    if (t && p.hidden) elegir(t);
+  };
+  const porAncla = () => { const id = decodeURIComponent(location.hash.slice(1)); if (id) mostrar(document.getElementById(id)); };
+  document.addEventListener("puente:mostrar", e => mostrar(e.detail));
+  document.addEventListener("click", e => {
+    const a = e.target.closest && e.target.closest('a[href^="#"]');
+    if (a && a.getAttribute("href").length > 1) mostrar(document.getElementById(a.getAttribute("href").slice(1)));
+  }, true);
+  window.addEventListener("hashchange", porAncla);
+  document.getElementById("publicos").classList.add("con-pestanas");
+  lista.hidden = false;
+  elegir(tabs[0]);
+  porAncla();
+})();
 // Tira de ejemplo: tocar un dibujo lo lee en voz alta (si el navegador puede).
 document.querySelectorAll("#ejemplo .picto").forEach(p => p.onclick = () => {
   if (!("speechSynthesis" in window)) return;
@@ -426,7 +497,7 @@ fetch("/api/config", { credentials: "same-origin" }).then(r => r.ok ? r.json() :
   if (https(d.intl)) boton(d.intl, "Donate from abroad", true);
   if (caja.children.length) document.getElementById("sumateDonar").hidden = false;
 }).catch(() => {});
-// «Quiero sumarme al piloto» de la tarjeta baja al formulario y lo abre.
+// «Quiero sumarme al piloto» de arriba abre la pestaña «Sumate» (ver arriba), baja al formulario y lo abre.
 document.getElementById("btnIrPiloto").addEventListener("click", ev => {
   const d = document.getElementById("sumarse"); if (!d) return;
   ev.preventDefault();

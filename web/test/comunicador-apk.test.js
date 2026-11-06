@@ -58,7 +58,8 @@ test("portada: bloque visible del Comunicador arriba (abrir, inglés y APK) y la
   const h = leer("index.html");
   const bloque = h.indexOf('id="comunicador"');
   assert.ok(bloque > 0, "hay bloque del Comunicador");
-  assert.ok(bloque < h.indexOf("Cómo funciona</h3>"), "va antes de «Cómo funciona», a la vista");
+  // Arriba, a la vista: tiene su pestaña propia en la lista por público (test/portada-pestanas.test.js).
+  assert.match(h, /role="tab" id="tabComunicador" aria-controls="comunicador"/);
   assert.match(h, /<a class="big" id="btnComunicador" href="comunicador\.html">Abrir el Comunicador<\/a>/);
   assert.match(h, /id="btnComApk" href="\/descargar\/comunicador\.apk" download>Bajar la app para Android<\/a>/);
   assert.ok(h.includes('href="en/comunicador.html" hreflang="en"')); // el inglés tiene su URL (scripts/idiomas.js)

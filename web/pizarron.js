@@ -282,6 +282,7 @@
         if (/^https:/.test(a.href || "")) { el.target = "_blank"; el.rel = "noopener"; }
         if (a.accion === "sumarse") el.onclick = () => {
           const d = $("sumarse"); if (!d) return;
+          document.dispatchEvent(new CustomEvent("puente:mostrar", { detail: d })); // si está en otra pestaña de la portada, la abre
           d.open = true; d.scrollIntoView({ block: "start", behavior: menosMovimiento() ? "auto" : "smooth" });
           setTimeout(() => ($("suNombre") || d.querySelector("summary")).focus({ preventScroll: true }), 350);
         };
