@@ -6,7 +6,7 @@
 <title>Comunicador con pictogramas · Puente</title>
 <!-- Comunicador (tablero CAA) libre y sin cuenta. Todo pasa en el navegador: no llama a /api, no usa IA, no tiene analítica.
      Vocabulario en comunicador-tablero.js (lo comparte con sw.js para que ande sin conexión). Ver docs/comunicador.md. -->
-<link rel="manifest" href="manifest.json">
+<link rel="manifest" href="comunicador.webmanifest"><!-- manifest propio: se instala como «Comunicador» y abre directo en el tablero -->
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="canonical" href="https://puentepictos.app/comunicador.html">
 <link rel="icon" href="icono.svg" type="image/svg+xml">
@@ -105,6 +105,8 @@
   body.completo .app { margin: 0; height: 100dvh; border-radius: 0; border-width: 0; display: flex; flex-direction: column;
     padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); }
   body.completo .grilla { flex: 1 1 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain; align-content: start; }
+  .com-apk { margin: 6px 0 0; font-size: 14px; }
+  .com-apk[hidden] { display: none; }
   .com-solo-completo { display: none; }
   body.completo .com-solo-completo { display: flex; }
   .accion.salir.confirmar { background: #fbefe9; border-color: var(--bad); color: var(--bad); }
@@ -199,7 +201,7 @@
     <p style="margin:0">Autor pictogramas: Sergio Palao. Origen: ARASAAC (<a href="https://arasaac.org" rel="noopener">https://arasaac.org</a>). Licencia: CC BY-NC-SA. Propiedad: Gobierno de Aragón (España). Puente los usa sin fines de lucro.</p>
   </div>
 </main>
-<footer>Comunicador libre de Puente: no guarda nada fuera de tu dispositivo.<div id="puente-pie" data-donaciones="no"></div></footer>
+<footer>Comunicador libre de Puente: no guarda nada fuera de tu dispositivo.<p class="com-apk" id="comApk" hidden><a href="/descargar/comunicador.apk" download>Bajar la app para Android</a> (Puente Comunicador)</p><div id="puente-pie" data-donaciones="no"></div></footer>
 <script src="comunicador-tablero.js"></script>
 <script src="pie.js" defer></script>
 <script>
@@ -404,6 +406,10 @@
     pintarCats(); pintarGrilla(); pintarFrase();
     $("olvidarMsg").textContent = "Listo: este dispositivo ya no tiene ajustes ni favoritos guardados.";
   };
+
+  // ---------- App para Android: link discreto solo en Android y fuera de la app instalada (TWA o PWA) ----------
+  const enApp = /[?&]app\b/.test(location.search) || document.referrer.startsWith("android-app://") || matchMedia("(display-mode: standalone)").matches || matchMedia("(display-mode: fullscreen)").matches;
+  if (/Android/i.test(navigator.userAgent) && !enApp) $("comApk").hidden = false;
 
   // ---------- Sin conexión: el service worker guarda la página y todos los pictos del tablero ----------
   if ("serviceWorker" in navigator) {
