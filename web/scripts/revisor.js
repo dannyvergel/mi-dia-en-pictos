@@ -4,7 +4,7 @@
 //  · «Escuela de prueba (revisión)» (escuelas.tipo = 'revision'): no ocupa cupo del piloto ni aparece en el padrón.
 //  · La docente REVISOR_EMAIL, NO admin (ve solo sus alumnos asignados de esa escuela, nada de otras escuelas).
 //  · Tres alumnos ficticios (Juan, Sofi, Tomi) asignados a ella, con su ficha (apoyos y objetivos, sin contactos de familia).
-//  · Dos días cargados por alumno en su espacio de familia (Vercel Blob), si hay BLOB_READ_WRITE_TOKEN. Sin esa variable,
+//  · Dos días cargados por alumno en su espacio de familia (Vercel Blob), si hay credenciales de Blob (BLOB_READ_WRITE_TOKEN). Sin ellas,
 //    la base queda lista y los días se saltean (avisa).
 // No toca ninguna otra escuela ni cuenta. Si REVISOR_EMAIL ya es una docente de una escuela real, o es ADMIN_EMAIL, no hace nada.
 // La contraseña no se maneja acá: va como hash en REVISOR_CLAVE_HASH (scripts/revisor-clave.js).
@@ -74,7 +74,7 @@ async function picto(kw) {
 }
 
 // { email, pictos (buscar pictos en ARASAAC, por defecto sí), dias (publicar días, por defecto si hay Blob) } → resumen.
-async function sembrar({ email = process.env.REVISOR_EMAIL, pictos = true, dias = !!process.env.BLOB_READ_WRITE_TOKEN, log = () => {} } = {}) {
+async function sembrar({ email = process.env.REVISOR_EMAIL, pictos = true, dias = almacen.hayBlob(), log = () => {} } = {}) {
   email = S.normEmail(email);
   if (!S.emailValido(email)) throw new Error("Definí REVISOR_EMAIL con un email válido (por ejemplo revision@puentepictos.app).");
   if (email === S.emailPlataforma()) throw new Error("REVISOR_EMAIL no puede ser ADMIN_EMAIL.");
@@ -125,7 +125,7 @@ async function sembrar({ email = process.env.REVISOR_EMAIL, pictos = true, dias 
     publicados++;
   }
   log(`Alumnos ficticios: ${ALUMNOS.map(x => x.nombre).join(", ")}` + (dias ? ` (${publicados} con 2 días cargados)` : ""));
-  if (!dias) log("Sin BLOB_READ_WRITE_TOKEN: no se cargaron días. Para cargarlos, corré de nuevo con esa variable (vercel env pull la trae).");
+  if (!dias) log("Sin credenciales de Blob: no se cargaron días. Para cargarlos, corré de nuevo con BLOB_READ_WRITE_TOKEN del store (ver docs/operacion/rotar-credenciales.md).");
   return { escuela_id: escuelaId, docente_id: docenteId, alumnos: ALUMNOS.map(x => x.nombre), dias: dias ? publicados * 2 : 0, escuela_nueva: escuelaNueva };
 }
 
