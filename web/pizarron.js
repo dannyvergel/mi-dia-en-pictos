@@ -47,7 +47,7 @@
       claves: ["lugar:4", "donde funciona:5", "en que lugares:5", "otra provincia:5", "mi provincia:5", "solo en:3", "pais:3"],
       acciones: [{ texto: "Escribinos un mail", href: MAILTO }] },
     { id: "donar", pregunta: "¿Cómo puedo ayudar o donar?",
-      respuesta: "Puente es gratuito y sin fines de lucro, y las donaciones ayudan a cubrir los servidores y la IA. Si querés colaborar, usá el botón «Doná desde Argentina» al pie de esta página. A las familias nunca se les piden donaciones.",
+      respuesta: "Puente es gratuito y sin fines de lucro, y las donaciones ayudan a cubrir los servidores y la IA. Si querés colaborar, usá el botón «Doná desde Argentina» en «Sumate a Puente», más abajo en esta página. A las familias nunca se les piden donaciones.",
       claves: ["donar:5", "como ayudo:4", "puedo ayudar:4", "quiero ayudar:4", "aporte:3", "sponsor:3"],
       acciones: [{ texto: "Doná desde Argentina", accion: "donar" }] },
     { id: "entrar", pregunta: "¿Cómo se entra?",
