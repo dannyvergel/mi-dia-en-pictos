@@ -31,6 +31,8 @@
   .chips button { border:1.5px solid var(--tinta); background:#fff; color:var(--tinta); border-radius:20px; padding:6px 14px; font:inherit; font-weight:700; cursor:pointer; }
   .chips button.on { background:var(--pizarron); color:var(--tiza); border-color:var(--pizarron); }
   .ficha dt { font-weight:700; margin-top:8px; } .ficha dd { margin:2px 0 0; white-space:pre-wrap; }
+  .doc { display:flex; justify-content:space-between; align-items:center; gap:8px; padding:8px 0; border-bottom:1px dashed var(--borde); flex-wrap:wrap; }
+  .doc:last-child { border-bottom:0; } .doc .big { width:auto; margin:0; padding:0 14px; }
   .barra { display:flex; justify-content:flex-end; gap:12px; font-size:14px; margin-bottom:6px; } .barra a { color:var(--tinta); }
 </style>
   <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
@@ -66,7 +68,7 @@ function hablar(x) { if ("speechSynthesis" in window) { const u = new SpeechSynt
 let D = null;
 const FX = () => (D && D.funciones) || {};
 
-let MODO = "token", ALUMNO_ID = null, FICHA = null, ESFAMILIA = false, MIS = [], VERSION_PRIV = null;
+let MODO = "token", ALUMNO_ID = null, FICHA = null, ESFAMILIA = false, MIS = [], VERSION_PRIV = null, DOCS = [];
 async function cargar() {
   if (t) return cargarToken();
   const e = await Puente.estado().catch(() => null);
@@ -88,6 +90,8 @@ async function abrirAlumno(id) {
   if (r.status === 401) return location.href = "login.html?familia";
   if (!r.ok) return $("app").innerHTML = `<div class="card">No pudimos cargar el espacio. Probá de nuevo en un rato.</div>`;
   D = await r.json();
+  // Informes y documentos que la escuela compartió. En la vista previa de la docente llegan todos: se muestran solo los visibles.
+  try { DOCS = ((await Puente.api("api/fichas?documentos=" + id)).documentos || []).filter(d => d.visible_familia !== false); } catch { DOCS = []; }
   $("tit").textContent = `El cuaderno de ${D.alumno}`;
   $("sub").textContent = D.actualizado ? "Puente · actualizado el " + new Date(D.actualizado).toLocaleString("es-AR", { day:"numeric", month:"long", hour:"2-digit", minute:"2-digit" }) : "Puente · de la escuela a casa";
   pintar();
@@ -167,6 +171,11 @@ function pintar() {
       <div class="semana" id="semana">${dias.slice().reverse().map((d, i) => `<div class="dia" data-f="${d.fecha}">${animoImg(d.animo)}<div class="d">${esc(d.dia).slice(0,3)} ${d.fecha.slice(8)}</div></div>`).join("")}</div>
       <div id="detalle"></div>
     </div>
+    ${MODO === "sesion" && DOCS.length ? `<div class="card"><span class="rotulo">Informes y documentos</span>
+      <p class="muted">Los compartió la escuela. Se descargan a tu dispositivo.</p>
+      ${DOCS.map(d => `<div class="doc"><span><b>${esc(d.titulo)}</b> <span class="muted">· ${d.tipo === "informe" ? "Informe" : "Documento"} · ${esc(new Date(d.creado).toLocaleDateString("es-AR", { day:"numeric", month:"long", year:"numeric" }))}</span></span>
+        <button type="button" class="big alt chico" data-doc="${d.id}">Descargar</button></div>`).join("")}
+      <p class="muted" id="msgDocs"></p></div>` : ""}
     ${D.mensaje_docente ? `<div class="card cinta"><span class="rotulo">Mensaje de la escuela</span><p>${esc(D.mensaje_docente)}</p></div>` : ""}
     ${D.agenda ? `<div class="card"><span class="rotulo">Así va a ser su ${esc(D.agenda.dia || "próximo día")}</span><p class="muted">Contáselo la noche anterior mirando los pictos juntos. Los recuadros punteados son apoyos nuevos.</p>
       <div class="tira">${D.agenda.pasos.map(p => `<div class="picto ${p.es_apoyo ? "apoyo" : ""}" data-h="${esc(p.texto || p.palabra_clave)}">${p.picto_url ? `<img src="${p.picto_url}" alt="">` : `<img data-k="${esc(p.palabra_clave)}" alt="">`}<div class="t">${esc(p.palabra_clave)}</div><div class="h">${esc(p.hora || "")}</div></div>`).join("")}</div></div>` : ""}
@@ -180,6 +189,11 @@ function pintar() {
     </div>` : ""}`;
   document.querySelectorAll(".dia").forEach(el => el.onclick = () => verDia(el.dataset.f));
   document.querySelectorAll(".chips button").forEach(b => b.onclick = () => abrirAlumno(Number(b.dataset.id)));
+  document.querySelectorAll("button[data-doc]").forEach(b => b.onclick = async () => {
+    const d = DOCS.find(x => x.id === Number(b.dataset.doc));
+    try { b.disabled = true; await Puente.bajarArchivo("api/fichas?documento=" + d.id, d.nombre_archivo); $("msgDocs").textContent = ""; }
+    catch (e) { $("msgDocs").textContent = e.message; } finally { b.disabled = false; }
+  });
   if ($("salir")) $("salir").onclick = e => { e.preventDefault(); Puente.salir(); };
   conectarFicha();
   document.querySelectorAll(".picto[data-h]").forEach(el => el.onclick = () => hablar(el.dataset.h));

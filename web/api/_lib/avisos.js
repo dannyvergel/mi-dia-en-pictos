@@ -83,6 +83,27 @@ async function invitacionFamilia(req, { email, alumno, docente, contacto }) {
   });
 }
 
+// Aviso a la familia: la escuela compartió un informe o documento. Va un mail por email (las familias no se ven entre sí).
+// NUNCA lleva adjunto, título ni contenido del archivo: solo el tipo y el nombre de pila, y el link para entrar.
+// Devuelve { enviados, fallidos } (nunca lanza).
+async function documentoCompartido(req, { emails, tipo, alumno }) {
+  const link = `${urlPublica(req)}/login.html?familia`;
+  const que = tipo === "informe" ? "informe" : "documento", nombre = linea(alumno, 40);
+  let enviados = 0, fallidos = 0;
+  for (const email of [...new Set((emails || []).filter(Boolean))]) {
+    const ok = await intentar({
+      to: email,
+      subject: `Nuevo ${que} de ${nombre} en Puente`,
+      text: `Hola!\n\nLa escuela compartió un ${que} de ${nombre} en Puente.\nPara verlo, entrá a Puente con tu email: ${link}\n\n${PIE}`,
+      html: envolver(`<p>Hola!</p><p>La escuela compartió un <b>${que}</b> de <b>${escHtml(nombre)}</b> en Puente.</p>
+        <p>Para verlo, entrá a Puente con tu email: te mandamos un código de 6 números.</p>
+        <p><a href="${escHtml(link)}" style="display:inline-block;background:#2f4a3e;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none;font-weight:700">Entrar a Puente</a></p>`)
+    });
+    ok ? enviados++ : fallidos++;
+  }
+  return { enviados, fallidos };
+}
+
 // Alerta a la plataforma: muchos códigos incorrectos para una misma cuenta (posible intento de entrar a la fuerza).
 // No lleva el email completo (va enmascarado) ni datos del alumno.
 async function alertaFallos(req, { cuenta, tipo, intentos, minutos, ip }) {
@@ -109,4 +130,4 @@ async function nuevoFeedback(req, { autor_tipo, autor_id, pagina, texto }) {
   });
 }
 
-module.exports = { alertaFallos, nuevoFeedback, nuevaSolicitud, accesoAprobado, solicitudRechazada, invitacionFamilia, destinatariosAdmin, destinatariosPlataforma, destinatariosEscuela };
+module.exports = { documentoCompartido, alertaFallos, nuevoFeedback, nuevaSolicitud, accesoAprobado, solicitudRechazada, invitacionFamilia, destinatariosAdmin, destinatariosPlataforma, destinatariosEscuela };

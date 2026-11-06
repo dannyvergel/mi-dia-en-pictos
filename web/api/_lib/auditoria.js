@@ -6,7 +6,8 @@ const { q, uno } = require("./db");
 const S = require("./seguridad");
 
 const EVENTOS = ["login_ok", "login_google", "login_fallido", "ficha_ver", "fichas_listar", "ficha_editar", "exportacion",
-  "baja_alumno", "baja_familia", "feedback", "alerta_fallos", "invitacion_creada", "invitacion_usada", "invitacion_revocada"];
+  "baja_alumno", "baja_familia", "feedback", "alerta_fallos", "invitacion_creada", "invitacion_usada", "invitacion_revocada",
+  "doc_subir", "doc_ver", "doc_cambiar", "doc_borrar"];
 
 // IPv4 → a.b.c.0 ; IPv6 → primeros 3 bloques (/48) + "::".
 function ipTruncada(ip) {

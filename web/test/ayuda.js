@@ -12,6 +12,7 @@ async function baseNueva() {
   const pg = new PGlite();
   db.usarBaseDePrueba(pg);
   pg.blobs = almacen.usarAlmacenDePrueba(true);
+  pg.archivos = almacen.archivosDePrueba(); // informes y documentos (documentos/<alumno_id>/<hex>)
   return pg;
 }
 
@@ -28,7 +29,7 @@ function cliente(ip = "10.0.0." + Math.floor(Math.random() * 250)) {
       setHeader(k, v) { this.headers[k.toLowerCase()] = v; return this; },
       status(c) { this.statusCode = c; return this; },
       json(o) { this.payload = o; return this; },
-      end() { return this; }
+      end(d) { if (d !== undefined) this.payload = d; return this; } // descargas: el archivo queda en payload (Buffer)
     };
     await handler(req, res);
     const sc = res.headers["set-cookie"];
