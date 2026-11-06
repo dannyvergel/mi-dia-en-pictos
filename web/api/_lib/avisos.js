@@ -83,19 +83,20 @@ async function invitacionFamilia(req, { email, alumno, docente, contacto }) {
   });
 }
 
-// Aviso a la familia: la escuela compartió un informe o documento. Va un mail por email (las familias no se ven entre sí).
-// NUNCA lleva adjunto, título ni contenido del archivo: solo el tipo y el nombre de pila, y el link para entrar.
-// Devuelve { enviados, fallidos } (nunca lanza).
-async function documentoCompartido(req, { emails, tipo, alumno }) {
+// Aviso a la familia: la escuela (o el equipo, en un espacio de equipo) compartió un informe o documento. Va un mail por email
+// (las familias no se ven entre sí). NUNCA lleva adjunto, título ni contenido del archivo: solo el tipo y el nombre de pila, y el
+// link para entrar. espacio: el tipo del espacio (escuelas.tipo); 'equipo' → «El equipo compartió…». Devuelve { enviados, fallidos } (nunca lanza).
+async function documentoCompartido(req, { emails, tipo, alumno, espacio }) {
   const link = `${urlPublica(req)}/login.html?familia`;
   const que = tipo === "informe" ? "informe" : "documento", nombre = linea(alumno, 40);
+  const quien = espacio === "equipo" ? "El equipo" : "La escuela";
   let enviados = 0, fallidos = 0;
   for (const email of [...new Set((emails || []).filter(Boolean))]) {
     const ok = await intentar({
       to: email,
       subject: `Nuevo ${que} de ${nombre} en Puente`,
-      text: `Hola!\n\nLa escuela compartió un ${que} de ${nombre} en Puente.\nPara verlo, entrá a Puente con tu email: ${link}\n\n${PIE}`,
-      html: envolver(`<p>Hola!</p><p>La escuela compartió un <b>${que}</b> de <b>${escHtml(nombre)}</b> en Puente.</p>
+      text: `Hola!\n\n${quien} compartió un ${que} de ${nombre} en Puente.\nPara verlo, entrá a Puente con tu email: ${link}\n\n${PIE}`,
+      html: envolver(`<p>Hola!</p><p>${quien} compartió un <b>${que}</b> de <b>${escHtml(nombre)}</b> en Puente.</p>
         <p>Para verlo, entrá a Puente con tu email: te mandamos un código de 6 números.</p>
         <p><a href="${escHtml(link)}" style="display:inline-block;background:#2f4a3e;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none;font-weight:700">Entrar a Puente</a></p>`)
     });

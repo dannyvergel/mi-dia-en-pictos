@@ -2,7 +2,8 @@
 // · El archivo va al Vercel Blob privado (documentos/<alumno_id>/<32 hex al azar>); en la base, solo los metadatos.
 // · PDF, JPG, PNG o DOCX, hasta 3 MB (el body de Vercel admite 4,5 MB y el archivo viaja en base64 dentro del JSON).
 //   Se valida la extensión, el tipo declarado y los primeros bytes del archivo (magic bytes).
-// · Docente con acceso al alumno (asignada, admin de su escuela o plataforma): sube, lista, descarga, muestra/oculta y avisa.
+// · Docente con acceso al alumno (asignada, admin de su escuela o plataforma; en un espacio de equipo, integrante aprobado):
+//   sube, lista, descarga, muestra/oculta y avisa.
 //   Borra solo quien lo subió o una admin de la escuela del alumno.
 // · Familia vinculada: lista y descarga solo los que tienen visible_familia, de sus alumnos y de escuelas activas.
 //   Rige aunque FAMILIA_FUNCIONES esté en el mínimo: la seño decide documento por documento.
@@ -10,7 +11,6 @@
 const crypto = require("crypto");
 const { q, uno } = require("./db");
 const A = require("./alumnos");
-const S = require("./seguridad");
 const almacen = require("./almacen");
 const auditoria = require("./auditoria");
 const avisos = require("./avisos");
@@ -75,12 +75,10 @@ function validarTitulo(t) {
 }
 
 // ---------- permisos ----------
-// Docente: el alumno tiene que estar entre los que ve (condVisible). La plataforma, cualquiera.
+// Docente: el helper de acceso de _lib/alumnos.js (A.alumnoConAcceso). En escuela: asignada, admin de su escuela o plataforma.
+// En equipo: integrante aprobado por la familia y con la confidencialidad aceptada (ve, sube, muestra/oculta y avisa).
 async function alumnoDeDocente(yo, id) {
-  id = Number(id) || 0;
-  let a;
-  if (S.esPlataforma(yo)) a = await uno("SELECT a.id, a.nombre, a.escuela_id FROM alumnos a WHERE a.id = $1", [id]);
-  else { const [c, p] = A.condVisible(yo, 2); a = await uno(`SELECT a.id, a.nombre, a.escuela_id FROM alumnos a WHERE a.id = $1 AND ${c}`, [id, ...p]); }
+  const a = await A.alumnoConAcceso(yo, id);
   if (!a) throw errorPublico("No encontramos ese alumno", 404);
   return a;
 }
@@ -134,7 +132,8 @@ async function notificar(req, d, alumnoNombre) {
   const emails = (await q(`SELECT f.email FROM familias f JOIN familia_alumno fa ON fa.familia_id = f.id WHERE fa.alumno_id = $1 ORDER BY f.email`,
     [d.alumno_id])).map(f => f.email);
   if (!emails.length) return { enviados: 0, fallidos: 0, aviso: "Este alumno todavía no tiene familias vinculadas: no le avisamos a nadie." };
-  const r = await avisos.documentoCompartido(req, { emails, tipo: d.tipo, alumno: alumnoNombre });
+  const esp = await uno("SELECT e.tipo FROM alumnos a JOIN escuelas e ON e.id = a.escuela_id WHERE a.id = $1", [d.alumno_id]);
+  const r = await avisos.documentoCompartido(req, { emails, tipo: d.tipo, alumno: alumnoNombre, espacio: esp?.tipo });
   if (r.enviados) await q("UPDATE documentos SET notificado = now() WHERE id = $1", [d.id]);
   if (r.fallidos) return { ...r, aviso: r.enviados
     ? "El documento quedó guardado, pero a alguna familia no le pudimos mandar el mail. Probá «Informar» en un rato."

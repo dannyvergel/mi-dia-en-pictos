@@ -61,13 +61,19 @@ async function leerSesion(req) {
   const s = await uno("SELECT tipo, usuario_id FROM sesiones WHERE token_hash = $1 AND expira > now()", [sha256(token)]);
   if (!s) return null;
   if (s.tipo === "docente") {
-    // Docente activa de una escuela activa. La plataforma (ADMIN_EMAIL) entra aunque no tenga escuela o esté desactivada.
-    const d = await uno(`SELECT d.id, d.escuela_id, d.email, d.nombre, d.es_admin, d.es_plataforma, e.activa AS escuela_activa
+    // Docente activa de una escuela activa, o integrante (pendiente o aprobado) de un equipo activo (enfoque equipo).
+    // La plataforma (ADMIN_EMAIL) entra aunque no tenga escuela o esté desactivada.
+    const { sqlEnEquipoVivo } = require("./alumnos"); // require tardío: alumnos → auditoria → seguridad
+    const d = await uno(`SELECT d.id, d.escuela_id, d.email, d.nombre, d.es_admin, d.es_plataforma, e.activa AS escuela_activa,
+        ${sqlEnEquipoVivo("d.id")} AS en_equipo
       FROM docentes d LEFT JOIN escuelas e ON e.id = d.escuela_id WHERE d.id = $1 AND d.activo`, [s.usuario_id]);
     if (!d) return null;
     d.es_plataforma = esPlataforma(d);
-    if (!d.escuela_activa && !d.es_plataforma) return null;
+    if (!d.escuela_activa && !d.es_plataforma && !d.en_equipo) return null;
+    // Escuela desactivada pero sigue en un equipo: entra solo como integrante (sin su escuela).
+    if (!d.escuela_activa && !d.es_plataforma) d.escuela_id = null;
     if (d.escuela_id == null) d.es_admin = false; // sin escuela no administra ninguna
+    d.en_equipo = !!d.en_equipo;
     delete d.escuela_activa;
     return { tipo: "docente", usuario: d };
   }

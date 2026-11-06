@@ -2,7 +2,8 @@
 //  · PILOTO_SOLO_INVITACION: "1" (por defecto cuando hay base) oculta y bloquea el "Solicitar acceso" abierto.
 //    "0" lo vuelve a abrir. El alta de la primera cuenta (setup) funciona igual.
 //  · PILOTO_MAX_USUARIOS: tope de cuentas activas (por defecto 15). "0" = sin tope.
-//    Cuentan: docentes activas (incluye directivos / admins de escuela) de escuelas activas y familias vinculadas a algún
+//    Cuentan: docentes activas (incluye directivos / admins de escuela) de escuelas activas, integrantes pendientes o
+//    aprobados de equipos activos (cada persona una sola vez, aunque esté en varios equipos) y familias vinculadas a algún
 //    alumno de una escuela activa. No cuenta la cuenta de la plataforma (ADMIN_EMAIL); si ADMIN_EMAIL no está definida,
 //    no cuentan las cuentas de plataforma. Dar de baja (o desactivar) una cuenta libera su cupo.
 const { uno } = require("./db");
@@ -25,8 +26,11 @@ function maxUsuarios() {
 
 // SQL que cuenta los cupos usados. p = índice del parámetro con el email de ADMIN_EMAIL ('' si no hay).
 function sqlUsados(p) {
-  return `((SELECT count(*) FROM docentes d JOIN escuelas e ON e.id = d.escuela_id
-      WHERE d.activo AND e.activa AND (CASE WHEN $${p}::text = '' THEN NOT d.es_plataforma ELSE d.email <> $${p}::text END))
+  // Una persona = un cupo: docente activa de escuela activa O integrante (pendiente o aprobado) de un equipo activo.
+  const { sqlEnEquipoVivo } = require("./alumnos");
+  return `((SELECT count(*) FROM docentes d LEFT JOIN escuelas e ON e.id = d.escuela_id
+      WHERE d.activo AND (coalesce(e.activa, false) OR ${sqlEnEquipoVivo("d.id")})
+        AND (CASE WHEN $${p}::text = '' THEN NOT d.es_plataforma ELSE d.email <> $${p}::text END))
     + (SELECT count(*) FROM familias f WHERE EXISTS (SELECT 1 FROM familia_alumno fa JOIN alumnos a ON a.id = fa.alumno_id
       JOIN escuelas e ON e.id = a.escuela_id WHERE fa.familia_id = f.id AND e.activa)))::int`;
 }

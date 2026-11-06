@@ -149,7 +149,8 @@ test("informar: manda el mail sin título, contenido ni adjunto; sin visible da 
     const m = buzon[0];
     assert.deepEqual(m.to, ["laura@mail.com"]);
     assert.equal(m.subject, "Nuevo informe de Juan en Puente");
-    assert.match(m.text, /compartió un informe de Juan/);
+    assert.match(m.text, /La escuela compartió un informe de Juan/); // enfoque escuela: sin cambios
+    assert.match(m.html, /La escuela compartió un <b>informe<\/b>/);
     assert.match(m.text, /\/login\.html\?familia/);
     for (const t of ["TITULO-PRIVADO", "fonoaudiología", CONTENIDO, "informe fono"]) {
       assert.equal(m.text.includes(t), false, t); assert.equal(m.html.includes(t), false, t); assert.equal(m.subject.includes(t), false, t);
@@ -234,7 +235,7 @@ test("páginas: tarjetas de documentos, service worker nuevo sin caché de /api/
   const fs = require("fs"), path = require("path");
   const leer = f => fs.readFileSync(path.join(__dirname, "..", f), "utf8");
   const sw = leer("sw.js");
-  assert.ok(sw.includes("const C = 'pictos-v19'"));
+  const v = Number((sw.match(/const C = 'pictos-v(\d+)'/) || [])[1]); assert.ok(v >= 19, "el service worker tiene que estar en pictos-v19 o más nuevo");
   assert.ok(sw.includes("/^\\/(api|descargar)\\//"), "el SW no cachea /api/ (descargas incluidas)");
   const d = leer("docente.html");
   for (const t of ["Informes y documentos", 'id="docMostrar"', 'id="docNotificar"', "Solo equipo", "Visible para la familia", "Familia avisada el", "doc_subir", "doc_cambiar", "doc_borrar"]) assert.ok(d.includes(t), t);

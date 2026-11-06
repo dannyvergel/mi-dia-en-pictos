@@ -83,6 +83,12 @@
   <div class="barra"><a href="cuaderno.html">← Cuaderno del día</a><a href="admin.html" id="irAdmin" hidden>Panel de la plataforma →</a><span class="muted" id="quien"></span></div>
 
   <section id="alumnos" class="on">
+    <div class="card cinta" id="equiposCard" hidden>
+      <span class="rotulo">Mis equipos</span>
+      <p class="muted">Espacios de un chico o una chica donde la familia te sumó como profesional. La familia es la dueña: te aprueba y te puede sacar.</p>
+      <div id="equiposLista"></div>
+      <p class="muted" id="msgEquipos"></p>
+    </div>
     <div class="card">
       <span class="rotulo">Mis alumnos</span>
       <div id="lista"><p class="vacio">Cargando…</p></div>
@@ -99,6 +105,24 @@
       <label for="edNombre">Nombre de pila</label>
       <input id="edNombre" maxlength="40">
 
+      <div id="bloqueEquipo" hidden>
+        <h3 style="margin-top:16px">Equipo</h3>
+        <p class="muted">Espacio de equipo: la familia es la dueña. Ella maneja los contactos, el consentimiento y quién entra. Vos podés editar apoyos y objetivos, cargar el día y subir documentos.</p>
+        <div id="eqMiembros"></div>
+        <div id="eqFamilia"></div>
+        <details style="margin-top:10px">
+          <summary><b>Invitar a otro/a profesional</b> <span class="muted">(link para WhatsApp; la familia lo tiene que aprobar)</span></summary>
+          <div class="grid2">
+            <div><label for="eqInvNombre">Nombre <span class="muted">(opcional)</span></label><input id="eqInvNombre" maxlength="80" placeholder="Ej: Lic. Ana Pérez"></div>
+            <div><label for="eqInvRol">Rol</label><input id="eqInvRol" maxlength="40" list="rolesEquipo" placeholder="Fono, TO, psicopedagoga…"></div>
+          </div>
+          <datalist id="rolesEquipo"></datalist>
+          <button type="button" class="big alt chico" id="eqInvCrear">Crear link</button>
+          <div id="eqInvNuevo"></div>
+          <div id="eqInvPend"></div>
+        </details>
+      </div>
+      <div id="bloqueEscuela">
       <h3 style="margin-top:16px">Docentes a cargo</h3>
       <p class="muted">Ven y editan la ficha, cargan sus días y publican para la familia. Las admins de la escuela ven a todos los alumnos.</p>
       <div id="asignadas"></div>
@@ -119,6 +143,7 @@
         <div id="lfNuevo"></div>
         <div id="lfPend"></div>
       </details>
+      </div>
 
       <h3 style="margin-top:16px">Apoyos y sensibilidades</h3>
       <div id="apoyos"></div>
@@ -129,10 +154,12 @@
       <button type="button" class="big alt chico" id="addObjetivo">+ Agregar objetivo</button>
 
       <h3 style="margin-top:16px">Consentimiento de la familia</h3>
+      <div id="bloqueCons">
       <label class="check"><input type="checkbox" id="consDado"> La familia dio su consentimiento</label>
       <div class="grid2">
         <div><label for="consQuien">Quién lo dio</label><input id="consQuien" maxlength="120" placeholder="Ej: Laura (mamá)"></div>
         <div><label for="consFecha">Fecha</label><input id="consFecha" type="date"></div>
+      </div>
       </div>
       <p class="muted" id="consVia"></p>
 
@@ -334,6 +361,9 @@ const abrirTab = s => document.querySelector(`nav button[data-s="${s}"]`)?.click
   $("irAdmin").hidden = !YO.es_plataforma;
   $("quien").textContent = `${YO.nombre} · ${YO.email}`;
   $("miEmail").textContent = "Tu email: " + YO.email;
+  // Enfoque equipo: sin escuela propia no carga alumnos nuevos (el chico ya está en su espacio).
+  if (!YO.tiene_escuela) $("fNuevo").hidden = true;
+  cargarEquipos();
   cargarAlumnos();
   if (YO.es_admin) { $("tabEsc").hidden = false; if (location.hash === "#escuela") abrirTab("escuela"); }
   // Lo de toda la plataforma (escuelas, solicitudes, invitaciones a directivos, registro y comentarios de todas) está en admin.html.
@@ -427,12 +457,70 @@ function abrir(id) {
   $("consDado").checked = !!c.dado; $("consQuien").value = c.quien || ""; $("consFecha").value = c.fecha || "";
   $("consVia").textContent = c.dado ? (c.via === "familia" ? "La familia lo dio desde Puente." : "Registrado por la escuela.") : (c.retirado ? `La familia lo retiró el ${c.retirado}.` : "");
   $("verFamilia").href = `familia.html?alumno=${actual.id}`;
-  $("borrar").hidden = !(YO.es_admin || YO.es_plataforma);
+  const eq = actual.espacio === "equipo" && !YO.es_plataforma;
+  $("bloqueEquipo").hidden = actual.espacio !== "equipo"; $("bloqueEscuela").hidden = eq; $("bloqueCons").hidden = eq;
+  $("edNombre").readOnly = eq;
+  if (actual.espacio === "equipo") pintarEquipoAlumno();
+  $("borrar").hidden = eq || !(YO.es_admin || YO.es_plataforma);
   $("lfNuevo").innerHTML = ""; pintarLinksFamilia();
   pintarAsignadas();
   cargarDocumentos();
   $("editor").scrollIntoView({ behavior: "smooth", block: "start" });
 }
+// ---------- enfoque equipo ----------
+let CONF = null;
+async function cargarEquipos() {
+  try {
+    const r = await api("api/docentes?equipos=1");
+    CONF = r.confidencialidad;
+    $("equiposCard").hidden = !r.equipos.length;
+    $("equiposLista").innerHTML = r.equipos.map(e => `<div class="enl" data-esc="${e.escuela_id}" style="display:block">
+      <b>Equipo de ${esc(e.alumno || e.espacio)}</b> <span class="muted">· ${esc(e.rol || "profesional")}</span>
+      ${e.falta === "aprobacion" ? `<p class="muted" style="margin:6px 0">Esperando que la familia te apruebe. Mientras tanto no ves nada del espacio.</p>` : ""}
+      ${e.falta === "consentimiento" ? `<p class="aviso" data-falta-consentimiento style="margin:6px 0">Falta el consentimiento de la familia. Hasta que lo dé (o si lo retiró), no ves nada de ${esc(e.alumno || "este chico o chica")}: ni el día, ni la ficha, ni los documentos.</p>` : ""}
+      ${!e.confidencialidad ? `<div class="aviso" style="white-space:pre-wrap;margin-top:6px">${esc(CONF.texto)}</div>
+        <label class="check"><input type="checkbox" data-acepto> Leí y acepto el compromiso de confidencialidad</label>
+        <button type="button" class="big chico auto" data-conf>Aceptar y entrar</button>` : ""}
+      ${e.acceso ? `<p class="muted" style="margin:6px 0">Ya tenés acceso: ${esc(e.alumno)} está en «Mis alumnos».</p>` : ""}
+      <button type="button" class="enlace" data-salir style="color:var(--bad)">irme de este equipo</button></div>`).join("");
+    $("equiposLista").querySelectorAll("[data-esc]").forEach(el => {
+      const escuela_id = Number(el.dataset.esc);
+      const bc = el.querySelector("[data-conf]");
+      if (bc) bc.onclick = async () => {
+        if (!el.querySelector("[data-acepto]").checked) return msg("msgEquipos", "Para entrar tenés que marcar que aceptás el compromiso.", true);
+        try { await api("api/docentes", { method: "POST", body: { accion: "equipo_confidencialidad", escuela_id, acepto: true } }); msg("msgEquipos", "Compromiso aceptado ✓"); cargarEquipos(); cargarAlumnos(); }
+        catch (e) { msg("msgEquipos", e.message, true); }
+      };
+      el.querySelector("[data-salir]").onclick = async () => {
+        if (!confirm("¿Irte de este equipo? Vas a dejar de ver al chico o la chica. Para volver, te tienen que invitar de nuevo.")) return;
+        try { await api("api/docentes", { method: "POST", body: { accion: "equipo_salir", escuela_id } }); cargarEquipos(); actual = null; $("editor").hidden = true; cargarAlumnos(); }
+        catch (e) { msg("msgEquipos", e.message, true); }
+      };
+    });
+  } catch (e) { if (e.status !== 401) msg("msgEquipos", e.message, true); }
+}
+function pintarEquipoAlumno() {
+  const eq = actual.equipo || { miembros: [], links: [], roles: [] };
+  $("rolesEquipo").innerHTML = (eq.roles || []).map(r => `<option>${esc(r)}</option>`).join("");
+  $("eqMiembros").innerHTML = eq.miembros.length ? eq.miembros.map(m => `<div class="enl"><span><b>${esc(m.nombre)}</b> <span class="muted">· ${esc(m.rol || "profesional")}</span></span></div>`).join("") : '<p class="vacio">Todavía no hay profesionales aprobados.</p>';
+  $("eqFamilia").innerHTML = actual.contactos.length ? `<p class="muted" style="margin-bottom:0">Familia: ${actual.contactos.map(c => esc(c.nombre) + (c.vinculo ? " (" + esc(c.vinculo) + ")" : "") + (c.telefono ? " · " + esc(c.telefono) : "")).join(" · ")}</p>` : "";
+  $("eqInvNuevo").innerHTML = "";
+  $("eqInvPend").innerHTML = eq.links.length ? `<p class="muted" style="margin-bottom:0">Links pendientes:</p>` + eq.links.map(l => `<div class="enl"><span>${esc(l.rol || "profesional")}${l.etiqueta ? " · " + esc(l.etiqueta) : ""} <span class="muted">· vence ${esc(fecha(l.expira))}</span></span><button type="button" class="quitar txt" data-revocar="${l.id}">anular</button></div>`).join("") : "";
+  $("eqInvPend").querySelectorAll("[data-revocar]").forEach(b => b.onclick = async () => {
+    if (!confirm("¿Anular este link?")) return;
+    try { await api("api/docentes", { method: "POST", body: { accion: "invitacion_revocar", id: Number(b.dataset.revocar), equipo: eq.escuela_id } }); await cargarAlumnos(actual.id); }
+    catch (e) { msg("msgEd", e.message, true); }
+  });
+}
+$("eqInvCrear").onclick = async () => {
+  if (!actual?.equipo) return;
+  try {
+    const r = await api("api/docentes", { method: "POST", body: { accion: "invitacion_crear", equipo: actual.equipo.escuela_id, nombre: $("eqInvNombre").value, rol: $("eqInvRol").value } });
+    await cargarAlumnos(actual.id);
+    cajaLink($("eqInvNuevo"), r.enlace); $("eqInvNombre").value = ""; $("eqInvRol").value = "";
+  } catch (e) { $("eqInvNuevo").innerHTML = `<p class="error">${esc(e.message)}</p>`; }
+};
+
 // ---------- links de invitación (piloto cerrado) ----------
 const ESTADOS = { pendiente: "pendiente", usado: "usado", vencido: "vencido", revocado: "anulado" };
 const textoCupos = c => c ? (c.sin_tope ? `${c.usados} cuentas (sin tope)` : `${c.usados} de ${c.max} cupos usados${c.completo ? " · el piloto está completo" : ""}`) : "";

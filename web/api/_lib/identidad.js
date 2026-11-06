@@ -16,11 +16,15 @@ async function cuentaPara(tipo, email) {
   if (tipo === "docente") {
     // Docente activa; si la plataforma desactivó su escuela, no entra (salvo que sea de la plataforma).
     // La plataforma (ADMIN_EMAIL) puede no tener escuela: LEFT JOIN.
-    const d = await uno(`SELECT d.id, d.escuela_id, d.nombre, d.email, d.es_admin, d.es_plataforma, e.activa AS escuela_activa
+    // Enfoque equipo: también entra quien integra (pendiente o aprobado) el equipo de un chico, aunque no tenga escuela.
+    const { sqlEnEquipoVivo } = require("./alumnos");
+    const d = await uno(`SELECT d.id, d.escuela_id, d.nombre, d.email, d.es_admin, d.es_plataforma, e.activa AS escuela_activa,
+        ${sqlEnEquipoVivo("d.id")} AS en_equipo
       FROM docentes d LEFT JOIN escuelas e ON e.id = d.escuela_id WHERE d.email = $1 AND d.activo`, [email]);
     if (!d) return null;
     d.es_plataforma = esPlataforma(d);
-    return d.escuela_activa || d.es_plataforma ? d : null;
+    if (!d.escuela_activa && !d.es_plataforma) { if (!d.en_equipo) return null; d.escuela_id = null; d.es_admin = false; }
+    return d;
   }
   if (tipo === "familia") return uno(`SELECT f.id, f.email FROM familias f WHERE f.email = $1 AND EXISTS (SELECT 1 FROM familia_alumno fa
     JOIN alumnos a ON a.id = fa.alumno_id JOIN escuelas e ON e.id = a.escuela_id WHERE fa.familia_id = f.id AND e.activa)`, [email]);
@@ -31,7 +35,7 @@ function datosSesion(tipo, u) {
   if (!u) return null;
   return tipo === "docente"
     ? { tipo: "docente", nombre: u.nombre, email: u.email, es_admin: !!u.es_admin && u.escuela_id != null, es_plataforma: esPlataforma(u),
-        tiene_escuela: u.escuela_id != null }
+        tiene_escuela: u.escuela_id != null, ...(u.en_equipo ? { equipo: true } : {}) }
     : { tipo: "familia", email: u.email };
 }
 
