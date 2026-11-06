@@ -45,6 +45,9 @@ Cada alumno tiene un link privado (`familia.html?t=…`, token de 128 bits). La 
 - logros recientes,
 - **Preguntale a Puente**: chat que responde solo con los registros de la escuela, sin diagnósticos.
 
+## 🗣️ Comunicador (libre, sin cuenta)
+`/comunicador.html`: tablero de pictogramas (CAA) para que el chico se comunique tocando dibujos; arma una frase y el equipo la dice en voz alta. Todo en el navegador (sin /api, sin IA, sin analítica), funciona sin conexión. Ver [docs/comunicador.md](docs/comunicador.md).
+
 ### Chat "Preguntale a Puente": protecciones
 El chat solo habla del alumno en la escuela: sus días, lo registrado, su ánimo, actividades, objetivos del PPI, apoyos e ideas para casa relacionadas. Todo lo demás recibe una negativa fija: *"Solo puedo contarte sobre el día de <alumno> en la escuela. Para otras cosas, escribile a la docente."* (`api/_lib/chat.js`).
 1. **Prefiltro sin IA**: frases obvias de inyección (*"ignorá las instrucciones"*, *"system prompt"*, *"actuá como"*, *"modo desarrollador"*, marcas de rol tipo `<|im_start|>`) y pedidos ajenos (código, poemas, cuentos, *"haceme la tarea"*, traducciones) se frenan antes de llamar al modelo. Las reglas están pensadas para no frenar preguntas normales (*"¿actuaron en el acto?"*, *"¿hace la tarea en clase?"*).
@@ -214,6 +217,7 @@ web/api/_lib/   minimizar.js (qué va a la IA), bajas.js (baja y borrado), reten
 web/api/_lib/   db.js + schema.js (Postgres/Neon), identidad.js (cuentas y proveedores de ingreso), codigos.js (código por email),
                 padron.js (padrón de escuelas en Postgres y búsqueda), alumnos.js (qué alumnos ve cada docente, asignaciones),
                 invitaciones.js (invitación a familias, 1 cada 24 h), importacion.js (importación masiva CSV/XLSX), seguridad.js (sesiones, límites), chat.js (chat de la familia: filtros, historial, límites), correo.js + avisos.js (Resend), almacen.js (Blob)
+web/comunicador.html + comunicador-tablero.js  Comunicador CAA libre (vocabulario compartido con sw.js para el modo sin conexión)
 web/pie.js      Pie común: BETA, privacidad/términos, crédito ARASAAC, Enviar comentario y donaciones
 web/privacidad.html, web/terminos.html  Textos legales (BORRADOR pendiente de revisión legal)
 web/vercel.json Cron diario de limpieza
