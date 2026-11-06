@@ -31,6 +31,7 @@
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://puentepictos.app/#organizacion","name":"Puente","url":"https://puentepictos.app/","logo":"https://puentepictos.app/icono-512.png","email":"soporte@puentepictos.app","description":"Proyecto gratuito y sin fines de lucro que lleva el día de la escuela a casa en pictogramas, para escuelas de educación especial y familias.","areaServed":"AR","sameAs":["https://github.com/dannyvergel/mi-dia-en-pictos"]},{"@type":"WebSite","@id":"https://puentepictos.app/#sitio","name":"Puente","url":"https://puentepictos.app/","inLanguage":["es-AR","en"],"publisher":{"@id":"https://puentepictos.app/#organizacion"}},{"@type":"WebPage","@id":"https://puentepictos.app/comunicador.html#pagina","url":"https://puentepictos.app/comunicador.html","name":"Puente Comunicador · Comunicador con pictogramas gratis (CAA)","inLanguage":"es-AR","isPartOf":{"@id":"https://puentepictos.app/#sitio"},"about":{"@id":"https://puentepictos.app/#comunicador"}},{"@type":"WebApplication","@id":"https://puentepictos.app/#comunicador","name":"Puente Comunicador","url":"https://puentepictos.app/comunicador.html","applicationCategory":"EducationalApplication","operatingSystem":"Web, Android","inLanguage":["es-AR","en"],"isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"ARS"},"description":"Tablero de comunicación aumentativa y alternativa (CAA) con pictogramas de ARASAAC, gratis. Sin cuenta, funciona sin conexión y no guarda nada fuera del dispositivo.","publisher":{"@id":"https://puentepictos.app/#organizacion"}}]}</script>
 <!-- /SEO -->
 <!-- Comunicador (tablero CAA) libre y sin cuenta. Todo pasa en el navegador: no llama a /api, no usa IA, no tiene analítica.
+     Única conexión además de las imágenes: el buscador de ARASAAC (api.arasaac.org), solo cuando la familia busca una palabra.
      Vocabulario en comunicador-tablero.js (lo comparte con sw.js para que ande sin conexión). Ver docs/comunicador.md. -->
 <link rel="manifest" href="comunicador.webmanifest"><!-- manifest propio: se instala como «Puente Comunicador» y abre directo en el tablero -->
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -116,6 +117,24 @@
   .modo { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
   .modo .accion { flex-direction: row; gap: 8px; min-height: 72px; padding: 6px 16px; }
   .aviso-voz { margin: 8px 0 0; }
+  /* Avisos solo para lector de pantalla (#vivo). estilo.css no tiene .sr-only: sin esto, «Listo» o «Agregué…» se veían abajo del tablero. */
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  /* Buscador de ARASAAC (solo mientras se eligen favoritos) */
+  .buscador { margin: 2px 0 10px; padding: 10px 12px; border: 2px solid var(--tinta); border-left: 8px solid #8a5a00; border-radius: 12px; background: #fff; }
+  .buscador[hidden] { display: none; }
+  .buscador h2 { margin: 0 0 4px; font-size: 20px; }
+  .buscador p { margin: 0 0 8px; font-size: 16px; line-height: 1.35; }
+  .buscador label { display: block; font-weight: 700; margin-bottom: 4px; }
+  .buscar-fila { display: flex; gap: 8px; align-items: stretch; }
+  .buscar-fila input { flex: 1; min-width: 0; min-height: 56px; font: inherit; font-size: 18px; padding: 8px 12px; border: 2px solid var(--tinta); border-radius: 12px; }
+  .buscar-fila .accion { min-height: 56px; min-width: 96px; flex-direction: row; font-size: 17px; }
+  .buscar-estado { font-weight: 700; min-height: 1.35em; margin-top: 10px !important; }
+  .buscar-estado:empty { display: none; }
+  .buscar-estado.mal { color: var(--bad); }
+  .resultados:empty { display: none; }
+  .grilla.resultados { --celda: 92px; }
+  .resultados .tecla .t { font-size: 14px; letter-spacing: 0; }
+  .resultados .tecla[aria-pressed="true"] { border-color: #8a5a00; border-style: solid; background: #fdf6e1; }
   /* Selector de idioma (Español / English): visible arriba, fuera del modo tablero */
   .idioma { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
   .idioma button, .idioma a { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; min-height: 48px; min-width: 96px; padding: 6px 14px; border: 2px solid var(--tinta); border-radius: 12px; background: #fff; color: var(--tinta);
@@ -194,6 +213,19 @@
         <button type="button" class="accion" id="bCasaCambiar" aria-label="Cambiar la palabra de activación y la pausa" data-i18n-aria="casaCambiarAria"><span data-i18n="casaCambiar">Cambiar</span></button></div>
       <p class="casa-dice" id="casaDice"></p>
     </div>
+    <div class="buscador com-solo-normal" id="buscador" role="region" hidden aria-labelledby="buscadorTitulo"><!-- div y no section: estilo.css oculta los section (pantallas) -->
+      <h2 id="buscadorTitulo" data-i18n="buscarTitulo">Sumar dibujos de ARASAAC</h2>
+      <p data-i18n="buscarNota">Escribí una palabra y tocá el dibujo que quieras para sumarlo a Favoritos. Lo que escribís va a ARASAAC (Gobierno de Aragón) para traer los dibujos, no a Puente.</p>
+      <form id="buscarForm" role="search" aria-label="Buscar en ARASAAC" data-i18n-aria="buscarAria" novalidate>
+        <label for="buscarPalabra" data-i18n="buscarLabel">Palabra para buscar</label>
+        <div class="buscar-fila">
+          <input type="search" id="buscarPalabra" maxlength="40" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="search">
+          <button type="submit" class="accion" id="bBuscar"><span data-i18n="buscar">Buscar</span></button>
+        </div>
+      </form>
+      <p class="buscar-estado" id="buscarEstado" role="status" aria-live="polite"></p>
+      <div class="grilla resultados" id="resultados" role="group" aria-label="Dibujos encontrados en ARASAAC" data-i18n-aria="resultadosAria"></div>
+    </div>
     <div class="grilla" id="tablero" role="tabpanel" tabindex="-1" aria-label="Pictogramas" data-i18n-aria="tableroAria"></div>
 
     <div class="modo com-solo-normal">
@@ -253,17 +285,18 @@
       <p class="muted" id="casaAjusteNota" data-i18n="casaAjusteNota">Se usa en la pestaña Casa. Si el parlante no responde, subí el volumen del equipo o esperá un poco más.</p>
       <button type="button" class="big alt auto casa-probar" id="bCasaProbar" data-i18n="casaProbar">Probar: preguntar la hora</button>
     </div>
-    <p class="muted" style="margin-top:12px" data-i18n-html="privAjustes">Los ajustes y los favoritos se guardan <b>solo en este dispositivo</b> (en el almacenamiento del navegador) y solo si cambiás algo. No se mandan a ningún lado.</p>
+    <p class="muted" style="margin-top:12px" data-i18n-html="privAjustes">Los ajustes y los favoritos, también los dibujos que sumaste con el buscador, se guardan <b>solo en este dispositivo</b> (en el almacenamiento del navegador) y solo si cambiás algo. No se mandan a ningún lado.</p>
     <button type="button" class="big alt peligro auto" id="bOlvidar" data-i18n="olvidar">Borrar ajustes y favoritos de este dispositivo</button>
     <p class="muted" id="olvidarMsg" role="status"></p>
   </details>
 
   <div class="card info">
     <h2 data-i18n="infoTitulo">Un comunicador para todos, sin cuenta</h2>
-    <p data-i18n="infoTexto">El chico toca los dibujos, arma una frase y el celular, la tablet o la compu la dice en voz alta. Es un tablero de comunicación aumentativa (CAA) con un vocabulario chico para empezar: palabras núcleo, sentimientos, necesidades, personas, lugares, acciones y juegos.</p>
+    <p data-i18n="infoTexto">El chico toca los dibujos, arma una frase y el celular, la tablet o la compu la dice en voz alta. Es un tablero de comunicación aumentativa (CAA) con un vocabulario para empezar: palabras núcleo, sentimientos, necesidades, personas, lugares, acciones, juegos, comida, cuerpo y ropa.</p>
     <ul class="lista-puntos" style="margin:6px 0 0;padding-left:20px">
-      <li data-i18n-html="infoPrivado"><b>Privado:</b> todo pasa en este dispositivo. No se manda nada a Puente ni a ninguna IA, no hay analítica y no hace falta cuenta.</li>
-      <li data-i18n-html="infoSinConexion"><b>Sin conexión:</b> después de abrirlo una vez con internet, el tablero queda guardado y funciona sin conexión.</li>
+      <li data-i18n-html="infoBuscador"><b>Tus propios dibujos:</b> tocá «Elegir favoritos» y usá el buscador para sumar a Favoritos cualquier pictograma de ARASAAC, con la palabra que elijas.</li>
+      <li data-i18n-html="infoPrivado"><b>Privado:</b> los ajustes y los favoritos quedan en este dispositivo. No se manda nada a Puente ni a ninguna IA, no hay analítica y no hace falta cuenta. Los dibujos se cargan desde ARASAAC (Gobierno de Aragón) y, solo cuando usás el buscador, la palabra que escribís va a ARASAAC para traer los dibujos.</li>
+      <li data-i18n-html="infoSinConexion"><b>Sin conexión:</b> después de abrirlo una vez con internet, el tablero queda guardado y funciona sin conexión. Los dibujos que sumás con el buscador también quedan guardados. El buscador necesita internet.</li>
       <li data-i18n-html="infoVoz"><b>La voz</b> es la del propio equipo. Si no tiene voz en español, la frase igual se ve escrita.</li>
       <li data-i18n-html="infoCasa"><b>Tablero Casa:</b> en la pestaña Casa, cada dibujo dice en voz alta una orden para Alexa, Google o Siri. Así el chico maneja el parlante sin hablar.</li>
       <li data-i18n-html="infoConsejo"><b>Consejo:</b> usalo en pantalla completa o agregalo a la pantalla de inicio para que no se cierre por accidente.</li>
@@ -290,10 +323,12 @@
 
   // ---------- Ajustes (localStorage, solo si el usuario cambia algo) ----------
   const DEF = { decir: true, frase: true, tam: "mediano", genero: "nene", voz: "", lenta: false, favoritos: [], idioma: "", // idioma "" = automático
+    propios: [], // pictos sumados con el buscador de ARASAAC: { id, t } (la palabra elegida), siempre también en favoritos
     casaPalabra: "alexa", casaOtra: "", casaPausa: true, casaEspera: 1000 }; // tablero Casa: palabra de activación y pausa
   let aj = { ...DEF };
   try { Object.assign(aj, JSON.parse(localStorage.getItem(CLAVE) || "{}")); } catch { /* sin almacenamiento: queda en memoria */ }
   if (!Array.isArray(aj.favoritos)) aj.favoritos = [];
+  aj.propios = T.propiosValidos(aj.propios);
   const guardar = () => { try { localStorage.setItem(CLAVE, JSON.stringify(aj)); } catch { /* modo privado o lleno */ } };
 
   // ---------- Idioma ----------
@@ -321,6 +356,13 @@
 
   const todos = new Map();
   T.CATEGORIAS.forEach(c => c.pictos.forEach(p => todos.set(p.id, { ...p, cat: c })));
+  // Pictos propios (buscador): misma palabra en los dos idiomas, la que eligió la familia. Si el id ya está en el tablero, manda el del tablero.
+  const CAT_PROPIOS = { id: "favoritos", color: "#8a5a00" };
+  function cargarPropios() {
+    for (const [id, p] of todos) if (p.propio) todos.delete(id);
+    aj.propios.forEach(p => { if (!todos.has(p.id)) todos.set(p.id, { id: p.id, t: p.t, en: p.t, cat: CAT_PROPIOS, propio: true }); });
+  }
+  cargarPropios();
   const texto = p => lang === "en" ? (p.en || p.t) : (aj.genero === "nena" && p.f) ? p.f : p.t;
   const dicho = p => lang === "en" ? (p.dicen || p.en || p.t) : (aj.genero === "nena" && p.f) ? p.f : (p.dice || p.t);
   const nombreCat = c => lang === "en" ? (c.en || c.nombre) : c.nombre;
@@ -387,6 +429,7 @@
   const anunciar = m => { $("vivo").textContent = ""; setTimeout(() => $("vivo").textContent = m, 30); };
   function pintarFrase() {
     const f = $("frase");
+    frase = frase.filter(id => todos.has(id)); // un picto propio que se sacó de favoritos ya no está
     f.replaceChildren();
     if (!frase.length) { const v = document.createElement("span"); v.className = "vacia"; v.textContent = tr("fraseVacia"); f.append(v); }
     frase.forEach(id => {
@@ -407,7 +450,7 @@
   $("bTodo").onclick = () => { frase = []; pintarFrase(); anunciar(tr("fraseBorrada")); };
 
   // ---------- Categorías y grilla ----------
-  const ICONO = { nucleo: 5441, sentimientos: 35547, necesidades: 6929, personas: 2458, lugares: 6964, acciones: 8142, juegos: 23392, casa: T.CASA.icono };
+  const ICONO = { nucleo: 5441, sentimientos: 35547, necesidades: 6929, personas: 2458, lugares: 6964, acciones: 8142, juegos: 23392, comida: 28339, cuerpo: 2786, ropa: 2309, casa: T.CASA.icono };
   let catActual = location.hash === "#casa" ? "casa" : "nucleo", editando = false; // comunicador.html#casa abre directo el tablero Casa
   function pintarCats() {
     const c = $("cats");
@@ -442,8 +485,9 @@
     if (editando) {
       const i = aj.favoritos.indexOf(p.id);
       if (i >= 0) aj.favoritos.splice(i, 1); else aj.favoritos.push(p.id);
+      if (i >= 0 && p.propio) sacarPropio(p.id);
       guardar(); anunciar(tr(i >= 0 ? "favSaque" : "favAgregue", texto(p)));
-      pintarCats(); pintarGrilla(); return;
+      pintarCats(); pintarGrilla(); pintarResultados(); return;
     }
     if (repetido(p.id)) return;
     if (aj.frase) {
@@ -453,6 +497,18 @@
     if (aj.decir || !aj.frase) decir(dicho(p));
     else anunciar(tr("agregue", texto(p)));
   }
+  // Si una palabra no entra en el ancho de la tecla (por ejemplo «rompecabezas» o «guardapolvo» en un celular), se achica esa etiqueta
+  // hasta que entre entera (mínimo 9 px, para «Chicos»), en vez de cortarla a la mitad. Se vuelve a medir al cambiar el tamaño de la pantalla.
+  function ajustarEtiquetas(raiz) {
+    raiz.querySelectorAll(".tecla .t").forEach(t => {
+      t.style.fontSize = ""; t.style.overflowWrap = "normal";
+      let px = parseFloat(getComputedStyle(t).fontSize);
+      while (t.scrollWidth > t.clientWidth + 1 && px > 9) { px -= 0.5; t.style.fontSize = px + "px"; }
+      t.style.overflowWrap = "";
+    });
+  }
+  let ajusteTimer = 0;
+  addEventListener("resize", () => { clearTimeout(ajusteTimer); ajusteTimer = setTimeout(() => ajustarEtiquetas(document), 150); });
   // Tablero Casa: cada tecla dice una orden para el asistente (no se suma a la frase ni a favoritos).
   function pintarCasa() {
     const g = $("tablero");
@@ -469,6 +525,7 @@
       b.onclick = () => { if (!repetido("casa-" + o.id)) decirOrden(o); };
       return b;
     }));
+    ajustarEtiquetas(g);
   }
   function pintarCasaUsa() {
     const p = T.palabraActivacion(aj, lang);
@@ -493,6 +550,7 @@
       b.onclick = () => tocar(p);
       return b;
     }));
+    ajustarEtiquetas(g);
   }
   // Mantener apretado no abre menús ni arrastra imágenes
   $("app").addEventListener("contextmenu", e => { if (e.target.closest(".tecla, .cat, .frase-tira")) e.preventDefault(); });
@@ -502,8 +560,71 @@
     editando = !editando;
     $("bFavoritos").setAttribute("aria-pressed", String(editando));
     $("bFavTxt").textContent = tr(editando ? "favListo" : "favElegir");
+    $("buscador").hidden = !editando;
+    if (editando) avisoConexion();
     anunciar(tr(editando ? "favEditando" : "listo"));
     pintarGrilla();
+  };
+
+  // ---------- Buscador de ARASAAC: cada familia suma sus propios pictos a Favoritos ----------
+  // La palabra va del navegador a api.arasaac.org (T.buscarArasaac), nunca a Puente. Se guarda { id, t } en aj.propios
+  // y el id en aj.favoritos. El service worker guarda la imagen al verla y, al abrir el comunicador, la vuelve a pedir (extras).
+  let resultados = [], buscarTurno = 0;
+  const estadoBuscar = (m, mal) => { const e = $("buscarEstado"); e.textContent = m || ""; e.classList.toggle("mal", !!mal); };
+  const avisoConexion = () => { if (navigator.onLine === false) estadoBuscar(tr("sinConexion"), true); else if ($("buscarEstado").textContent === tr("sinConexion")) estadoBuscar(""); };
+  addEventListener("online", avisoConexion); addEventListener("offline", avisoConexion);
+  function sacarPropio(id) { aj.propios = aj.propios.filter(x => x.id !== id); cargarPropios(); }
+  function pintarResultados() {
+    const g = $("resultados");
+    g.className = "grilla resultados"; // tamaño fijo y más chico que el tablero: es para elegir, no para hablar
+    g.replaceChildren(...resultados.map(r => {
+      const b = document.createElement("button"), fav = aj.favoritos.includes(r.id), p = todos.get(r.id), t = p ? texto(p) : r.t;
+      b.type = "button"; b.className = "tecla";
+      b.style.setProperty("--c", CAT_PROPIOS.color);
+      b.setAttribute("aria-pressed", String(fav));
+      b.setAttribute("aria-label", tr(fav ? "propioEsta" : "propioSumar", t));
+      b.innerHTML = `<img src="${T.url(r.id)}" alt="" width="300" height="300" draggable="false" decoding="async" loading="lazy"><span class="t"></span>${fav ? '<span class="fav" aria-hidden="true">★</span>' : ""}`;
+      b.querySelector(".t").textContent = t;
+      b.querySelector("img").onerror = () => b.classList.add("sin-img");
+      b.onclick = () => elegirResultado(r);
+      return b;
+    }));
+    ajustarEtiquetas(g);
+  }
+  function elegirResultado(r) {
+    const i = aj.favoritos.indexOf(r.id), p = todos.get(r.id);
+    if (i >= 0) { // ya estaba: lo saca
+      aj.favoritos.splice(i, 1);
+      if (p && p.propio) sacarPropio(r.id);
+      anunciar(tr("favSaque", p ? texto(p) : r.t));
+    } else {
+      if (!p) { // no está en el tablero: es un picto propio
+        if (aj.propios.length >= T.MAX_PROPIOS) { estadoBuscar(tr("propiosLleno"), true); anunciar(tr("propiosLleno")); return; }
+        aj.propios.push({ id: r.id, t: r.t }); cargarPropios();
+      }
+      aj.favoritos.push(r.id);
+      anunciar(tr("favAgregue", texto(todos.get(r.id))));
+      avisarSW();
+    }
+    guardar(); pintarCats(); pintarGrilla(); pintarResultados();
+  }
+  $("buscarForm").onsubmit = async ev => {
+    ev.preventDefault();
+    const q = T.limpiarPalabra($("buscarPalabra").value);
+    if (q.length < 2) { estadoBuscar(tr("buscarCorta"), true); $("buscarPalabra").focus(); return; }
+    if (navigator.onLine === false) { estadoBuscar(tr("sinConexion"), true); return; }
+    const turno = ++buscarTurno;
+    estadoBuscar(tr("buscando", q)); $("bBuscar").disabled = true;
+    try {
+      const lista = await T.buscarArasaac(q, lang);
+      if (turno !== buscarTurno) return;
+      resultados = lista; pintarResultados();
+      estadoBuscar(tr(lista.length ? "buscarHay" : "buscarNada", q));
+    } catch {
+      if (turno !== buscarTurno) return;
+      resultados = []; pintarResultados();
+      estadoBuscar(tr(navigator.onLine === false ? "sinConexion" : "buscarError"), true);
+    } finally { if (turno === buscarTurno) $("bBuscar").disabled = false; }
   };
 
   // ---------- Pantalla completa (o modo tablero si el navegador no la permite) ----------
@@ -514,9 +635,11 @@
     const pedir = doc.requestFullscreen || doc.webkitRequestFullscreen;
     if (pedir) { try { const r = pedir.call(doc, { navigationUI: "hide" }); r && r.catch && r.catch(() => {}); } catch { /* queda el modo tablero */ } }
     pintarSalir(false); $("tablero").focus({ preventScroll: true });
+    requestAnimationFrame(() => ajustarEtiquetas($("tablero")));
   }
   function salir() {
     document.body.classList.remove("completo");
+    requestAnimationFrame(() => ajustarEtiquetas($("tablero")));
     if (enCompleto()) (document.exitFullscreen || document.webkitExitFullscreen).call(document)?.catch?.(() => {});
   }
   let confirmarHasta = 0;
@@ -559,13 +682,13 @@
   document.querySelectorAll('input[name="genero"]').forEach(r => r.onchange = () => { aj.genero = r.value; guardar(); pintarGrilla(); pintarFrase(); });
   $("bOlvidar").onclick = () => {
     try { localStorage.removeItem(CLAVE); } catch { /* nada guardado */ }
-    aj = { ...DEF, favoritos: [] };
+    aj = { ...DEF, favoritos: [], propios: [] }; cargarPropios(); resultados = []; estadoBuscar(""); $("buscarPalabra").value = "";
     $("oDecir").checked = true; $("oFrase").checked = true; $("oLenta").checked = false; $("oVoz").value = "";
     document.querySelector('input[name="tam"][value="mediano"]').checked = true;
     document.querySelector('input[name="genero"][value="nene"]').checked = true;
     document.querySelector('input[name="casaPalabra"][value="alexa"]').checked = true;
     $("oCasaOtra").value = ""; $("oCasaPausa").checked = true; $("oCasaEspera").value = "1000"; $("oCasaEspera").disabled = false; $("casaDice").textContent = "";
-    editando = false; $("bFavoritos").setAttribute("aria-pressed", "false");
+    editando = false; $("bFavoritos").setAttribute("aria-pressed", "false"); $("buscador").hidden = true;
     // La elección de idioma también se borra: vuelve a ?lang= o al idioma del navegador.
     lang = idiomaInicial("");
     pintarTodo();
@@ -576,8 +699,13 @@
   if (/Android/i.test(navigator.userAgent) && !EN_APP) $("comApk").hidden = false;
 
   // ---------- Sin conexión: el service worker guarda la página y todos los pictos del tablero ----------
+  // También los pictos propios (extras): así siguen sin conexión aunque el SW cambie de versión y borre el caché viejo.
+  function avisarSW() {
+    if (!("serviceWorker" in navigator)) return;
+    navigator.serviceWorker.ready.then(r => r.active && r.active.postMessage({ tipo: "comunicador", extras: aj.propios.map(p => p.id) })).catch(() => {});
+  }
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/sw.js").then(() => navigator.serviceWorker.ready).then(r => r.active && r.active.postMessage({ tipo: "comunicador" })).catch(() => {});
+    navigator.serviceWorker.register("/sw.js").then(avisarSW).catch(() => {});
   }
 
   // ---------- Selector de idioma (Español / English): links a cada URL; en la app cambia en el lugar ----------
@@ -586,7 +714,7 @@
     $("bFavTxt").textContent = tr(editando ? "favListo" : "favElegir");
     pintarSalir(Date.now() < confirmarHasta);
     $("casaDice").textContent = "";
-    pintarCats(); pintarGrilla(); pintarFrase();
+    pintarCats(); pintarGrilla(); pintarFrase(); pintarResultados();
   }
   document.querySelectorAll("#idioma [data-lang]").forEach(b => b.onclick = ev => {
     ev.preventDefault();
