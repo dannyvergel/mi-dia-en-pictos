@@ -10,7 +10,7 @@ const HUELLA = "E5:E5:B5:76:DE:86:BB:A1:47:BA:20:47:3E:0F:8D:A6:95:EF:A2:39:13:A
 test("comunicador.webmanifest: «Puente Comunicador», abre directo en el tablero, orientación libre e íconos PNG", () => {
   const m = JSON.parse(leer("comunicador.webmanifest"));
   assert.equal(m.name, "Puente Comunicador");
-  assert.equal(m.short_name, "Comunicador");
+  assert.equal(m.short_name, "Puente Comunicador", "así se lee debajo del ícono");
   assert.ok(m.start_url.startsWith("/comunicador.html"));
   assert.ok(m.start_url.startsWith(m.scope), "start_url dentro del scope");
   assert.notEqual(m.id, JSON.parse(leer("manifest.json")).id, "id distinto al de Puente: se instalan como dos apps");
