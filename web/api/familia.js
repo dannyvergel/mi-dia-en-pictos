@@ -11,7 +11,7 @@ const { leerSesion, ipDe } = require("./_lib/seguridad");
 const { exigirDocente } = require("./_lib/auth");
 const { leerFamilia: leer, guardarFamilia } = require("./_lib/almacen");
 const { objetivosAPpi, apoyosAPerfil } = require("./_lib/fichas");
-const { condVisible } = require("./_lib/alumnos");
+const { condVisible, exigirConsentimiento } = require("./_lib/alumnos");
 const { filtrarDiasVigentes, quizasLimpiar } = require("./_lib/retencion");
 const { funcionesFamilia, minimoParaPublicar } = require("./_lib/funciones");
 const { cuerpo, consulta, exigirJson, manejarError, errorPublico } = require("./_lib/http");
@@ -97,7 +97,9 @@ async function alumnoPermitido(s, id) {
   id = Number(id) || 0;
   if (s.tipo === "docente") {
     const [c, p] = condVisible(s.usuario, 2);
-    return uno(`SELECT a.id, a.nombre, a.blob_token, f.objetivos, f.apoyos FROM alumnos a LEFT JOIN fichas f ON f.alumno_id = a.id WHERE a.id = $1 AND ${c}`, [id, ...p]);
+    const a = await uno(`SELECT a.id, a.nombre, a.blob_token, f.objetivos, f.apoyos FROM alumnos a LEFT JOIN fichas f ON f.alumno_id = a.id WHERE a.id = $1 AND ${c}`, [id, ...p]);
+    if (!a) await exigirConsentimiento(s.usuario, id); // equipo sin consentimiento de la familia: 403 con mensaje claro
+    return a;
   }
   return uno(`SELECT a.id, a.nombre, a.blob_token FROM alumnos a JOIN familia_alumno fa ON fa.alumno_id = a.id JOIN escuelas e ON e.id = a.escuela_id
     WHERE a.id = $1 AND fa.familia_id = $2 AND e.activa`, [id, s.usuario.id]);

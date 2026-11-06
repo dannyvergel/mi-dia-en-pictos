@@ -55,6 +55,7 @@ const docs = require("./_lib/documentos");
 const { cuerpo, consulta, exigirJson, manejarError, errorPublico, hoyLocal } = require("./_lib/http");
 
 const SELECT = `SELECT a.id, a.nombre, a.grado, a.escuela_id, (SELECT tipo FROM escuelas WHERE id = a.escuela_id) AS espacio_tipo,
+  (SELECT nombre FROM escuelas WHERE id = a.escuela_id) AS espacio_nombre,
   a.blob_token IS NOT NULL AS publicado, f.contactos, f.apoyos, f.objetivos, f.consentimiento, f.actualizado
   FROM alumnos a LEFT JOIN fichas f ON f.alumno_id = a.id`;
 const { funcionesFamilia } = require("./_lib/funciones");
@@ -68,7 +69,8 @@ async function completar(filas) {
   const [asig, invs, links] = await Promise.all([A.asignadas(ids), inv.enviadas(ids), enlaces.pendientesFamilia(ids)]);
   const out = [];
   for (const r of filas) {
-    const x = { ...forma(r), docentes: asig[Number(r.id)] || [], invitaciones: invs[Number(r.id)] || {}, links_familia: links[Number(r.id)] || [] };
+    // espacio_nombre: para que el Cuaderno distinga a dos chicos con el mismo nombre de pila (en distintos equipos o escuelas).
+    const x = { ...forma(r), espacio_nombre: r.espacio_nombre || "", docentes: asig[Number(r.id)] || [], invitaciones: invs[Number(r.id)] || {}, links_familia: links[Number(r.id)] || [] };
     if (r.espacio_tipo === "equipo") {
       x.espacio = "equipo";
       x.equipo = { escuela_id: Number(r.escuela_id), miembros: await A.miembrosDe(r.escuela_id), links: await enlaces.pendientesEquipo(r.escuela_id), roles: A.ROLES_EQUIPO };
@@ -87,7 +89,7 @@ async function equipoParaFamilia(r) {
 async function alumnoDeDocente(yo, id) {
   const [c, p] = A.condVisible(yo, 2);
   const a = await uno(`${SELECT} WHERE a.id = $1 AND ${c}`, [Number(id) || 0, ...p]);
-  if (!a) throw errorPublico("No encontramos ese alumno", 404);
+  if (!a) { await A.exigirConsentimiento(yo, id); throw errorPublico("No encontramos ese alumno", 404); } // equipo sin consentimiento: 403
   return a;
 }
 const unoCompleto = async (yo, id) => (await completar([await alumnoDeDocente(yo, id)]))[0];

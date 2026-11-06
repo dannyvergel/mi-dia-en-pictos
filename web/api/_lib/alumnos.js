@@ -5,15 +5,21 @@
 // - Docente (no admin): solo los alumnos que tiene asignados (tabla alumno_docentes), dentro de su escuela.
 // Enfoque equipo (escuelas.tipo 'equipo', un espacio por chico; ver docs/enfoques.md):
 // - Integrante del equipo (equipo_miembros) APROBADO por la familia y con el compromiso de confidencialidad aceptado,
-//   en un espacio activo. No importa su escuela (puede no tener, o ser seño de otra).
+//   en un espacio activo, y con el CONSENTIMIENTO vigente de la familia (si lo retira, se pierde el acceso). No importa su escuela (puede no tener, o ser seño de otra).
 const { q, uno } = require("./db");
 const { errorPublico } = require("./http");
 
 // ---- SQL reutilizable (sin parámetros propios: se le pasa la columna o el $n) ----
-// ¿El docente `docRef` es integrante con acceso al espacio `escRef`?
-const sqlMiembroConAcceso = (escRef, docRef) => `EXISTS (SELECT 1 FROM equipo_miembros m JOIN escuelas me ON me.id = m.escuela_id
+// ¿El alumno `alumnoRef` tiene el consentimiento de la familia vigente (ficha con consentimiento.dado = true)?
+// Si la familia lo retira ({ dado: false, retirado }), deja de estar vigente.
+const sqlConsentimiento = alumnoRef => `EXISTS (SELECT 1 FROM fichas fc WHERE fc.alumno_id = ${alumnoRef} AND fc.consentimiento->>'dado' = 'true')`;
+// ¿El docente `docRef` es integrante con acceso al espacio `escRef`? Hace falta: aprobado por la familia, confidencialidad
+// aceptada, espacio de equipo activo Y consentimiento vigente de la familia (decisión del 2026-11-05). `alumnoRef`: el alumno
+// que se mira; si no se pasa, el alumno del espacio (uno por equipo, el de menor id, como alumnoDelEspacio).
+const sqlMiembroConAcceso = (escRef, docRef, alumnoRef = null) => `EXISTS (SELECT 1 FROM equipo_miembros m JOIN escuelas me ON me.id = m.escuela_id
   WHERE m.escuela_id = ${escRef} AND m.docente_id = ${docRef} AND m.estado = 'aprobado' AND m.confidencialidad IS NOT NULL
-    AND me.activa AND me.tipo = 'equipo')`;
+    AND me.activa AND me.tipo = 'equipo'
+    AND ${sqlConsentimiento(alumnoRef || "(SELECT ca.id FROM alumnos ca WHERE ca.escuela_id = me.id ORDER BY ca.id LIMIT 1)")})`;
 // ¿El docente `docRef` integra (pendiente o aprobado) algún equipo activo? Sirve para entrar y para contar cupos.
 const sqlEnEquipoVivo = docRef => `EXISTS (SELECT 1 FROM equipo_miembros mv JOIN escuelas ev ON ev.id = mv.escuela_id
   WHERE mv.docente_id = ${docRef} AND mv.estado IN ('pendiente', 'aprobado') AND ev.activa AND ev.tipo = 'equipo')`;
@@ -21,17 +27,45 @@ const sqlEnEquipoVivo = docRef => `EXISTS (SELECT 1 FROM equipo_miembros mv JOIN
 // Condición SQL sobre el alias `a` (alumnos). n = número del primer parámetro. Devuelve [sql, params] (siempre 3 parámetros).
 function condVisible(yo, n = 1, alias = "a") {
   return [`((${alias}.escuela_id = $${n} AND ($${n + 1}::boolean OR EXISTS (SELECT 1 FROM alumno_docentes ad WHERE ad.alumno_id = ${alias}.id AND ad.docente_id = $${n + 2})))
-    OR ${sqlMiembroConAcceso(`${alias}.escuela_id`, `$${n + 2}::bigint`)})`,
+    OR ${sqlMiembroConAcceso(`${alias}.escuela_id`, `$${n + 2}::bigint`, `${alias}.id`)})`,
     [yo.escuela_id ?? null, !!yo.es_admin, yo.id]];
 }
 
+// Enfoque equipo: ¿el docente es integrante aprobado, con la confidencialidad aceptada, del espacio (activo) del alumno, pero la
+// familia no dio (o retiró) el consentimiento? Sirve para contestar 403 con un mensaje claro en vez de un 404.
+const FALTA_CONSENTIMIENTO = "Falta el consentimiento de la familia. Hasta que lo dé, no podés ver nada de este chico o chica.";
+async function faltaConsentimiento(yo, alumnoId) {
+  if (!yo?.id || yo.demo) return false;
+  return !!(await uno(`SELECT 1 AS x FROM alumnos a JOIN escuelas e ON e.id = a.escuela_id JOIN equipo_miembros m ON m.escuela_id = a.escuela_id
+    WHERE a.id = $1 AND m.docente_id = $2 AND m.estado = 'aprobado' AND m.confidencialidad IS NOT NULL AND e.activa AND e.tipo = 'equipo'
+      AND NOT ${sqlConsentimiento("a.id")}`, [Number(alumnoId) || 0, Number(yo.id) || 0]));
+}
+// Corta con 403 (FALTA_CONSENTIMIENTO) si ese es el motivo por el que no lo ve. Si no, no hace nada.
+async function exigirConsentimiento(yo, alumnoId) {
+  if (await faltaConsentimiento(yo, alumnoId)) throw errorPublico(FALTA_CONSENTIMIENTO, 403);
+}
+
 // El alumno si el docente tiene acceso (condVisible); la plataforma, cualquiera. null si no. cols sobre el alias `a`.
-// Lo usan los documentos (_lib/documentos.js): en escuela, docente asignada o admin; en equipo, integrante aprobado.
+// Lo usan los documentos (_lib/documentos.js): en escuela, docente asignada o admin; en equipo, integrante aprobado con la
+// confidencialidad aceptada y con el consentimiento vigente de la familia. Sin consentimiento: 403 (FALTA_CONSENTIMIENTO).
 async function alumnoConAcceso(yo, alumnoId, cols = "a.id, a.nombre, a.escuela_id") {
   const id = Number(alumnoId) || 0;
   if (require("./seguridad").esPlataforma(yo)) return uno(`SELECT ${cols} FROM alumnos a WHERE a.id = $1`, [id]);
   const [c, p] = condVisible(yo, 2);
-  return uno(`SELECT ${cols} FROM alumnos a WHERE a.id = $1 AND ${c}`, [id, ...p]);
+  const a = await uno(`SELECT ${cols} FROM alumnos a WHERE a.id = $1 AND ${c}`, [id, ...p]);
+  if (!a) await exigirConsentimiento(yo, id);
+  return a;
+}
+
+// Por id (el Cuaderno del día manda el id del alumno). Misma regla que condVisible. En modo demo (yo.demo) no hay base: null.
+async function exigirVisible(yo, alumnoId) {
+  if (!yo || yo.demo) return null;
+  const id = Number(alumnoId) || 0;
+  const [c, p] = condVisible(yo, 2);
+  const a = await uno(`SELECT a.id, a.nombre FROM alumnos a WHERE a.id = $1 AND ${c}`, [id, ...p]);
+  if (a) return a;
+  await exigirConsentimiento(yo, id);
+  throw errorPublico("Ese alumno no está entre tus alumnos. Pedile a la admin de tu escuela que te lo asigne.", 404);
 }
 
 async function puedeVer(yo, alumnoId) {
@@ -39,7 +73,8 @@ async function puedeVer(yo, alumnoId) {
   return !!(await uno(`SELECT 1 AS x FROM alumnos a WHERE a.id = $1 AND ${c}`, [Number(alumnoId) || 0, ...p]));
 }
 
-// Por nombre (el Cuaderno del día y el agente mandan el nombre del alumno). null si no lo ve.
+// Por nombre (compatibilidad: clientes viejos y modo PIN mandan el nombre). Si hay dos con el mismo nombre toma uno:
+// el Cuaderno con cuentas manda el id (exigirVisible). null si no lo ve.
 async function visiblePorNombre(yo, nombre) {
   const [c, p] = condVisible(yo, 2);
   return uno(`SELECT a.id, a.nombre FROM alumnos a WHERE a.nombre = $1 AND ${c}`, [String(nombre || ""), ...p]);
@@ -121,15 +156,17 @@ async function miembrosDe(escuelaId, { completo = false } = {}) {
 async function misEquipos(yo) {
   const filas = await q(`SELECT m.id, m.escuela_id, m.rol, m.estado, m.confidencialidad, m.confidencialidad_version, e.nombre AS espacio,
       (SELECT a.id FROM alumnos a WHERE a.escuela_id = e.id ORDER BY a.id LIMIT 1) AS alumno_id,
-      (SELECT a.nombre FROM alumnos a WHERE a.escuela_id = e.id ORDER BY a.id LIMIT 1) AS alumno
+      (SELECT a.nombre FROM alumnos a WHERE a.escuela_id = e.id ORDER BY a.id LIMIT 1) AS alumno,
+      ${sqlConsentimiento("(SELECT a.id FROM alumnos a WHERE a.escuela_id = e.id ORDER BY a.id LIMIT 1)")} AS consentimiento_familia
     FROM equipo_miembros m JOIN escuelas e ON e.id = m.escuela_id
     WHERE m.docente_id = $1 AND m.estado = ANY($2::text[]) AND e.activa AND e.tipo = 'equipo' ORDER BY e.nombre`, [yo.id, ESTADOS_VIVOS]);
   const out = [];
   for (const f of filas) {
-    const acceso = f.estado === "aprobado" && !!f.confidencialidad;
+    const consentimiento = !!f.consentimiento_familia;
+    const acceso = f.estado === "aprobado" && !!f.confidencialidad && consentimiento;
     out.push({ miembro_id: Number(f.id), escuela_id: Number(f.escuela_id), espacio: f.espacio, alumno_id: f.alumno_id != null ? Number(f.alumno_id) : null,
-      alumno: f.alumno || "", rol: f.rol || "", estado: f.estado, confidencialidad: f.confidencialidad || null, acceso,
-      falta: f.estado === "pendiente" ? "aprobacion" : (!f.confidencialidad ? "confidencialidad" : null),
+      alumno: f.alumno || "", rol: f.rol || "", estado: f.estado, confidencialidad: f.confidencialidad || null, consentimiento, acceso,
+      falta: f.estado === "pendiente" ? "aprobacion" : (!f.confidencialidad ? "confidencialidad" : (!consentimiento ? "consentimiento" : null)),
       ...(acceso ? { miembros: await miembrosDe(f.escuela_id) } : {}) });
   }
   return out;
@@ -201,7 +238,7 @@ async function cerrarEquipo(req, escuelaId, { actor_tipo = null, actor_id = null
   return vivos.length;
 }
 
-module.exports = { condVisible, alumnoConAcceso, puedeVer, visiblePorNombre, exigirVisiblePorNombre, asignadas, asignar, cambiarAsignacion,
+module.exports = { condVisible, alumnoConAcceso, exigirVisible, faltaConsentimiento, exigirConsentimiento, FALTA_CONSENTIMIENTO, sqlConsentimiento, puedeVer, visiblePorNombre, exigirVisiblePorNombre, asignadas, asignar, cambiarAsignacion,
   sqlMiembroConAcceso, sqlEnEquipoVivo, ROLES_EQUIPO, ESTADOS_VIVOS, txtRol, NO_ES_EQUIPO, LO_DECIDE_LA_FAMILIA,
   espacioDeAlumno, esEquipo, exigirNoEquipo, alumnoDelEspacio, miembroConAcceso, miembrosDe, misEquipos, resolverMiembro, salirDelEquipo,
   aceptarConfidencialidad, cerrarEquipo };
