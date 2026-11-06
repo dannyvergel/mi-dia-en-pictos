@@ -274,6 +274,7 @@ async function verificar(req, res, b) {
   await q("UPDATE enlaces SET usado_por_tipo = $2, usado_por = $3 WHERE id = $1", [l.id, l.tipo, actorId]);
   await auditoria.registrar(req, { evento: "invitacion_usada", actor_tipo: l.tipo, actor_id: actorId, email, escuela_id: l.escuela_id,
     objeto_tipo: "enlace", objeto_id: l.id, detalle: { tipo: l.tipo, cuenta, ...(l.alumno_id ? { alumno_id: Number(l.alumno_id) } : {}) } });
+  await require("./metricas").sumar("invitacion_aceptada", { escuela_id: l.escuela_id }); // contador anónimo por escuela
   const sesion = await entrar(res, l.tipo, email, "invitacion");
   if (!sesion) throw errorPublico("La cuenta quedó creada, pero no pudimos abrir la sesión. Entrá con tu email.", 500);
   await auditoria.registrar(req, { evento: "login_ok", actor_tipo: l.tipo, actor_id: actorId, email,

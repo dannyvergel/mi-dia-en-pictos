@@ -15,7 +15,8 @@ function plazos() {
     dias_publicados: entero(process.env.DIAS_PUBLICADOS_RETENCION, 365), // días que ve la familia (Blob)
     fichas_inactivas: entero(process.env.FICHAS_RETENCION_DIAS, 730),  // ficha sin cambios ni publicaciones: se informa
     auditoria: entero(process.env.AUDITORIA_RETENCION_DIAS, 365),     // registro de accesos
-    feedback: entero(process.env.FEEDBACK_RETENCION_DIAS, 365)        // comentarios de docentes y familias
+    feedback: entero(process.env.FEEDBACK_RETENCION_DIAS, 365),       // comentarios de docentes y familias
+    metricas: entero(process.env.METRICAS_RETENCION_DIAS, 400)        // contadores de uso del piloto (sin datos de personas)
   };
 }
 
@@ -36,6 +37,7 @@ async function limpiar() {
     chat_turnos: await borrar(`DELETE FROM chat_turnos WHERE creado < now() - ($1 || ' days')::interval`, [String(p.chat)]),
     auditoria: await borrar(`DELETE FROM auditoria WHERE creado < now() - ($1 || ' days')::interval`, [String(p.auditoria)]),
     feedback: await borrar(`DELETE FROM feedback WHERE creado < now() - ($1 || ' days')::interval`, [String(p.feedback)]),
+    metricas_diarias: await borrar(`DELETE FROM metricas_diarias WHERE fecha < (now() - ($1 || ' days')::interval)::date`, [String(p.metricas)]),
     limites: await borrar(`DELETE FROM limites WHERE creado < now() - interval '2 days'`),
     sesiones: await borrar(`DELETE FROM sesiones WHERE expira < now()`),
     codigos: await borrar(`DELETE FROM codigos WHERE creado < now() - interval '1 day'`)

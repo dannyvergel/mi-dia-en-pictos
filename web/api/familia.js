@@ -14,7 +14,8 @@ const { objetivosAPpi, apoyosAPerfil } = require("./_lib/fichas");
 const { condVisible } = require("./_lib/alumnos");
 const { filtrarDiasVigentes, quizasLimpiar } = require("./_lib/retencion");
 const { funcionesFamilia, minimoParaPublicar } = require("./_lib/funciones");
-const { cuerpo, consulta, exigirJson, manejarError, errorPublico } = require("./_lib/http");
+const metricas = require("./_lib/metricas");
+const { cuerpo, consulta, exigirJson, manejarError, errorPublico, hoyLocal } = require("./_lib/http");
 
 const tokenOk = t => typeof t === "string" && /^[a-f0-9]{32}$/.test(t);
 
@@ -97,9 +98,9 @@ async function alumnoPermitido(s, id) {
   id = Number(id) || 0;
   if (s.tipo === "docente") {
     const [c, p] = condVisible(s.usuario, 2);
-    return uno(`SELECT a.id, a.nombre, a.blob_token, f.objetivos, f.apoyos FROM alumnos a LEFT JOIN fichas f ON f.alumno_id = a.id WHERE a.id = $1 AND ${c}`, [id, ...p]);
+    return uno(`SELECT a.id, a.nombre, a.blob_token, a.escuela_id, f.objetivos, f.apoyos FROM alumnos a LEFT JOIN fichas f ON f.alumno_id = a.id WHERE a.id = $1 AND ${c}`, [id, ...p]);
   }
-  return uno(`SELECT a.id, a.nombre, a.blob_token FROM alumnos a JOIN familia_alumno fa ON fa.alumno_id = a.id JOIN escuelas e ON e.id = a.escuela_id
+  return uno(`SELECT a.id, a.nombre, a.blob_token, a.escuela_id FROM alumnos a JOIN familia_alumno fa ON fa.alumno_id = a.id JOIN escuelas e ON e.id = a.escuela_id
     WHERE a.id = $1 AND fa.familia_id = $2 AND e.activa`, [id, s.usuario.id]);
 }
 const vacia = a => ({ alumno: a.nombre, actualizado: null, funciones: funcionesFamilia(), dias: [], objetivos: [], agenda: null, mensaje_docente: null, sin_publicar: true });
@@ -113,6 +114,11 @@ async function modoDb(req, res) {
     const a = await alumnoPermitido(s, consulta(req, "alumno"));
     if (!a) throw errorPublico("No encontramos este espacio", 404);
     const d = a.blob_token ? await leer(a.blob_token) : null;
+    // Métrica anónima: la familia (no la seño que prueba la vista) abrió el día de hoy, ya publicado. Sin guardar quién.
+    if (s.tipo === "familia" && d) {
+      const hoy = hoyLocal();
+      if (filtrarDiasVigentes(d.registros).some(r => r.fecha === hoy)) await metricas.diaVisto(a.escuela_id, a.id, hoy);
+    }
     return res.status(200).json({ id: Number(a.id), ...(d ? vistaFamilia({ ...d, alumno: a.nombre }) : vacia(a)) });
   }
   if (req.method !== "POST") return res.status(405).json({ error: "Método no permitido" });
@@ -123,9 +129,11 @@ async function modoDb(req, res) {
     if (!Array.isArray(b.registros)) throw errorPublico("Faltan datos");
     let a = b.alumno_id ? await alumnoPermitido({ tipo: "docente", usuario: yo }, b.alumno_id)
       : await (async () => { const [c, p] = condVisible(yo, 2);
-          return uno(`SELECT a.id, a.nombre, a.blob_token, f.objetivos, f.apoyos FROM alumnos a LEFT JOIN fichas f ON f.alumno_id = a.id WHERE a.nombre = $1 AND ${c}`, [String(b.alumno || ""), ...p]); })();
+          return uno(`SELECT a.id, a.nombre, a.blob_token, a.escuela_id, f.objetivos, f.apoyos FROM alumnos a LEFT JOIN fichas f ON f.alumno_id = a.id WHERE a.nombre = $1 AND ${c}`, [String(b.alumno || ""), ...p]); })();
     if (!a) throw errorPublico("Ese alumno no está entre tus alumnos. Crealo en Fichas o pedile a la admin que te lo asigne.", 404);
     let t = a.blob_token;
+    // Para la métrica de días cargados: qué fechas ya estaban publicadas (republicar el mismo día no suma).
+    const antes = t ? await leer(t).catch(() => null) : null;
     if (!t) { t = crypto.randomBytes(16).toString("hex"); await q("UPDATE alumnos SET blob_token = $1 WHERE id = $2", [t, a.id]); }
     // La ficha manda: objetivos del PPI y perfil salen de la base, no del navegador.
     const ppi = a.objetivos?.length ? objetivosAPpi(a.objetivos) : (b.ppi || []);
@@ -133,6 +141,7 @@ async function modoDb(req, res) {
     const datos = minimoParaPublicar(armarDatos({ ...b, registros: b.registros.map(r => ({ ...r, alumno: a.nombre })), ppi, perfil }, a.nombre));
     await guardarFamilia(t, datos);
     await q("UPDATE alumnos SET publicado = now() WHERE id = $1", [a.id]);
+    await metricas.diasCargados(a.escuela_id, (antes?.registros || []).map(r => r?.fecha), datos.registros.map(r => r.fecha));
     await quizasLimpiar();
     return res.status(200).json({ alumno_id: Number(a.id), dias: datos.registros.length });
   }

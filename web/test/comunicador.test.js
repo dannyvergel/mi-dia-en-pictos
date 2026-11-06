@@ -53,9 +53,9 @@ test("todo en el cliente: no llama a /api, no usa IA ni analítica, y el pie com
   assert.ok(h.includes("solo en este dispositivo") && h.includes("Borrar ajustes y favoritos de este dispositivo"));
 });
 
-test("el service worker (pictos-v31) cachea la página, el tablero, los textos y sus pictos, y sigue sin cachear /api ni /descargar", () => {
+test("el service worker (pictos-v32) cachea la página, el tablero, los textos y sus pictos, y sigue sin cachear /api ni /descargar", () => {
   const sw = leer("sw.js");
-  assert.ok(sw.includes("const C = 'pictos-v31'"));
+  assert.ok(sw.includes("const C = 'pictos-v32'"));
   assert.ok(sw.includes("'comunicador.html'") && sw.includes("'comunicador-tablero.js'") && sw.includes("'comunicador-textos.js'"));
   assert.ok(sw.includes("importScripts('comunicador-tablero.js')"));
   assert.ok(sw.includes("self.TABLERO.urls(extras)") && sw.includes("e.data.tipo === 'comunicador'") && sw.includes("guardarTablero(e.data.extras)"));
