@@ -4,7 +4,7 @@ Página pública **`/comunicador.html`** (`web/comunicador.html`): un tablero de
 
 ## Qué hace
 
-- **Grilla de pictos grandes y táctiles**, en 7 categorías: núcleo, sentimientos, necesidades, personas, lugares, acciones y juegos (68 pictos).
+- **Grilla de pictos grandes y táctiles**, en 10 categorías: núcleo, sentimientos, necesidades, personas, lugares, acciones, juegos, comida, cuerpo y ropa (104 pictos), más el tablero Casa (10 órdenes).
 - **Barra de frase arriba:** cada picto que se toca se suma a la frase. Botones **Hablar** (o tocar la frase), **Borrar** (el último) y **Todo** (borra la frase). Máximo 24 pictos; si se pasa, sale el más viejo.
 - **Voz:** `speechSynthesis` del propio equipo. En español elige es-AR si existe; si no, otra voz latinoamericana, después es-ES y después cualquier voz en español. Si el equipo no tiene voz en español o el navegador no puede hablar, la frase igual se ve escrita y la página lo avisa. En inglés, ver «Idiomas».
 - **Ajustes** (desplegable):
@@ -15,6 +15,7 @@ Página pública **`/comunicador.html`** (`web/comunicador.html`): un tablero de
   - Voz (solo voces del idioma activo) y «Hablar más despacio».
   - «Borrar ajustes y favoritos de este dispositivo».
 - **Favoritos:** el botón «Elegir favoritos» activa un modo en el que tocar un picto lo agrega o lo saca. Con favoritos aparece la pestaña ★ Favoritos.
+- **Buscador de ARASAAC** (dentro de «Elegir favoritos»): la familia escribe una palabra, ve los pictogramas de ARASAAC y toca uno para sumarlo a Favoritos. Ver «Buscador de ARASAAC» más abajo.
 - **Tablero Casa** (pestaña «Casa», al final de las categorías): órdenes para Alexa, Google o Siri dichas en voz alta. Ver «Tablero Casa» más abajo.
 - **Pantalla completa** (Fullscreen API). Si el navegador no la permite, como en el iPhone, queda un «modo tablero» que oculta todo lo demás. En ese modo solo se ven la frase, las categorías y la grilla. Para salir hay que tocar «Salir» dos veces en 3 segundos, así el chico no sale sin querer.
 
@@ -22,19 +23,24 @@ Página pública **`/comunicador.html`** (`web/comunicador.html`): un tablero de
 
 - La página **no hace ningún pedido a `/api`**, no usa IA y **no tiene analítica**: no carga `/_vercel/insights`, a diferencia del resto del sitio.
 - El pie común (`pie.js`) va con `data-donaciones="no"` y sin `data-feedback`, así que tampoco pide `api/config` ni `api/auth`.
-- Lo único que se guarda está en `localStorage` bajo la clave `puente-comunicador`: ajustes, favoritos y el idioma elegido. Se guarda solo si el usuario cambia algo, y se borra con el botón de la página. La página lo explica.
-- Las únicas conexiones externas son las imágenes de `static.arasaac.org`, igual que en el resto de Puente.
+- Lo único que se guarda está en `localStorage` bajo la clave `puente-comunicador`: ajustes, favoritos, pictos propios del buscador (`propios`: `{ id, t }`) y el idioma elegido. Se guarda solo si el usuario cambia algo, y se borra con el botón de la página. La página lo explica.
+- Conexiones externas, las dos a ARASAAC (Gobierno de Aragón), nunca a Puente:
+  - las imágenes de `static.arasaac.org`, igual que en el resto de Puente;
+  - **solo cuando la familia usa el buscador**, la palabra escrita va a `api.arasaac.org` (`T.buscarArasaac`), con `credentials: "omit"` (sin cookies) y `referrerPolicy: "no-referrer"` (ARASAAC no ve desde qué página viene).
+- Los textos lo dicen así: `infoPrivado` y la nota del buscador en la página (ES / EN), la respuesta «¿De dónde salen los pictogramas?» del pizarrón (`pizarron.js` y su lista sin JS en `index.html`) y el punto de ARASAAC en `privacidad.html`. Ya no dicen «todo pasa en este dispositivo».
 
-Lo controla `test/comunicador.test.js` (sin `fetch(`, sin `/api/`, sin analítica, pie sin pedidos) en `comunicador.html`, `comunicador-tablero.js` y `comunicador-textos.js`.
+Lo controla `test/comunicador.test.js`: un solo `fetch` (el del buscador, en `comunicador-tablero.js`) y solo a `api.arasaac.org`, ninguna otra URL externa en el código, sin `/api/`, sin analítica, pie sin pedidos, y que los textos de privacidad nombren a ARASAAC.
 
 ## Sin conexión
 
-- `sw.js` (CACHE **`pictos-v29`**) suma `comunicador.html`, `comunicador-tablero.js` y `comunicador-textos.js` al precache. Además carga el vocabulario con `importScripts('comunicador-tablero.js')`.
-- Al abrir el comunicador, la página le manda al service worker `postMessage({ tipo: "comunicador" })` y el SW guarda **todos** los pictos del tablero. Si alguno falla, sigue con el resto y lo reintenta la próxima vez. Los pictos se bajan solo cuando alguien abre el comunicador: unas 70 imágenes chicas. Así no se le gastan datos a quien solo entra a la portada.
+- `sw.js` (CACHE **`pictos-v30`**) suma `comunicador.html`, `comunicador-tablero.js` y `comunicador-textos.js` al precache. Además carga el vocabulario con `importScripts('comunicador-tablero.js')`.
+- Al abrir el comunicador, la página le manda al service worker `postMessage({ tipo: "comunicador", extras: [ids de los pictos propios] })` y el SW guarda **todos** los pictos del tablero (114 con Casa) y los propios. Si alguno falla, sigue con el resto y lo reintenta la próxima vez. Los pictos se bajan solo cuando alguien abre el comunicador: unas 115 imágenes chicas. Así no se le gastan datos a quien solo entra a la portada.
+- Los pictos propios quedan guardados al verlos (caché primero de `static.arasaac.org`) y, como la página los vuelve a mandar en `extras`, sobreviven al cambio de versión del caché. `urls(extras)` descarta lo que no sea un id válido y toma como mucho 60.
+- Las búsquedas (`api.arasaac.org`) **no** pasan por el caché: van siempre a la red y no queda un historial en el equipo. Sin conexión, el buscador muestra «Sin conexión: el buscador necesita internet. Los dibujos que ya sumaste siguen andando.»
 - Las imágenes de `static.arasaac.org` pasan a **caché primero** para todo el sitio, porque no cambian y así el tablero responde al instante. El resto sigue con red primero.
 - Igual que antes, **nunca** se cachean `/api/` ni `/descargar/`.
 
-> **Versiones del SW:** producción estaba en `pictos-v28`; el tablero Casa (rama `comunicador-casa`) lo pasa a **`pictos-v29`**. El PR #23 (rama `equipos`) tiene que pasar a **`pictos-v30`** cuando entre, y actualizar las aserciones de `test/documentos.test.js`, `test/comunicador.test.js` y `test/revisor.test.js`.
+> **Versiones del SW:** producción estaba en `pictos-v29` (tablero Casa); Comida, Cuerpo, Ropa y el buscador (rama `comunicador-vocabulario`) lo pasan a **`pictos-v30`**. El PR #23 (rama `equipos`) tiene que pasar a **`pictos-v31`** cuando entre, y actualizar las aserciones de `test/documentos.test.js`, `test/comunicador.test.js` y `test/revisor.test.js`.
 
 ## Vocabulario
 
@@ -53,9 +59,13 @@ El vocabulario está en `web/comunicador-tablero.js`, que comparten la página y
 
 Las categorías tienen `nombre` (español) y `en` (inglés).
 
-**Verificación:** `node scripts/verificar-comunicador.js` (necesita red) pide `https://api.arasaac.org/api/pictograms/es/<id>` para cada picto y controla que tenga su clave `k`. El 05/11/2026 dio **68/68**. Con `--en` pide `https://api.arasaac.org/api/pictograms/en/<id>` y controla `ken`: el 06/11/2026 dio **68/68** (y el español sigue en 68/68). Además, los pictos se revisaron a ojo en una hoja de contactos. No corre en `npm test` porque los tests no usan la red.
+**Verificación:** `node scripts/verificar-comunicador.js` (necesita red) pide `https://api.arasaac.org/api/pictograms/es/<id>` para cada picto y controla que tenga su clave `k`. El 06/11/2026, con Comida, Cuerpo, Ropa y Casa, dio **114/114** en español y **114/114** con `--en`. Antes (05/11/2026) eran 68/68. Con `--en` pide `https://api.arasaac.org/api/pictograms/en/<id>` y controla `ken`: el 06/11/2026 dio **68/68** (y el español sigue en 68/68). Además, los pictos se revisaron a ojo en una hoja de contactos. No corre en `npm test` porque los tests no usan la red.
 
 Elecciones a tener en cuenta (clave de ARASAAC → lo que se muestra):
+
+- Comida: `milanesa de ternera` (37000, con la vaca chiquita) → «milanesa»; `infusión` (2429, taza con saquito) → «mate cocido» (ARASAAC no tiene «mate cocido»; 31035 es el mate con bombilla); `espaguetis` → «fideos»; `galletas` → «galletitas»; `vaso de agua` (4768) → «vaso de agua» (el «agua» 2248 sigue en Necesidades: los ids no se repiten).
+- Cuerpo: `panza` (2786) → «panza»; `dolor de cabeza` (28753, nene) → «me duele la cabeza»; `dolor de tripa` (28765, nene) → «me duele la panza». «me duele» (30620) sigue en Necesidades y se combina con las partes del cuerpo.
+- Ropa: `remera`, `sudadera` (8701, buzo con capucha) → «buzo»; `plumífero` (27978) → «campera»; `pantalón corto` (13638) → «short»; `calcetines` → «medias»; `bata` (8038, guardapolvo blanco) → «guardapolvo».
 
 - `tú` → «vos»
 - `querer` → «quiero»
@@ -93,6 +103,15 @@ Para que un chico que no habla maneje Alexa, Google Home o Siri. **No hay integr
 - **Pictos elegidos** (clave de ARASAAC): 8103 encender la luz, 8027 apagar la luz, 2746 escuchar música, 38213 botón de pausa, 38216 / 38215 botón de subir / bajar volumen, 2549 reloj, 9802 encender la televisión, 20093 apagar la televisión, 2364 cuento.
 - **Límites:** depende de que el parlante entienda la voz del equipo (volumen, distancia, acento de la voz sintética). Con Siri, el equipo que habla no puede ser el mismo iPhone o iPad que escucha. Las órdenes de luz y tele solo andan si esos aparatos ya están configurados en la app del asistente.
 
+## Buscador de ARASAAC (pictos propios)
+
+- **Dónde:** al tocar «Elegir favoritos» aparece arriba de la grilla «Sumar dibujos de ARASAAC»: campo de texto (`<form role="search">` con `<label>`), botón Buscar y resultados. Al tocar «Listo, terminé de elegir» se oculta. No se ve en pantalla completa.
+- **Cómo busca:** `T.buscarArasaac(palabra, lang)` en `comunicador-tablero.js` pide `https://api.arasaac.org/api/pictograms/<es|en>/search/<palabra>` en el idioma activo. Solo al apretar Buscar (no mientras se escribe), con al menos 2 letras y como mucho 40. ARASAAC responde 404 cuando no encuentra nada: se muestra «No encontré dibujos para…». Si falla la red, «No pude conectar con ARASAAC…». Sin conexión (`navigator.onLine`), el aviso de sin conexión, también al abrir el buscador o al perder la conexión.
+- **Resultados:** como mucho 24, sin repetidos y sin los que ARASAAC marca con contenido sexual o violento (`sex` / `violence`). La palabra de cada uno es la clave igual a la buscada; si no, una que la contenga; si no, la primera. Se muestran como botones `.tecla` (92 px de alto) con `aria-pressed` y `aria-label` «perro: sumar a favoritos» / «perro: en favoritos. Tocá para sacarlo».
+- **Qué se guarda:** al tocar un resultado, `{ id, t }` va a `aj.propios` y el id a `aj.favoritos`, en `localStorage` `puente-comunicador`. Si el id ya está en el tablero (por ejemplo papá), va solo a favoritos. Como mucho 60 propios. Sacarlo de favoritos lo borra de `propios`. «Borrar ajustes y favoritos» también los borra. Lo guardado se limpia al leerlo (`T.propiosValidos`).
+- **Cómo se ve y se dice:** en la pestaña Favoritos, con la palabra elegida en los dos idiomas (la familia la eligió así) y borde ★.
+- **Etiquetas largas:** si una palabra no entra en la tecla, `ajustarEtiquetas()` achica esa etiqueta (hasta 9 px) en vez de cortarla a la mitad. Con «Chicos» en 390 px, «rompecabezas» y «galletitas» igual se parten.
+
 ## Idiomas
 
 El Comunicador anda en **español** y en **inglés**, cada uno con **su propia URL** (como todo el sitio público, ver `docs/idiomas.md`):
@@ -123,6 +142,9 @@ Elecciones en inglés a tener en cuenta (clave de ARASAAC en inglés → lo que 
 - `supermarket` → «store»
 - `wash the hands` → «wash hands» (la voz dice «wash my hands»)
 - `storybook` → «story»
+- `veal milanesa` → «breaded steak»; `meat pasty` → «empanada»; `spaghetti` → «pasta»; `infusion` → «tea»
+- `headache` / `stomach ache` → «my head hurts» / «my tummy hurts»
+- `sweatshirt` (con capucha) → «hoodie»; `ski cap` → «hat»; `white coat` (guardapolvo) → «smock»; `pant` → «pants»; `short trousers` → «shorts»
 
 ## Accesibilidad
 

@@ -46,7 +46,7 @@ Cada alumno tiene un link privado (`familia.html?t=…`, token de 128 bits). La 
 - **Preguntale a Puente**: chat que responde solo con los registros de la escuela, sin diagnósticos.
 
 ## 🗣️ Comunicador (libre, sin cuenta)
-`/comunicador.html`: tablero de pictogramas (CAA) para que el chico se comunique tocando dibujos; arma una frase y el equipo la dice en voz alta. Todo en el navegador (sin /api, sin IA, sin analítica), funciona sin conexión. Ver [docs/comunicador.md](docs/comunicador.md).
+`/comunicador.html`: tablero de pictogramas (CAA) para que el chico se comunique tocando dibujos; arma una frase y el equipo la dice en voz alta. 10 categorías (104 pictos, con comida, cuerpo y ropa), tablero Casa y un buscador de ARASAAC para que cada familia sume sus propios pictos a Favoritos. Todo en el navegador (sin /api, sin IA, sin analítica; la búsqueda va directo a ARASAAC), funciona sin conexión. Ver [docs/comunicador.md](docs/comunicador.md).
 
 ### Chat "Preguntale a Puente": protecciones
 El chat solo habla del alumno en la escuela: sus días, lo registrado, su ánimo, actividades, objetivos del PPI, apoyos e ideas para casa relacionadas. Todo lo demás recibe una negativa fija: *"Solo puedo contarte sobre el día de <alumno> en la escuela. Para otras cosas, escribile a la docente."* (`api/_lib/chat.js`).

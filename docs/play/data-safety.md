@@ -111,7 +111,7 @@ Información financiera, contactos del teléfono, calendario, historial de naveg
 
 ## Sección 3 · Compartir
 
-**No se comparten datos con terceros.** Vercel, Neon, Resend y OpenRouter (y los proveedores de IA sin retención que usa) son proveedores de servicios que procesan por cuenta de Puente: según Google, eso no es «compartir». ARASAAC solo recibe palabras clave de pictogramas, nunca datos de personas. Google (Entrar con Google) **le manda** datos a Puente, no al revés.
+**No se comparten datos con terceros.** Vercel, Neon, Resend y OpenRouter (y los proveedores de IA sin retención que usa) son proveedores de servicios que procesan por cuenta de Puente: según Google, eso no es «compartir». ARASAAC solo recibe palabras clave de pictogramas (también la palabra que se escribe en el buscador del Comunicador, que va directo del navegador a ARASAAC), nunca datos de personas. Google (Entrar con Google) **le manda** datos a Puente, no al revés.
 
 ## Prácticas de seguridad (insignias)
 

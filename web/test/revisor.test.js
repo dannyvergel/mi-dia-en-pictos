@@ -177,7 +177,7 @@ test("login.html: link discreto solo con revisor: true, sin emojis ni signos de 
   const bloque = html.slice(html.indexOf('<div class="card cinta" id="revisor"'), html.indexOf("<!-- FAMILIA -->"));
   assert.ok(bloque.length > 100);
   assert.doesNotMatch(bloque, /¡|\p{Extended_Pictographic}|—/u);
-  assert.ok(fs.readFileSync(path.join(RAIZ, "sw.js"), "utf8").includes("const C = 'pictos-v29'"));
+  assert.ok(fs.readFileSync(path.join(RAIZ, "sw.js"), "utf8").includes("const C = 'pictos-v30'"));
   // Ninguna contraseña ni hash de revisión en el repo (solo nombres de variables).
   for (const f of ["api/_lib/revisor.js", "scripts/revisor.js", "vercel.json", "../docs/play/guia-danny.md", "../docs/play/ficha.md"]) {
     const s = fs.readFileSync(path.join(RAIZ, f), "utf8");

@@ -31,6 +31,7 @@
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://puentepictos.app/#organizacion","name":"Puente","url":"https://puentepictos.app/","logo":"https://puentepictos.app/icono-512.png","email":"soporte@puentepictos.app","description":"Free, non-profit project that brings the school day home in pictograms, for special education schools and families.","areaServed":"AR","sameAs":["https://github.com/dannyvergel/mi-dia-en-pictos"]},{"@type":"WebSite","@id":"https://puentepictos.app/#sitio","name":"Puente","url":"https://puentepictos.app/","inLanguage":["es-AR","en"],"publisher":{"@id":"https://puentepictos.app/#organizacion"}},{"@type":"WebPage","@id":"https://puentepictos.app/en/comunicador.html#pagina","url":"https://puentepictos.app/en/comunicador.html","name":"Puente Comunicador · Free AAC picture communication board","inLanguage":"en","isPartOf":{"@id":"https://puentepictos.app/#sitio"},"about":{"@id":"https://puentepictos.app/#comunicador"}},{"@type":"WebApplication","@id":"https://puentepictos.app/#comunicador","name":"Puente Comunicador","url":"https://puentepictos.app/en/comunicador.html","applicationCategory":"EducationalApplication","operatingSystem":"Web, Android","inLanguage":["es-AR","en"],"isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"ARS"},"description":"Free AAC (augmentative and alternative communication) board with ARASAAC pictograms. No account, works offline, nothing leaves the device.","publisher":{"@id":"https://puentepictos.app/#organizacion"}}]}</script>
 <!-- /SEO -->
 <!-- Comunicador (tablero CAA) libre y sin cuenta. Todo pasa en el navegador: no llama a /api, no usa IA, no tiene analítica.
+     Única conexión además de las imágenes: el buscador de ARASAAC (api.arasaac.org), solo cuando la familia busca una palabra.
      Vocabulario en comunicador-tablero.js (lo comparte con sw.js para que ande sin conexión). Ver docs/comunicador.md. -->
 <link rel="manifest" href="/comunicador.webmanifest"><!-- manifest propio: se instala como «Puente Comunicador» y abre directo en el tablero -->
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -116,6 +117,24 @@
   .modo { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
   .modo .accion { flex-direction: row; gap: 8px; min-height: 72px; padding: 6px 16px; }
   .aviso-voz { margin: 8px 0 0; }
+  /* Avisos solo para lector de pantalla (#vivo). estilo.css no tiene .sr-only: sin esto, «Listo» o «Agregué…» se veían abajo del tablero. */
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  /* Buscador de ARASAAC (solo mientras se eligen favoritos) */
+  .buscador { margin: 2px 0 10px; padding: 10px 12px; border: 2px solid var(--tinta); border-left: 8px solid #8a5a00; border-radius: 12px; background: #fff; }
+  .buscador[hidden] { display: none; }
+  .buscador h2 { margin: 0 0 4px; font-size: 20px; }
+  .buscador p { margin: 0 0 8px; font-size: 16px; line-height: 1.35; }
+  .buscador label { display: block; font-weight: 700; margin-bottom: 4px; }
+  .buscar-fila { display: flex; gap: 8px; align-items: stretch; }
+  .buscar-fila input { flex: 1; min-width: 0; min-height: 56px; font: inherit; font-size: 18px; padding: 8px 12px; border: 2px solid var(--tinta); border-radius: 12px; }
+  .buscar-fila .accion { min-height: 56px; min-width: 96px; flex-direction: row; font-size: 17px; }
+  .buscar-estado { font-weight: 700; min-height: 1.35em; margin-top: 10px !important; }
+  .buscar-estado:empty { display: none; }
+  .buscar-estado.mal { color: var(--bad); }
+  .resultados:empty { display: none; }
+  .grilla.resultados { --celda: 92px; }
+  .resultados .tecla .t { font-size: 14px; letter-spacing: 0; }
+  .resultados .tecla[aria-pressed="true"] { border-color: #8a5a00; border-style: solid; background: #fdf6e1; }
   /* Selector de idioma (Español / English): visible arriba, fuera del modo tablero */
   .idioma { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
   .idioma button, .idioma a { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; min-height: 48px; min-width: 96px; padding: 6px 14px; border: 2px solid var(--tinta); border-radius: 12px; background: #fff; color: var(--tinta);
@@ -194,6 +213,19 @@
         <button type="button" class="accion" id="bCasaCambiar" aria-label="Change the wake word and the pause" data-i18n-aria="casaCambiarAria"><span data-i18n="casaCambiar">Change</span></button></div>
       <p class="casa-dice" id="casaDice"></p>
     </div>
+    <div class="buscador com-solo-normal" id="buscador" role="region" hidden aria-labelledby="buscadorTitulo"><!-- div y no section: estilo.css oculta los section (pantallas) -->
+      <h2 id="buscadorTitulo" data-i18n="buscarTitulo">Add pictures from ARASAAC</h2>
+      <p data-i18n="buscarNota">Type a word and tap the picture you want to add it to Favorites. What you type goes to ARASAAC (Government of Aragón) to find the pictures, not to Puente.</p>
+      <form id="buscarForm" role="search" aria-label="Search ARASAAC" data-i18n-aria="buscarAria" novalidate>
+        <label for="buscarPalabra" data-i18n="buscarLabel">Word to search for</label>
+        <div class="buscar-fila">
+          <input type="search" id="buscarPalabra" maxlength="40" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="search">
+          <button type="submit" class="accion" id="bBuscar"><span data-i18n="buscar">Search</span></button>
+        </div>
+      </form>
+      <p class="buscar-estado" id="buscarEstado" role="status" aria-live="polite"></p>
+      <div class="grilla resultados" id="resultados" role="group" aria-label="Pictures found in ARASAAC" data-i18n-aria="resultadosAria"></div>
+    </div>
     <div class="grilla" id="tablero" role="tabpanel" tabindex="-1" aria-label="Pictograms" data-i18n-aria="tableroAria"></div>
 
     <div class="modo com-solo-normal">
@@ -253,17 +285,18 @@
       <p class="muted" id="casaAjusteNota" data-i18n="casaAjusteNota">Used in the Home tab. If the speaker does not answer, turn up this device's volume or wait a little longer.</p>
       <button type="button" class="big alt auto casa-probar" id="bCasaProbar" data-i18n="casaProbar">Test: ask the time</button>
     </div>
-    <p class="muted" style="margin-top:12px" data-i18n-html="privAjustes">Settings and favorites are saved <b>only on this device</b> (in the browser's storage) and only if you change something. They are never sent anywhere.</p>
+    <p class="muted" style="margin-top:12px" data-i18n-html="privAjustes">Settings and favorites, including the pictures you added with the search, are saved <b>only on this device</b> (in the browser's storage) and only if you change something. They are never sent anywhere.</p>
     <button type="button" class="big alt peligro auto" id="bOlvidar" data-i18n="olvidar">Delete settings and favorites from this device</button>
     <p class="muted" id="olvidarMsg" role="status"></p>
   </details>
 
   <div class="card info">
     <h2 data-i18n="infoTitulo">A communication board for everyone, no account needed</h2>
-    <p data-i18n="infoTexto">The child taps the pictures, builds a sentence, and the phone, tablet or computer says it out loud. It is an augmentative and alternative communication (AAC) board with a small starter vocabulary: core words, feelings, needs, people, places, actions and play.</p>
+    <p data-i18n="infoTexto">The child taps the pictures, builds a sentence, and the phone, tablet or computer says it out loud. It is an augmentative and alternative communication (AAC) board with a starter vocabulary: core words, feelings, needs, people, places, actions, play, food, body and clothes.</p>
     <ul class="lista-puntos" style="margin:6px 0 0;padding-left:20px">
-      <li data-i18n-html="infoPrivado"><b>Private:</b> everything happens on this device. Nothing is sent to Puente or to any AI, there is no tracking and no account is needed.</li>
-      <li data-i18n-html="infoSinConexion"><b>Works offline:</b> after you open it once with internet, the board is saved and works without a connection.</li>
+      <li data-i18n-html="infoBuscador"><b>Your own pictures:</b> tap «Choose favorites» and use the search to add any ARASAAC pictogram to Favorites, with the word you choose.</li>
+      <li data-i18n-html="infoPrivado"><b>Private:</b> settings and favorites stay on this device. Nothing is sent to Puente or to any AI, there is no tracking and no account is needed. The pictures load from ARASAAC (Government of Aragón), and only when you use the search, the word you type goes to ARASAAC to find the pictures.</li>
+      <li data-i18n-html="infoSinConexion"><b>Works offline:</b> after you open it once with internet, the board is saved and works without a connection. The pictures you add with the search are saved too. The search needs internet.</li>
       <li data-i18n-html="infoVoz"><b>The voice</b> is the device's own. If it has no English voice, the sentence is still shown in writing.</li>
       <li data-i18n-html="infoCasa"><b>Home board:</b> in the Home tab, each picture says a command out loud for Alexa, Google or Siri. That way the child can use the smart speaker without speaking.</li>
       <li data-i18n-html="infoConsejo"><b>Tip:</b> use it in full screen or add it to the home screen so it does not close by accident.</li>
@@ -290,10 +323,12 @@
 
   // ---------- Ajustes (localStorage, solo si el usuario cambia algo) ----------
   const DEF = { decir: true, frase: true, tam: "mediano", genero: "nene", voz: "", lenta: false, favoritos: [], idioma: "", // idioma "" = automático
+    propios: [], // pictos sumados con el buscador de ARASAAC: { id, t } (la palabra elegida), siempre también en favoritos
     casaPalabra: "alexa", casaOtra: "", casaPausa: true, casaEspera: 1000 }; // tablero Casa: palabra de activación y pausa
   let aj = { ...DEF };
   try { Object.assign(aj, JSON.parse(localStorage.getItem(CLAVE) || "{}")); } catch { /* sin almacenamiento: queda en memoria */ }
   if (!Array.isArray(aj.favoritos)) aj.favoritos = [];
+  aj.propios = T.propiosValidos(aj.propios);
   const guardar = () => { try { localStorage.setItem(CLAVE, JSON.stringify(aj)); } catch { /* modo privado o lleno */ } };
 
   // ---------- Idioma ----------
@@ -321,6 +356,13 @@
 
   const todos = new Map();
   T.CATEGORIAS.forEach(c => c.pictos.forEach(p => todos.set(p.id, { ...p, cat: c })));
+  // Pictos propios (buscador): misma palabra en los dos idiomas, la que eligió la familia. Si el id ya está en el tablero, manda el del tablero.
+  const CAT_PROPIOS = { id: "favoritos", color: "#8a5a00" };
+  function cargarPropios() {
+    for (const [id, p] of todos) if (p.propio) todos.delete(id);
+    aj.propios.forEach(p => { if (!todos.has(p.id)) todos.set(p.id, { id: p.id, t: p.t, en: p.t, cat: CAT_PROPIOS, propio: true }); });
+  }
+  cargarPropios();
   const texto = p => lang === "en" ? (p.en || p.t) : (aj.genero === "nena" && p.f) ? p.f : p.t;
   const dicho = p => lang === "en" ? (p.dicen || p.en || p.t) : (aj.genero === "nena" && p.f) ? p.f : (p.dice || p.t);
   const nombreCat = c => lang === "en" ? (c.en || c.nombre) : c.nombre;
@@ -387,6 +429,7 @@
   const anunciar = m => { $("vivo").textContent = ""; setTimeout(() => $("vivo").textContent = m, 30); };
   function pintarFrase() {
     const f = $("frase");
+    frase = frase.filter(id => todos.has(id)); // un picto propio que se sacó de favoritos ya no está
     f.replaceChildren();
     if (!frase.length) { const v = document.createElement("span"); v.className = "vacia"; v.textContent = tr("fraseVacia"); f.append(v); }
     frase.forEach(id => {
@@ -407,7 +450,7 @@
   $("bTodo").onclick = () => { frase = []; pintarFrase(); anunciar(tr("fraseBorrada")); };
 
   // ---------- Categorías y grilla ----------
-  const ICONO = { nucleo: 5441, sentimientos: 35547, necesidades: 6929, personas: 2458, lugares: 6964, acciones: 8142, juegos: 23392, casa: T.CASA.icono };
+  const ICONO = { nucleo: 5441, sentimientos: 35547, necesidades: 6929, personas: 2458, lugares: 6964, acciones: 8142, juegos: 23392, comida: 28339, cuerpo: 2786, ropa: 2309, casa: T.CASA.icono };
   let catActual = location.hash === "#casa" ? "casa" : "nucleo", editando = false; // comunicador.html#casa abre directo el tablero Casa
   function pintarCats() {
     const c = $("cats");
@@ -442,8 +485,9 @@
     if (editando) {
       const i = aj.favoritos.indexOf(p.id);
       if (i >= 0) aj.favoritos.splice(i, 1); else aj.favoritos.push(p.id);
+      if (i >= 0 && p.propio) sacarPropio(p.id);
       guardar(); anunciar(tr(i >= 0 ? "favSaque" : "favAgregue", texto(p)));
-      pintarCats(); pintarGrilla(); return;
+      pintarCats(); pintarGrilla(); pintarResultados(); return;
     }
     if (repetido(p.id)) return;
     if (aj.frase) {
@@ -453,6 +497,18 @@
     if (aj.decir || !aj.frase) decir(dicho(p));
     else anunciar(tr("agregue", texto(p)));
   }
+  // Si una palabra no entra en el ancho de la tecla (por ejemplo «rompecabezas» o «guardapolvo» en un celular), se achica esa etiqueta
+  // hasta que entre entera (mínimo 9 px, para «Chicos»), en vez de cortarla a la mitad. Se vuelve a medir al cambiar el tamaño de la pantalla.
+  function ajustarEtiquetas(raiz) {
+    raiz.querySelectorAll(".tecla .t").forEach(t => {
+      t.style.fontSize = ""; t.style.overflowWrap = "normal";
+      let px = parseFloat(getComputedStyle(t).fontSize);
+      while (t.scrollWidth > t.clientWidth + 1 && px > 9) { px -= 0.5; t.style.fontSize = px + "px"; }
+      t.style.overflowWrap = "";
+    });
+  }
+  let ajusteTimer = 0;
+  addEventListener("resize", () => { clearTimeout(ajusteTimer); ajusteTimer = setTimeout(() => ajustarEtiquetas(document), 150); });
   // Tablero Casa: cada tecla dice una orden para el asistente (no se suma a la frase ni a favoritos).
   function pintarCasa() {
     const g = $("tablero");
@@ -469,6 +525,7 @@
       b.onclick = () => { if (!repetido("casa-" + o.id)) decirOrden(o); };
       return b;
     }));
+    ajustarEtiquetas(g);
   }
   function pintarCasaUsa() {
     const p = T.palabraActivacion(aj, lang);
@@ -493,6 +550,7 @@
       b.onclick = () => tocar(p);
       return b;
     }));
+    ajustarEtiquetas(g);
   }
   // Mantener apretado no abre menús ni arrastra imágenes
   $("app").addEventListener("contextmenu", e => { if (e.target.closest(".tecla, .cat, .frase-tira")) e.preventDefault(); });
@@ -502,8 +560,71 @@
     editando = !editando;
     $("bFavoritos").setAttribute("aria-pressed", String(editando));
     $("bFavTxt").textContent = tr(editando ? "favListo" : "favElegir");
+    $("buscador").hidden = !editando;
+    if (editando) avisoConexion();
     anunciar(tr(editando ? "favEditando" : "listo"));
     pintarGrilla();
+  };
+
+  // ---------- Buscador de ARASAAC: cada familia suma sus propios pictos a Favoritos ----------
+  // La palabra va del navegador a api.arasaac.org (T.buscarArasaac), nunca a Puente. Se guarda { id, t } en aj.propios
+  // y el id en aj.favoritos. El service worker guarda la imagen al verla y, al abrir el comunicador, la vuelve a pedir (extras).
+  let resultados = [], buscarTurno = 0;
+  const estadoBuscar = (m, mal) => { const e = $("buscarEstado"); e.textContent = m || ""; e.classList.toggle("mal", !!mal); };
+  const avisoConexion = () => { if (navigator.onLine === false) estadoBuscar(tr("sinConexion"), true); else if ($("buscarEstado").textContent === tr("sinConexion")) estadoBuscar(""); };
+  addEventListener("online", avisoConexion); addEventListener("offline", avisoConexion);
+  function sacarPropio(id) { aj.propios = aj.propios.filter(x => x.id !== id); cargarPropios(); }
+  function pintarResultados() {
+    const g = $("resultados");
+    g.className = "grilla resultados"; // tamaño fijo y más chico que el tablero: es para elegir, no para hablar
+    g.replaceChildren(...resultados.map(r => {
+      const b = document.createElement("button"), fav = aj.favoritos.includes(r.id), p = todos.get(r.id), t = p ? texto(p) : r.t;
+      b.type = "button"; b.className = "tecla";
+      b.style.setProperty("--c", CAT_PROPIOS.color);
+      b.setAttribute("aria-pressed", String(fav));
+      b.setAttribute("aria-label", tr(fav ? "propioEsta" : "propioSumar", t));
+      b.innerHTML = `<img src="${T.url(r.id)}" alt="" width="300" height="300" draggable="false" decoding="async" loading="lazy"><span class="t"></span>${fav ? '<span class="fav" aria-hidden="true">★</span>' : ""}`;
+      b.querySelector(".t").textContent = t;
+      b.querySelector("img").onerror = () => b.classList.add("sin-img");
+      b.onclick = () => elegirResultado(r);
+      return b;
+    }));
+    ajustarEtiquetas(g);
+  }
+  function elegirResultado(r) {
+    const i = aj.favoritos.indexOf(r.id), p = todos.get(r.id);
+    if (i >= 0) { // ya estaba: lo saca
+      aj.favoritos.splice(i, 1);
+      if (p && p.propio) sacarPropio(r.id);
+      anunciar(tr("favSaque", p ? texto(p) : r.t));
+    } else {
+      if (!p) { // no está en el tablero: es un picto propio
+        if (aj.propios.length >= T.MAX_PROPIOS) { estadoBuscar(tr("propiosLleno"), true); anunciar(tr("propiosLleno")); return; }
+        aj.propios.push({ id: r.id, t: r.t }); cargarPropios();
+      }
+      aj.favoritos.push(r.id);
+      anunciar(tr("favAgregue", texto(todos.get(r.id))));
+      avisarSW();
+    }
+    guardar(); pintarCats(); pintarGrilla(); pintarResultados();
+  }
+  $("buscarForm").onsubmit = async ev => {
+    ev.preventDefault();
+    const q = T.limpiarPalabra($("buscarPalabra").value);
+    if (q.length < 2) { estadoBuscar(tr("buscarCorta"), true); $("buscarPalabra").focus(); return; }
+    if (navigator.onLine === false) { estadoBuscar(tr("sinConexion"), true); return; }
+    const turno = ++buscarTurno;
+    estadoBuscar(tr("buscando", q)); $("bBuscar").disabled = true;
+    try {
+      const lista = await T.buscarArasaac(q, lang);
+      if (turno !== buscarTurno) return;
+      resultados = lista; pintarResultados();
+      estadoBuscar(tr(lista.length ? "buscarHay" : "buscarNada", q));
+    } catch {
+      if (turno !== buscarTurno) return;
+      resultados = []; pintarResultados();
+      estadoBuscar(tr(navigator.onLine === false ? "sinConexion" : "buscarError"), true);
+    } finally { if (turno === buscarTurno) $("bBuscar").disabled = false; }
   };
 
   // ---------- Pantalla completa (o modo tablero si el navegador no la permite) ----------
@@ -514,9 +635,11 @@
     const pedir = doc.requestFullscreen || doc.webkitRequestFullscreen;
     if (pedir) { try { const r = pedir.call(doc, { navigationUI: "hide" }); r && r.catch && r.catch(() => {}); } catch { /* queda el modo tablero */ } }
     pintarSalir(false); $("tablero").focus({ preventScroll: true });
+    requestAnimationFrame(() => ajustarEtiquetas($("tablero")));
   }
   function salir() {
     document.body.classList.remove("completo");
+    requestAnimationFrame(() => ajustarEtiquetas($("tablero")));
     if (enCompleto()) (document.exitFullscreen || document.webkitExitFullscreen).call(document)?.catch?.(() => {});
   }
   let confirmarHasta = 0;
@@ -559,13 +682,13 @@
   document.querySelectorAll('input[name="genero"]').forEach(r => r.onchange = () => { aj.genero = r.value; guardar(); pintarGrilla(); pintarFrase(); });
   $("bOlvidar").onclick = () => {
     try { localStorage.removeItem(CLAVE); } catch { /* nada guardado */ }
-    aj = { ...DEF, favoritos: [] };
+    aj = { ...DEF, favoritos: [], propios: [] }; cargarPropios(); resultados = []; estadoBuscar(""); $("buscarPalabra").value = "";
     $("oDecir").checked = true; $("oFrase").checked = true; $("oLenta").checked = false; $("oVoz").value = "";
     document.querySelector('input[name="tam"][value="mediano"]').checked = true;
     document.querySelector('input[name="genero"][value="nene"]').checked = true;
     document.querySelector('input[name="casaPalabra"][value="alexa"]').checked = true;
     $("oCasaOtra").value = ""; $("oCasaPausa").checked = true; $("oCasaEspera").value = "1000"; $("oCasaEspera").disabled = false; $("casaDice").textContent = "";
-    editando = false; $("bFavoritos").setAttribute("aria-pressed", "false");
+    editando = false; $("bFavoritos").setAttribute("aria-pressed", "false"); $("buscador").hidden = true;
     // La elección de idioma también se borra: vuelve a ?lang= o al idioma del navegador.
     lang = idiomaInicial("");
     pintarTodo();
@@ -576,8 +699,13 @@
   if (/Android/i.test(navigator.userAgent) && !EN_APP) $("comApk").hidden = false;
 
   // ---------- Sin conexión: el service worker guarda la página y todos los pictos del tablero ----------
+  // También los pictos propios (extras): así siguen sin conexión aunque el SW cambie de versión y borre el caché viejo.
+  function avisarSW() {
+    if (!("serviceWorker" in navigator)) return;
+    navigator.serviceWorker.ready.then(r => r.active && r.active.postMessage({ tipo: "comunicador", extras: aj.propios.map(p => p.id) })).catch(() => {});
+  }
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/sw.js").then(() => navigator.serviceWorker.ready).then(r => r.active && r.active.postMessage({ tipo: "comunicador" })).catch(() => {});
+    navigator.serviceWorker.register("/sw.js").then(avisarSW).catch(() => {});
   }
 
   // ---------- Selector de idioma (Español / English): links a cada URL; en la app cambia en el lugar ----------
@@ -586,7 +714,7 @@
     $("bFavTxt").textContent = tr(editando ? "favListo" : "favElegir");
     pintarSalir(Date.now() < confirmarHasta);
     $("casaDice").textContent = "";
-    pintarCats(); pintarGrilla(); pintarFrase();
+    pintarCats(); pintarGrilla(); pintarFrase(); pintarResultados();
   }
   document.querySelectorAll("#idioma [data-lang]").forEach(b => b.onclick = ev => {
     ev.preventDefault();
