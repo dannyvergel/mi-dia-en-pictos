@@ -16,6 +16,7 @@
   nav button[data-s="escuelas"] { --tab: #f2c46d; }
   nav button[data-s="invitaciones"] { --tab: #f4a6c0; }
   nav button[data-s="solicitudes"] { --tab: #e8998d; }
+  nav button[data-s="uso"] { --tab: #b9a6e0; }
   nav button[data-s="registro"] { --tab: #7fb3d5; }
   nav button[data-s="cuenta"] { --tab: #8fbf8a; }
   .cupos { font-weight: 700; } .cupos.lleno { color: var(--bad); }
@@ -52,6 +53,7 @@
   <button class="on" data-s="escuelas">Escuelas</button>
   <button data-s="invitaciones">Invitaciones</button>
   <button data-s="solicitudes">Solicitudes <span class="cuenta-n" id="nSol" hidden></span></button>
+  <button data-s="uso">Uso</button>
   <button data-s="registro">Registro</button>
   <button data-s="cuenta">Mi cuenta</button>
 </nav>
@@ -168,6 +170,16 @@
     </div>
   </section>
 
+  <!-- USO DEL PILOTO -->
+  <section id="uso">
+    <div class="card">
+      <span class="rotulo">Uso del piloto</span>
+      <p class="muted">Totales por semana (de lunes a domingo), sumando todas las escuelas. Son contadores por escuela y por día: no dicen quién cargó ni quién miró. Se guardan <span id="usoPlazo">400</span> días.</p>
+      <div id="usoLista" style="overflow-x:auto"><p class="vacio">Cargando…</p></div>
+      <p class="muted">«Vistos el mismo día»: de los días cargados, cuántos abrió la familia ese mismo día. «Escuelas activas»: escuelas que cargaron al menos un día esa semana.</p>
+    </div>
+  </section>
+
   <!-- REGISTRO -->
   <section id="registro">
     <div class="card">
@@ -212,6 +224,7 @@ function mostrar(s) {
   if (s === "escuelas") cargarEscuelas();
   if (s === "invitaciones") cargarInvitaciones();
   if (s === "solicitudes") cargarSolicitudes();
+  if (s === "uso") cargarUso();
   if (s === "registro") cargarRegistro();
 }
 document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => { history.replaceState(null, "", "#" + b.dataset.s); mostrar(b.dataset.s); });
@@ -231,7 +244,7 @@ document.querySelectorAll("[data-ir]").forEach(b => b.onclick = () => mostrar(b.
   $("quien").textContent = `${YO.nombre} · ${YO.email}`;
   $("miEmail").textContent = "Tu email: " + YO.email;
   const tab = location.hash.slice(1);
-  mostrar(["escuelas", "invitaciones", "solicitudes", "registro", "cuenta"].includes(tab) ? tab : "escuelas");
+  mostrar(["escuelas", "invitaciones", "solicitudes", "uso", "registro", "cuenta"].includes(tab) ? tab : "escuelas");
   contarSolicitudes();
 })();
 
@@ -419,6 +432,22 @@ async function resolver(el, accion, escuela = {}, esAdmin = false) {
     msg("msgSol", accion === "aprobar" ? `${nombre} ya tiene acceso${r.avisada ? " (le avisamos por mail)" : ""}.` : `Pedido de ${nombre} rechazado.`);
     await cargarSolicitudes();
   } catch (e) { msg("msgSol", e.message, true); el.querySelectorAll("button").forEach(b => b.disabled = false); }
+}
+
+// ---------- uso del piloto (métricas agregadas, sin datos de personas) ----------
+const diaCorto = f => new Date(f + "T12:00:00").toLocaleDateString("es-AR", { day: "numeric", month: "short" });
+async function cargarUso() {
+  try {
+    const r = await api("api/auditoria?accion=uso");
+    $("usoPlazo").textContent = r.retencion_dias ?? 400;
+    const filas = r.semanas.slice().reverse();
+    $("usoLista").innerHTML = filas.some(s => s.dias_cargados || s.invitaciones_aceptadas)
+      ? `<table class="tabla"><tr><th>Semana</th><th>Días cargados</th><th>Vistos el mismo día</th><th>Escuelas activas</th><th>Invitaciones aceptadas</th></tr>${filas.map(s => `<tr>
+        <td>${esc(diaCorto(s.desde))} al ${esc(diaCorto(s.hasta))}</td><td>${s.dias_cargados}</td>
+        <td>${s.pct_vistos_mismo_dia == null ? '<span class="muted">—</span>' : `${s.pct_vistos_mismo_dia}% <span class="muted">(${s.dias_vistos_mismo_dia})</span>`}</td>
+        <td>${s.escuelas_activas}</td><td>${s.invitaciones_aceptadas}</td></tr>`).join("")}</table>`
+      : `<p class="vacio">Todavía no hay uso registrado en las últimas 8 semanas.</p>`;
+  } catch (e) { $("usoLista").innerHTML = `<p class="error">${esc(e.message)}</p>`; }
 }
 
 // ---------- registro y comentarios ----------

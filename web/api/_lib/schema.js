@@ -237,7 +237,17 @@ const SCHEMA = [
     notificado TIMESTAMPTZ,
     creado TIMESTAMPTZ NOT NULL DEFAULT now()
   )`,
-  `CREATE INDEX IF NOT EXISTS documentos_alumno ON documentos (alumno_id, creado DESC)`
+  `CREATE INDEX IF NOT EXISTS documentos_alumno ON documentos (alumno_id, creado DESC)`,
+  // ---------- Métricas de uso del piloto (ver _lib/metricas.js) ----------
+  // Contadores diarios agregados por escuela. A propósito sin user_id, alumno_id, email, IP ni user agent.
+  // escuela_id = 0: sin escuela. Se borra a los METRICAS_RETENCION_DIAS (400).
+  `CREATE TABLE IF NOT EXISTS metricas_diarias (
+    fecha DATE NOT NULL,
+    escuela_id BIGINT NOT NULL DEFAULT 0,
+    clave TEXT NOT NULL,
+    cantidad INT NOT NULL DEFAULT 0,
+    PRIMARY KEY (fecha, escuela_id, clave)
+  )`
 ];
 
 module.exports = { SCHEMA };
