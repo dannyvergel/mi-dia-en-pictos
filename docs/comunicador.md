@@ -93,8 +93,8 @@ Autor pictogramas: Sergio Palao. Origen: ARASAAC (https://arasaac.org). Licencia
 
 ## App para Android (Puente Comunicador)
 
-- TWA aparte, paquete `app.puentepictos.comunicador`, versionName 1.0.0, versionCode 1. Abre `https://puentepictos.app/comunicador.html?app`, orientación libre.
+- TWA aparte, paquete `app.puentepictos.comunicador`, versionName 1.0.1, versionCode 2 (la 1.0.1 solo cambia el nombre bajo el ícono de «Comunicador» a «Puente Comunicador»). Abre `https://puentepictos.app/comunicador.html?app`, orientación libre.
 - Firmada con la misma clave que `app.puentepictos.twa` (SHA-256 `E5:E5:B5:…:7C:00`); `.well-known/assetlinks.json` lista los dos paquetes con esa huella. Si se publica en Play con Play App Signing, sumar la huella de Google a ese paquete.
-- Manifest propio: `comunicador.webmanifest` (id `/comunicador.html`, scope `/comunicador`), así instalar desde el navegador da «Comunicador» y no se pisa con la PWA de Puente.
+- Manifest propio: `comunicador.webmanifest` (id `/comunicador.html`, scope `/comunicador`), así instalar desde el navegador da «Puente Comunicador» (name y short_name) y no se pisa con la PWA de Puente.
 - APK pública en `/descargar/comunicador.apk` (el SW no cachea `/descargar/`). Al sacar una versión nueva, reemplazar ese archivo y subir versionCode.
 - El link «Bajar la app para Android» aparece solo en Android y fuera de la app (`?app`, referrer `android-app://` o display-mode standalone/fullscreen).

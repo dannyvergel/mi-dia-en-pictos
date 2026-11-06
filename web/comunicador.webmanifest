@@ -1,6 +1,6 @@
 {
   "name": "Puente Comunicador",
-  "short_name": "Comunicador",
+  "short_name": "Puente Comunicador",
   "description": "Comunicador con pictogramas de ARASAAC, libre y sin cuenta: tocá los dibujos, armá la frase y el celular la dice. Funciona sin conexión.",
   "id": "/comunicador.html",
   "start_url": "/comunicador.html?app",
