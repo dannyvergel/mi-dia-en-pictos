@@ -13,6 +13,7 @@ const { leerFamilia: leer, guardarFamilia } = require("./_lib/almacen");
 const { objetivosAPpi, apoyosAPerfil } = require("./_lib/fichas");
 const { condVisible } = require("./_lib/alumnos");
 const { filtrarDiasVigentes, quizasLimpiar } = require("./_lib/retencion");
+const { funcionesFamilia, minimoParaPublicar } = require("./_lib/funciones");
 const { cuerpo, consulta, exigirJson, manejarError, errorPublico } = require("./_lib/http");
 
 const tokenOk = t => typeof t === "string" && /^[a-f0-9]{32}$/.test(t);
@@ -20,21 +21,28 @@ const tokenOk = t => typeof t === "string" && /^[a-f0-9]{32}$/.test(t);
 // Solo lo que la familia necesita ver (sin notas internas del legajo).
 function vistaFamilia(d) {
   // Retención: los días más viejos que DIAS_PUBLICADOS_RETENCION no se muestran (y se sacan en la próxima publicación).
+  // Lo que no está prendido en FAMILIA_FUNCIONES no sale del servidor (ver _lib/funciones.js).
+  const fx = funcionesFamilia();
   const regs = filtrarDiasVigentes(d.registros).slice().sort((a, b) => b.fecha.localeCompare(a.fecha));
-  const h = crearHerramientas({ alumno: d.alumno, registros: filtrarDiasVigentes(d.registros), ppi: d.ppi || [] });
-  const ppi = d.ppi?.length ? h.evaluar_ppi.run() : [];
+  let objetivos = [];
+  if (fx.objetivos && d.ppi?.length) {
+    const h = crearHerramientas({ alumno: d.alumno, registros: filtrarDiasVigentes(d.registros), ppi: d.ppi });
+    objetivos = h.evaluar_ppi.run().map(o => ({ objetivo: o.objetivo, estado: o.estado_calculado }));
+  }
   return {
     alumno: d.alumno, actualizado: d.actualizado, escuela: d.escuela || null,
-    gustos: d.perfil?.le_gusta || null,
+    funciones: fx,
+    gustos: fx.texto ? d.perfil?.le_gusta || null : null,
     dias: regs.slice(0, 10).map(r => ({
       fecha: r.fecha, dia: diaSemana(r.fecha), animo: r.animo_general,
-      resumen: r.resumen_familia || null, logros: r.logros || [],
-      alertas: (r.alertas || []).map(a => a.detalle),
-      actividades: (r.actividades || []).map(a => ({ hora: a.hora, palabra_clave: a.palabra_clave, actividad: a.actividad, estado: a.estado, picto_url: a.picto_url }))
+      resumen: fx.texto ? r.resumen_familia || null : null,
+      logros: fx.texto ? r.logros || [] : [],
+      alertas: fx.texto ? (r.alertas || []).map(a => a.detalle) : [],
+      actividades: (r.actividades || []).map(a => ({ hora: a.hora, palabra_clave: a.palabra_clave, ...(fx.texto ? { actividad: a.actividad } : {}), estado: a.estado, picto_url: a.picto_url }))
     })),
-    objetivos: ppi.map(o => ({ objetivo: o.objetivo, estado: o.estado_calculado })),
-    agenda: d.agenda || null,
-    mensaje_docente: d.mensaje_docente || null
+    objetivos,
+    agenda: d.agenda ? { ...d.agenda, pasos: (d.agenda.pasos || []).map(p => fx.texto ? p : { hora: p.hora, palabra_clave: p.palabra_clave, es_apoyo: p.es_apoyo, picto_url: p.picto_url }) } : null,
+    mensaje_docente: fx.texto ? d.mensaje_docente || null : null
   };
 }
 
@@ -94,7 +102,7 @@ async function alumnoPermitido(s, id) {
   return uno(`SELECT a.id, a.nombre, a.blob_token FROM alumnos a JOIN familia_alumno fa ON fa.alumno_id = a.id JOIN escuelas e ON e.id = a.escuela_id
     WHERE a.id = $1 AND fa.familia_id = $2 AND e.activa`, [id, s.usuario.id]);
 }
-const vacia = a => ({ alumno: a.nombre, actualizado: null, dias: [], objetivos: [], agenda: null, mensaje_docente: null, sin_publicar: true });
+const vacia = a => ({ alumno: a.nombre, actualizado: null, funciones: funcionesFamilia(), dias: [], objetivos: [], agenda: null, mensaje_docente: null, sin_publicar: true });
 
 async function modoDb(req, res) {
   if (!exigirJson(req, res)) return;
@@ -122,13 +130,14 @@ async function modoDb(req, res) {
     // La ficha manda: objetivos del PPI y perfil salen de la base, no del navegador.
     const ppi = a.objetivos?.length ? objetivosAPpi(a.objetivos) : (b.ppi || []);
     const perfil = a.apoyos ? apoyosAPerfil(a.apoyos) : b.perfil;
-    const datos = armarDatos({ ...b, registros: b.registros.map(r => ({ ...r, alumno: a.nombre })), ppi, perfil }, a.nombre);
+    const datos = minimoParaPublicar(armarDatos({ ...b, registros: b.registros.map(r => ({ ...r, alumno: a.nombre })), ppi, perfil }, a.nombre));
     await guardarFamilia(t, datos);
     await q("UPDATE alumnos SET publicado = now() WHERE id = $1", [a.id]);
     await quizasLimpiar();
     return res.status(200).json({ alumno_id: Number(a.id), dias: datos.registros.length });
   }
   if (b.accion === "preguntar") {
+    if (!funcionesFamilia().chat) throw errorPublico("«Preguntale a Puente» no está disponible.", 403);
     const s = await leerSesion(req);
     if (!s) return res.status(401).json({ error: "Iniciá sesión", login: "/login.html?familia" });
     const pregunta = typeof b.pregunta === "string" ? b.pregunta.trim() : "";

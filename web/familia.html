@@ -64,6 +64,7 @@ const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&l
 const fechaLinda = f => new Date(f + "T12:00:00").toLocaleDateString("es-AR", { weekday:"long", day:"numeric", month:"long" });
 function hablar(x) { if ("speechSynthesis" in window) { const u = new SpeechSynthesisUtterance(x); u.lang = "es-AR"; speechSynthesis.speak(u); } }
 let D = null;
+const FX = () => (D && D.funciones) || {};
 
 let MODO = "token", ALUMNO_ID = null, FICHA = null, ESFAMILIA = false, MIS = [], VERSION_PRIV = null;
 async function cargar() {
@@ -106,13 +107,13 @@ const APOYO_TXT = { comunicacion: "Comunicación", sensoriales: "Sensoriales (qu
 function htmlFicha() {
   if (!FICHA) return "";
   const c = FICHA.consentimiento || {};
-  const apoyos = Object.entries(APOYO_TXT).filter(([k]) => FICHA.apoyos[k]).map(([k, txt]) => `<dt>${txt}</dt><dd>${esc(FICHA.apoyos[k])}</dd>`).join("");
+  const apoyos = Object.entries(APOYO_TXT).filter(([k]) => FICHA.apoyos && FICHA.apoyos[k]).map(([k, txt]) => `<dt>${txt}</dt><dd>${esc(FICHA.apoyos[k])}</dd>`).join("");
   return `<div class="card ficha"><details${c.dado ? "" : " open"}><summary><span class="rotulo" style="display:inline">La ficha de ${esc(FICHA.nombre)}</span></summary>
     <p class="muted">La completa la escuela. Si algo no está bien, avisale a la docente.</p>
     <dl>
       <dt>Contactos</dt><dd>${FICHA.contactos.map(x => `${esc(x.nombre)}${x.vinculo ? " (" + esc(x.vinculo) + ")" : ""}${x.telefono ? " · " + esc(x.telefono) : ""}${x.email ? " · " + esc(x.email) : ""}`).join("<br>") || "—"}</dd>
       ${apoyos}
-      <dt>Objetivos del PPI</dt><dd>${FICHA.objetivos.length ? FICHA.objetivos.map(o => "• " + esc(o)).join("<br>") : "—"}</dd>
+      ${FICHA.objetivos ? `<dt>Objetivos del PPI</dt><dd>${FICHA.objetivos.length ? FICHA.objetivos.map(o => "• " + esc(o)).join("<br>") : "—"}</dd>` : ""}
     </dl>
     ${ESFAMILIA && FICHA.contactos.some(x => x.email) ? `<form id="fTel" class="fila" style="margin-top:10px"><input id="miTel" inputmode="tel" maxlength="30" placeholder="Tu teléfono / WhatsApp"><button class="big chico auto">Actualizar mi teléfono</button></form>` : ""}
     <div class="${c.dado ? "logro" : "alerta"}" style="margin-top:12px">${c.dado ? `Consentimiento dado por ${esc(c.quien)} el ${esc(c.fecha)}.` : "Todavía no está el consentimiento de la familia para usar Puente."}</div>
@@ -168,22 +169,22 @@ function pintar() {
     </div>
     ${D.mensaje_docente ? `<div class="card cinta"><span class="rotulo">Mensaje de la escuela</span><p>${esc(D.mensaje_docente)}</p></div>` : ""}
     ${D.agenda ? `<div class="card"><span class="rotulo">Así va a ser su ${esc(D.agenda.dia || "próximo día")}</span><p class="muted">Contáselo la noche anterior mirando los pictos juntos. Los recuadros punteados son apoyos nuevos.</p>
-      <div class="tira">${D.agenda.pasos.map(p => `<div class="picto ${p.es_apoyo ? "apoyo" : ""}" data-h="${esc(p.texto)}">${p.picto_url ? `<img src="${p.picto_url}" alt="">` : `<img data-k="${esc(p.palabra_clave)}" alt="">`}<div class="t">${esc(p.palabra_clave)}</div><div class="h">${esc(p.hora || "")}</div></div>`).join("")}</div></div>` : ""}
+      <div class="tira">${D.agenda.pasos.map(p => `<div class="picto ${p.es_apoyo ? "apoyo" : ""}" data-h="${esc(p.texto || p.palabra_clave)}">${p.picto_url ? `<img src="${p.picto_url}" alt="">` : `<img data-k="${esc(p.palabra_clave)}" alt="">`}<div class="t">${esc(p.palabra_clave)}</div><div class="h">${esc(p.hora || "")}</div></div>`).join("")}</div></div>` : ""}
     ${D.objetivos?.length ? `<div class="card"><span class="rotulo">En qué estamos trabajando</span>${D.objetivos.map(o => { const [c, txt] = PLANO[o.estado] || ["", o.estado]; return `<div class="obj"><div style="flex:1"><b>${esc(o.objetivo)}</b></div><span class="sello ${c}">${txt}</span></div>`; }).join("")}</div>` : ""}
     ${logros.length ? `<div class="card"><span class="rotulo">Logros recientes</span>${logros.slice(0, 6).map(x => `<div class="logro">${esc(x.l)} <span class="muted">· ${esc(fechaLinda(x.f))}</span></div>`).join("")}</div>` : ""}
-    <div class="card"><span class="rotulo">Preguntale a Puente</span>
+    ${FX().chat ? `<div class="card"><span class="rotulo">Preguntale a Puente</span>
       <p class="muted">Responde con lo que la escuela registró de ${esc(D.alumno)}. Para temas de salud, hablá con la docente.</p>
       <div class="chat" id="chat"></div>
       <div class="sug" id="sug">${["¿Cómo estuvo esta semana?", "¿Cómo viene comiendo?", "¿Qué día le cuesta más?", "¿Qué puedo hacer en casa?"].map(s => `<button>${s}</button>`).join("")}</div>
       <form id="f"><input id="q" placeholder="Escribí tu pregunta…" autocomplete="off" maxlength="500"><button class="big">Enviar</button></form>
-    </div>`;
+    </div>` : ""}`;
   document.querySelectorAll(".dia").forEach(el => el.onclick = () => verDia(el.dataset.f));
   document.querySelectorAll(".chips button").forEach(b => b.onclick = () => abrirAlumno(Number(b.dataset.id)));
   if ($("salir")) $("salir").onclick = e => { e.preventDefault(); Puente.salir(); };
   conectarFicha();
   document.querySelectorAll(".picto[data-h]").forEach(el => el.onclick = () => hablar(el.dataset.h));
   document.querySelectorAll("#sug button").forEach(b => b.onclick = () => enviar(b.textContent));
-  $("f").onsubmit = e => { e.preventDefault(); const v = $("q").value.trim(); if (v) { $("q").value = ""; enviar(v); } };
+  if ($("f")) $("f").onsubmit = e => { e.preventDefault(); const v = $("q").value.trim(); if (v) { $("q").value = ""; enviar(v); } };
   if (dias[0]) verDia(dias[0].fecha);
   const s = $("semana"); s.scrollLeft = s.scrollWidth;
 }
@@ -195,7 +196,7 @@ function verDia(f) {
     ${d.resumen ? `<p>${esc(d.resumen)}</p>` : ""}
     ${d.logros.map(l => `<div class="logro">${esc(l)}</div>`).join("")}
     ${d.alertas.map(a => `<div class="alerta">${esc(a)}</div>`).join("")}
-    <div class="tira">${d.actividades.map(a => `<div class="picto ${a.estado || ""}" data-h="${esc(a.actividad)}">${a.picto_url ? `<img src="${a.picto_url}" alt="">` : `<img data-k="${esc(a.palabra_clave)}" alt="">`}<div class="t">${esc(a.palabra_clave)}</div><div class="h">${esc(a.hora || "")}</div></div>`).join("")}</div>`;
+    <div class="tira">${d.actividades.map(a => `<div class="picto ${a.estado || ""}" data-h="${esc(a.actividad || a.palabra_clave)}">${a.picto_url ? `<img src="${a.picto_url}" alt="">` : `<img data-k="${esc(a.palabra_clave)}" alt="">`}<div class="t">${esc(a.palabra_clave)}</div><div class="h">${esc(a.hora || "")}</div></div>`).join("")}</div>`;
   $("detalle").querySelectorAll(".picto").forEach(el => el.onclick = () => hablar(el.dataset.h));
 }
 

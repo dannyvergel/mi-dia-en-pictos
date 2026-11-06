@@ -40,6 +40,7 @@ const { cuerpo, consulta, exigirJson, manejarError, errorPublico, hoyLocal } = r
 
 const SELECT = `SELECT a.id, a.nombre, a.grado, a.blob_token IS NOT NULL AS publicado, f.contactos, f.apoyos, f.objetivos, f.consentimiento, f.actualizado
   FROM alumnos a LEFT JOIN fichas f ON f.alumno_id = a.id`;
+const { funcionesFamilia } = require("./_lib/funciones");
 const forma = r => r && ({ id: Number(r.id), nombre: r.nombre, grado: r.grado || "", publicado: !!r.publicado, contactos: r.contactos || [], apoyos: r.apoyos || {},
   objetivos: r.objetivos || [], consentimiento: r.consentimiento || { dado: false }, actualizado: r.actualizado });
 
@@ -204,7 +205,10 @@ async function familia(req, res, fam) {
         chat: chat.map(t => ({ ...t, alumno_id: Number(t.alumno_id) })) });
     }
     await auditoria.registrar(req, { evento: "ficha_ver", ...auditoria.actor(ses), detalle: { alumnos: filas.length } });
-    return res.status(200).json({ alumnos: filas.map(forma), apoyos: F.APOYOS, email: fam.email, privacidad: legal.VERSION_PRIVACIDAD });
+    // Fuera de la exportación, la familia ve solo lo prendido en FAMILIA_FUNCIONES (ver _lib/funciones.js).
+    const fx = funcionesFamilia();
+    const vista = r => { const f = forma(r); if (!fx.ficha) { delete f.apoyos; delete f.objetivos; } return f; };
+    return res.status(200).json({ alumnos: filas.map(vista), apoyos: F.APOYOS, email: fam.email, privacidad: legal.VERSION_PRIVACIDAD });
   }
   const b = cuerpo(req);
   if (b.accion === "baja") {
