@@ -112,6 +112,16 @@
     .pz-accion, .pz-escuchar { font-size: 14px; padding: 6px 12px; }
     .pz-form .big { padding: 0 14px; }
   }
+  /* ---------- Comunicador: libre y sin cuenta, visible arriba ---------- */
+  .com-promo { margin: 18px 0 0; border-left: 5px solid var(--lapiz); }
+  .com-promo h3 { font-family: var(--mano); font-size: 23px; font-weight: 400; line-height: 1.15; margin: 0 0 4px; }
+  .com-promo .rotulo { font-family: var(--texto); font-size: 13px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; color: var(--gris); margin-bottom: 4px; }
+  .com-cab { display: flex; gap: 12px; align-items: center; }
+  .com-frase { display: flex; gap: 4px; flex: none; }
+  .com-frase img { width: 52px; height: 52px; object-fit: contain; background: #fff; border: 1px solid var(--borde); border-radius: 8px; padding: 3px; }
+  .com-promo p { margin: 6px 0 0; }
+  .com-promo .botones { margin: 10px 0 4px; }
+  @media (max-width: 640px) { .com-cab { flex-direction: column; align-items: flex-start; gap: 8px; } .com-frase img { width: 48px; height: 48px; } }
   .tarjetas { margin-top: 22px; }
   .quien { border-left: 5px solid var(--pizarron); }
   @media (min-width: 1000px) { .quien { margin-top: 14px; } }
@@ -140,6 +150,9 @@
     .tarjetas .card { margin: 0; height: 100%; }
     .tarjetas .card.piloto { height: auto; }
     .botones.final { display: none; }
+    .com-promo { margin-top: 14px; padding: 12px 14px; }
+    .com-promo .botones { margin: 8px 0 2px; }
+    .com-promo .big { padding: 10px; font-size: 15px; }
   }
   @media (min-width: 1000px) and (max-height: 820px) {
     .portada .pagina { padding-top: 12px; }
@@ -177,6 +190,22 @@
     <a class="big alt chico demo-btn" id="btnDemo" href="https://puente-pictos-demo.vercel.app/cuaderno.html">Probar la demo, sin cuenta</a>
     <p class="muted chiquito demo-txt">Con datos de prueba: lo que cargás queda en tu navegador.</p>
     <p class="muted" id="sesionTxt" hidden></p>
+
+    <div class="card com-promo" id="comunicador" role="region" aria-labelledby="comTitulo">
+      <div class="com-cab">
+        <div class="com-frase" aria-hidden="true"><img src="https://static.arasaac.org/pictograms/6632/6632_300.png" alt="" width="52" height="52" loading="lazy"><img src="https://static.arasaac.org/pictograms/5441/5441_300.png" alt="" width="52" height="52" loading="lazy"><img src="https://static.arasaac.org/pictograms/23392/23392_300.png" alt="" width="52" height="52" loading="lazy"></div>
+        <div>
+          <span class="rotulo">Gratis para cualquiera, sin cuenta</span>
+          <h3 id="comTitulo">Comunicador: hablar tocando dibujos</h3>
+        </div>
+      </div>
+      <p>Un tablero de pictogramas que dice en voz alta lo que tocás. Funciona sin conexión y no guarda nada fuera de tu dispositivo. No hace falta estar en el piloto.</p>
+      <div class="botones">
+        <a class="big" id="btnComunicador" href="comunicador.html">Abrir el Comunicador</a>
+        <a class="big alt" id="btnComApk" href="/descargar/comunicador.apk" download>Bajar la app para Android</a>
+      </div>
+      <p class="muted chiquito">También en inglés: <a href="comunicador.html?lang=en" hreflang="en" lang="en">English version</a>. La app de Android todavía no está en Google Play: se instala desde el archivo APK.</p>
+    </div>
 
     <h3 class="sub" style="margin-top:22px">Cómo funciona</h3>
     <ol class="pasos">
@@ -242,7 +271,7 @@
         <dt>¿Cómo puedo ayudar o donar?</dt><dd>Puente es gratuito y sin fines de lucro, y las donaciones ayudan a cubrir los servidores y la IA. Si querés colaborar, usá el botón «Doná desde Argentina» al pie de esta página. A las familias nunca se les piden donaciones.</dd>
         <dt>¿Cómo se entra?</dt><dd>Las seños y los directivos entran con su cuenta de Google o con un código de 6 números que les llega por mail, sin contraseña. Las familias entran con el link de invitación que les manda la escuela y un código por mail.</dd>
         <dt>¿Qué ve la familia?</dt><dd>En su espacio privado, la familia ve los últimos días con pictogramas que se tocan y se escuchan, la agenda de lo que viene, los objetivos en los que se está trabajando y los logros. También puede preguntar sobre el día, y le responde solo con lo que registró la escuela.</dd>
-        <dt>¿Hay que instalar algo?</dt><dd>No. Puente se usa desde el navegador, en el celular o en la compu. Se entra en puentepictos.app.</dd>
+        <dt>¿Hay que instalar algo?</dt><dd>No hace falta. Puente se usa desde el navegador, en el celular o en la compu, entrando en puentepictos.app. Si usás Android, también hay app para bajar (todavía no está en Google Play): la de Puente, para quienes están en el piloto, y la del Comunicador, libre para cualquiera.</dd>
         <dt>¿Cómo los contacto?</dt><dd>Escribinos a soporte@puentepictos.app. Si ya tenés cuenta, también podés usar «Enviar comentario» al pie de la página.</dd>
 
         </dl>
@@ -300,13 +329,14 @@
         <p class="gracias" id="suGracias" role="status" tabindex="-1" hidden>¡Gracias! Te escribimos a tu mail.</p>
       </details>
       <p class="muted chiquito" style="margin:.5em 0 0">o escribinos a <a href="mailto:soporte@puentepictos.app?subject=Quiero%20sumarme%20al%20piloto%20de%20Puente">soporte@puentepictos.app</a></p>
+      <p class="muted chiquito" style="margin:.5em 0 0">¿Ya estás en el piloto? <a href="/descargar/puente.apk" id="linkPuenteApk" download>Bajá la app de Puente para Android</a> (APK, todavía no está en Google Play).</p>
     </div>
    </div><!-- /tarjetas -->
 
     <div class="card quien" id="quien">
       <span class="rotulo">Quién hace Puente</span>
       <p style="margin:0">Soy Danny Vergel, de Rosario. Trabajo en tecnología y armé Puente porque quiero ayudar: aportar algo al mundo con lo que sé hacer y con lo que hoy la IA me deja hacer. Como dice la frase, «el que no vive para servir, no sirve para vivir».</p>
-      <p class="muted chiquito" style="margin:.5em 0 0"><a href="https://www.linkedin.com/in/dvergel/" target="_blank" rel="noopener">Mi LinkedIn</a> · <a href="mailto:soporte@puentepictos.app">soporte@puentepictos.app</a></p>
+      <p class="muted chiquito" style="margin:.5em 0 0"><a href="https://www.linkedin.com/in/dvergel/" target="_blank" rel="noopener">Mi LinkedIn</a> · <a href="mailto:soporte@puentepictos.app">soporte@puentepictos.app</a> · <a href="https://github.com/dannyvergel/mi-dia-en-pictos" target="_blank" rel="noopener">Código abierto (AGPL-3.0)</a></p>
     </div>
 
     <div class="botones final">
