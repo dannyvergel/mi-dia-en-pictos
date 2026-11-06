@@ -305,7 +305,7 @@ module.exports = {
   // Los textos con data-i18n salen de comunicador-textos.js (la misma fuente que usa la página para cambiar de idioma en la app).
   "comunicador.html": {
     textos: TX.en,
-    iguales: ["Comunicador"],
+    iguales: ["Comunicador", "Alexa", "Ok Google"],
     pares: [
       ['El comunicador necesita JavaScript activado en el navegador.', 'The communication board needs JavaScript turned on in the browser.'],
       ['aria-label="Frase armada. Tocá para escucharla."', 'aria-label="Sentence. Tap to hear it."'],

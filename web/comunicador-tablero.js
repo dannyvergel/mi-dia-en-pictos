@@ -90,8 +90,51 @@
       {id: 2364, t: "cuento", k: "cuento", en: "story", ken: "storybook"}
     ] }
   ];
+  // ---------- Tablero «Casa»: órdenes para un asistente de voz (Alexa, Google, Siri), sin integración ----------
+  // Cada picto hace que el equipo diga en voz alta la palabra de activación y una orden, y el parlante la escucha
+  // como si la dijera una persona. No hay cuenta ni conexión con Amazon, Google o Apple.
+  // Campos como en CATEGORIAS (id, t, k, en, ken) más: orden = lo que se le dice al asistente en español,
+  // ordenen = en inglés. Las órdenes usan la forma que los asistentes reconocen en español (prende, apaga, pon),
+  // no el voseo: Alexa y Google no tienen español de Argentina y esas formas son las de su documentación.
+  // Para sumar una orden: agregar una línea acá (con k / ken verificadas, ver docs/comunicador.md) y subir el CACHE de sw.js.
+  const CASA = { id: "casa", nombre: "Casa", en: "Home", color: "#2f4a3e", icono: 37438, ordenes: [
+    {id: 8103, t: "prender la luz", k: "encender la luz", orden: "prende la luz", en: "lights on", ken: "turn on the light", ordenen: "turn on the lights"},
+    {id: 8027, t: "apagar la luz", k: "apagar la luz", orden: "apaga la luz", en: "lights off", ken: "turn off the light", ordenen: "turn off the lights"},
+    {id: 2746, t: "poner música", k: "escuchar música", orden: "pon música", en: "play music", ken: "listen to music", ordenen: "play music"},
+    {id: 38213, t: "parar la música", k: "botón de pausa", orden: "para la música", en: "stop the music", ken: "pause button", ordenen: "stop the music"},
+    {id: 38216, t: "subir el volumen", k: "botón de subir volumen", orden: "sube el volumen", en: "volume up", ken: "volume up button", ordenen: "turn up the volume"},
+    {id: 38215, t: "bajar el volumen", k: "botón de bajar volumen", orden: "baja el volumen", en: "volume down", ken: "volume down button", ordenen: "turn down the volume"},
+    {id: 2549, t: "qué hora es", k: "reloj", orden: "qué hora es", en: "what time is it", ken: "watch", ordenen: "what time is it"},
+    {id: 9802, t: "prender la tele", k: "encender la televisión", orden: "prende la tele", en: "TV on", ken: "turn on TV", ordenen: "turn on the TV"},
+    {id: 20093, t: "apagar la tele", k: "apagar la televisión", orden: "apaga la tele", en: "TV off", ken: "turn off the TV", ordenen: "turn off the TV"},
+    {id: 2364, t: "contame un cuento", k: "cuento", orden: "cuéntame un cuento", en: "tell me a story", ken: "storybook", ordenen: "tell me a story"}
+  ] };
+  // Palabras de activación. Siri en español se despierta con «Oye Siri»; en inglés, «Hey Siri».
+  const PALABRAS = {
+    alexa: { es: "Alexa", en: "Alexa" },
+    google: { es: "Ok Google", en: "Ok Google" },
+    siri: { es: "Oye Siri", en: "Hey Siri" }
+  };
+  const ESPERAS = [500, 1000, 1500, 2000, 3000]; // ms entre la palabra de activación y la orden
+  // Qué se dice para una orden: palabra de activación y orden. Con pausa van en dos partes y la página espera
+  // `espera` ms entre una y otra; sin pausa, una sola frase «Alexa, prende la luz».
+  // aj = ajustes guardados { casaPalabra, casaOtra, casaPausa, casaEspera }.
+  function palabraActivacion(aj, lang) {
+    const clave = (aj && aj.casaPalabra) || "alexa";
+    if (clave === "otra") return String((aj && aj.casaOtra) || "").replace(/\s+/g, " ").trim().slice(0, 40);
+    return (PALABRAS[clave] || PALABRAS.alexa)[lang === "en" ? "en" : "es"];
+  }
+  function fraseCasa(o, aj, lang) {
+    const orden = lang === "en" ? (o.ordenen || o.en) : (o.orden || o.t);
+    const palabra = palabraActivacion(aj, lang);
+    const pausa = !!palabra && (!aj || aj.casaPausa !== false);
+    const espera = ESPERAS.includes(Number(aj && aj.casaEspera)) ? Number(aj.casaEspera) : 1000;
+    return { palabra, orden, pausa, espera: pausa ? espera : 0, partes: !palabra ? [orden] : pausa ? [palabra, orden] : [palabra + ", " + orden], texto: palabra ? palabra + ", " + orden : orden };
+  }
+
   const url = id => "https://static.arasaac.org/pictograms/" + id + "/" + id + "_300.png";
-  const TABLERO = { CATEGORIAS, url, urls: () => CATEGORIAS.flatMap(c => c.pictos.map(p => url(p.id))) };
+  const urls = () => [...new Set(CATEGORIAS.flatMap(c => c.pictos.map(p => url(p.id))).concat(url(CASA.icono), CASA.ordenes.map(o => url(o.id))))];
+  const TABLERO = { CATEGORIAS, CASA, PALABRAS, ESPERAS, palabraActivacion, fraseCasa, url, urls };
   if (typeof module !== "undefined" && module.exports) module.exports = TABLERO;
   else raiz.TABLERO = TABLERO;
 })(typeof self !== "undefined" ? self : this);
