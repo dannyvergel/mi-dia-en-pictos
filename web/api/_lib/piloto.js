@@ -5,6 +5,8 @@
 //    Cuentan: docentes activas (incluye directivos / admins de escuela) de escuelas activas y familias vinculadas a algún
 //    alumno de una escuela activa. No cuenta la cuenta de la plataforma (ADMIN_EMAIL); si ADMIN_EMAIL no está definida,
 //    no cuentan las cuentas de plataforma. Dar de baja (o desactivar) una cuenta libera su cupo.
+//    Tampoco cuentan las docentes de la escuela de revisión de Google Play (escuelas.tipo = 'revision', ver _lib/revisor.js);
+//    las familias que alguien sume ahí sí cuentan.
 const { uno } = require("./db");
 const S = require("./seguridad");
 const { errorPublico } = require("./http");
@@ -26,7 +28,7 @@ function maxUsuarios() {
 // SQL que cuenta los cupos usados. p = índice del parámetro con el email de ADMIN_EMAIL ('' si no hay).
 function sqlUsados(p) {
   return `((SELECT count(*) FROM docentes d JOIN escuelas e ON e.id = d.escuela_id
-      WHERE d.activo AND e.activa AND (CASE WHEN $${p}::text = '' THEN NOT d.es_plataforma ELSE d.email <> $${p}::text END))
+      WHERE d.activo AND e.activa AND e.tipo <> 'revision' AND (CASE WHEN $${p}::text = '' THEN NOT d.es_plataforma ELSE d.email <> $${p}::text END))
     + (SELECT count(*) FROM familias f WHERE EXISTS (SELECT 1 FROM familia_alumno fa JOIN alumnos a ON a.id = fa.alumno_id
       JOIN escuelas e ON e.id = a.escuela_id WHERE fa.familia_id = f.id AND e.activa)))::int`;
 }

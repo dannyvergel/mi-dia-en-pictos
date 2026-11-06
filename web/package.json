@@ -14,7 +14,9 @@
     "idiomas": "node scripts/idiomas.js",
     "local": "node scripts/dev.js",
     "migrar": "node scripts/migrar.js",
-    "padron": "node scripts/padron.js"
+    "padron": "node scripts/padron.js",
+    "revisor": "node scripts/revisor.js",
+    "revisor-clave": "node scripts/revisor-clave.js"
   },
   "overrides": {
     "zod": "^4.6.6"

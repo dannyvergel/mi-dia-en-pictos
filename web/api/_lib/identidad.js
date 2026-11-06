@@ -31,7 +31,7 @@ function datosSesion(tipo, u) {
   if (!u) return null;
   return tipo === "docente"
     ? { tipo: "docente", nombre: u.nombre, email: u.email, es_admin: !!u.es_admin && u.escuela_id != null, es_plataforma: esPlataforma(u),
-        tiene_escuela: u.escuela_id != null }
+        tiene_escuela: u.escuela_id != null, ...(require("./revisor").esRevisor(u) ? { revisor: true } : {}) }
     : { tipo: "familia", email: u.email };
 }
 

@@ -18,6 +18,8 @@
 //                                  usan la MISMA URL: https://puentepictos.app/api/auth?accion=google (Google vuelve con ?code&state).
 //                                  Solo con GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET; sin ellas redirige a login.html.
 //  (login_docente y cambiar_password con contraseña quedaron fuera de uso: responden 410.)
+//  POST accion=login_revisor      { email, clave } → SOLO la cuenta de revisión de Google Play (REVISOR_EMAIL + REVISOR_CLAVE_HASH).
+//                                  Sin esas dos variables responde 404. Ver _lib/revisor.js y docs/play/guia-danny.md.
 const { dbActiva, uno } = require("./_lib/db");
 const S = require("./_lib/seguridad");
 const { pinOk } = require("./_lib/pin");
@@ -26,6 +28,7 @@ const { datosSesion, metodos } = require("./_lib/identidad");
 const enlaces = require("./_lib/enlaces");
 const piloto = require("./_lib/piloto");
 const google = require("./_lib/google");
+const revisor = require("./_lib/revisor");
 const { cuerpo, consulta, exigirJson, manejarError, errorPublico } = require("./_lib/http");
 
 const VENTANA = 15;
@@ -83,6 +86,7 @@ module.exports = async (req, res) => {
       case "invitacion_info": return res.status(200).json(await enlaces.info(req, b.token));
       case "invitacion_pedir_codigo": return res.status(200).json(await enlaces.pedirCodigo(req, b.token, b.email));
       case "invitacion_verificar": return res.status(200).json({ ok: true, sesion: await enlaces.verificar(req, res, b) });
+      case "login_revisor": return res.status(200).json({ ok: true, sesion: await revisor.entrar(req, res, b) });
       case "logout": await S.cerrarSesion(req, res); return res.status(200).json({ ok: true });
       default: return res.status(400).json({ error: "Acción desconocida" });
     }
