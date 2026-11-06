@@ -100,7 +100,8 @@
       {id: 10218, t: "banana", k: "banana", en: "banana", ken: "banana"},
       {id: 2462, t: "manzana", k: "manzana", en: "apple", ken: "apple"},
       {id: 2445, t: "leche", k: "leche", en: "milk", ken: "milk"},
-      {id: 2429, t: "mate cocido", k: "infusión", en: "tea", ken: "infusion"},
+      {id: 2429, t: "té", k: "infusión", en: "tea", ken: "infusion"},
+      {id: 31035, t: "mate", k: "mate", en: "mate", ken: "mate"},
       {id: 4768, t: "vaso de agua", k: "vaso de agua", en: "glass of water", ken: "glass of water"}
     ] },
     { id: "cuerpo", nombre: "Cuerpo", en: "Body", color: "#0f7c86", pictos: [

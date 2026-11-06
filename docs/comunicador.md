@@ -63,7 +63,7 @@ Las categorías tienen `nombre` (español) y `en` (inglés).
 
 Elecciones a tener en cuenta (clave de ARASAAC → lo que se muestra):
 
-- Comida: `milanesa de ternera` (37000, con la vaca chiquita) → «milanesa»; `infusión` (2429, taza con saquito) → «mate cocido» (ARASAAC no tiene «mate cocido»; 31035 es el mate con bombilla); `espaguetis` → «fideos»; `galletas` → «galletitas»; `vaso de agua` (4768) → «vaso de agua» (el «agua» 2248 sigue en Necesidades: los ids no se repiten).
+- Comida: `milanesa de ternera` (37000, con la vaca chiquita) → «milanesa»; `infusión` (2429, taza con saquito) → «té»; `mate` (31035, mate con bombilla) → «mate» (ARASAAC no tiene «mate cocido»); `espaguetis` → «fideos»; `galletas` → «galletitas»; `vaso de agua` (4768) → «vaso de agua» (el «agua» 2248 sigue en Necesidades: los ids no se repiten).
 - Cuerpo: `panza` (2786) → «panza»; `dolor de cabeza` (28753, nene) → «me duele la cabeza»; `dolor de tripa` (28765, nene) → «me duele la panza». «me duele» (30620) sigue en Necesidades y se combina con las partes del cuerpo.
 - Ropa: `remera`, `sudadera` (8701, buzo con capucha) → «buzo»; `plumífero` (27978) → «campera»; `pantalón corto` (13638) → «short»; `calcetines` → «medias»; `bata` (8038, guardapolvo blanco) → «guardapolvo».
 
