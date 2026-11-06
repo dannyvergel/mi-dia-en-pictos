@@ -1,6 +1,7 @@
 // Pie común de Puente: aviso BETA, links legales, crédito ARASAAC, "Enviar comentario" (con sesión) y donaciones.
 // Uso: <div id="puente-pie" data-feedback="si" data-donaciones="no"></div> + <script src="pie.js" defer></script>
-//  · data-donaciones="no": no muestra donaciones (espacio de la familia). Tampoco se muestran en el login de familias (?familia).
+//  · data-donaciones="no": no muestra donaciones (espacio de la familia). Tampoco se muestran en el login de familias (?familia)
+//    ni dentro de la app instalada (?app o TWA de Android): Google Play no permite pedir donaciones en la app.
 //    Las donaciones nunca se piden a las familias.
 //  · Los botones de donación salen de /api/config (DONACIONES_AR_URL, DONACIONES_INTL_URL): cada uno solo si su variable tiene valor.
 //  · data-feedback="si": muestra "Enviar comentario" si hay sesión de docente o familia (POST /api/feedback).
@@ -8,7 +9,15 @@
   const el = document.getElementById("puente-pie");
   if (!el) return;
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  const sinDonaciones = el.dataset.donaciones === "no" || /(^|[?&])familia(=|&|$)/.test(location.search.slice(1));
+  // Dentro de la app instalada (Android desde Google Play o PWA: las dos abren con ?app, y la TWA trae referrer android-app://)
+  // no se muestran donaciones: la política de pagos de Google Play no permite pedirlas en la app salvo a ONG validadas.
+  const enApp = (() => {
+    try {
+      if (/(^|[?&])app(=|&|$)/.test(location.search.slice(1)) || document.referrer.startsWith("android-app://")) sessionStorage.setItem("puente_app", "1");
+      return sessionStorage.getItem("puente_app") === "1";
+    } catch { return /(^|[?&])app(=|&|$)/.test(location.search.slice(1)); }
+  })();
+  const sinDonaciones = enApp || el.dataset.donaciones === "no" || /(^|[?&])familia(=|&|$)/.test(location.search.slice(1));
   el.className = "pie-puente";
   el.innerHTML = `
     <p class="pie-beta"><span class="beta">BETA</span> Puente está en prueba piloto: puede tener errores y cambiar.</p>
