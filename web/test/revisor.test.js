@@ -127,6 +127,9 @@ test("el revisor no ve nada de otras escuelas", async () => {
   // No es admin: no puede sumar docentes ni invitar.
   assert.equal((await c.llamar(require("../api/docentes"), { method: "POST", body: { accion: "crear", nombre: "X", email: "x@x.org" } })).status, 403);
   assert.equal((await c.llamar(require("../api/docentes"), { method: "POST", body: { accion: "invitacion_crear" } })).status, 403);
+  // Tampoco invita familias ni crea links para familias (no escribe a terceros ni ocupa cupo).
+  assert.equal((await c.llamar(fichas, { method: "POST", body: { accion: "invitar", id: juan, email: "fam@x.org" } })).status, 403);
+  assert.equal((await c.llamar(fichas, { method: "POST", body: { accion: "link_familia", id: juan } })).status, 403);
 });
 
 test("la cuenta de revisión no consume cupo del piloto", async () => {
