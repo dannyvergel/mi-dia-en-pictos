@@ -9,7 +9,7 @@ Las seños y terapeutas pueden subir archivos de cada alumno, como informes, act
 - **Nunca pasan por la IA ni por OpenRouter.**
 
 ## Permisos
-- **Docente con acceso al alumno** (asignada, admin de su escuela o la plataforma): sube, lista todos, descarga, muestra u oculta y avisa a la familia.
+- **Docente con acceso al alumno** (asignada, admin de su escuela o la plataforma; en un espacio de equipo, integrante aprobado por la familia y con la confidencialidad aceptada, ver `docs/enfoques.md`): sube, lista todos, descarga, muestra u oculta y avisa a la familia. El permiso sale del helper `alumnoConAcceso` de `_lib/alumnos.js`.
 - **Borrar**: solo quien lo subió o una admin de la escuela del alumno.
 - **Familia vinculada**: lista y descarga solo los que tienen `visible_familia`, de sus alumnos y de escuelas activas. No puede cambiar ni borrar.
 - Rige aunque `FAMILIA_FUNCIONES` esté en el mínimo (ver `docs/funciones-familia.md`).

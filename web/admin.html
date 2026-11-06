@@ -156,6 +156,29 @@
       <div id="indNuevo"></div>
       <p class="muted" id="msgInd"></p>
     </div>
+    <div class="card cinta">
+      <span class="rotulo">Abrir un espacio de equipo (un chico)</span>
+      <p class="muted">Enfoque equipo: un espacio por chico, con su familia como dueña. La familia aprueba a cada profesional y lo puede sacar. Cada persona ocupa un cupo del piloto.</p>
+      <form id="fEquipo">
+        <label for="eqAlumno">Nombre de pila del chico o la chica</label>
+        <input id="eqAlumno" maxlength="40" required placeholder="Ej: Tomi">
+        <label for="eqAbre">Quién lo pidió</label>
+        <select id="eqAbre"><option value="familia">La familia</option><option value="profesional">Un/a profesional</option></select>
+        <div class="grid2">
+          <div><label for="eqFamNombre">Nombre de la familia <span class="muted">(opcional)</span></label><input id="eqFamNombre" maxlength="60" placeholder="Ej: Laura"></div>
+          <div><label for="eqVinculo">Vínculo <span class="muted">(opcional)</span></label><input id="eqVinculo" maxlength="30" placeholder="mamá, papá…"></div>
+        </div>
+        <div class="grid2" id="eqPro" hidden>
+          <div><label for="eqProNombre">Nombre del/la profesional</label><input id="eqProNombre" maxlength="80" placeholder="Ej: Lic. Sol Díaz"></div>
+          <div><label for="eqRol">Rol</label><input id="eqRol" maxlength="40" list="rolesEquipo" placeholder="Fonoaudióloga, TO…"></div>
+        </div>
+        <datalist id="rolesEquipo"><option>Fonoaudióloga/o</option><option>Terapista ocupacional</option><option>Psicopedagoga/o</option><option>Maestra/o integrador/a</option><option>Docente</option><option>Acompañante terapéutico</option><option>Psicóloga/o</option></datalist>
+        <p class="muted">Se crean los links de un solo uso (7 días): el de la familia siempre y, si lo pidió un/a profesional, también el suyo (queda pendiente hasta que la familia lo apruebe). Mandalos por WhatsApp.</p>
+        <button class="big">Abrir el espacio</button>
+      </form>
+      <div id="eqNuevo"></div><div id="eqNuevoPro"></div>
+      <p class="muted" id="msgEq"></p>
+    </div>
     <div class="card"><span class="rotulo">Todos los links</span><div id="invLista"><p class="vacio">Cargando…</p></div></div>
   </section>
 
@@ -237,7 +260,7 @@ document.querySelectorAll("[data-ir]").forEach(b => b.onclick = () => mostrar(b.
 
 // ---------- links ----------
 function cajaLink(el, l) {
-  el.innerHTML = `<div class="link-nuevo"><b>Link listo</b> <span class="muted">· ${esc(l.escuela || "")} · ${l.independiente ? "profesional (admin de su espacio)" : l.es_admin ? "directivo/a (admin)" : "docente"} · vence ${esc(fecha(l.expira))} · ${l.usos_max === 1 ? "un solo uso" : l.usos_max + " usos"}</span>
+  el.innerHTML = `<div class="link-nuevo"><b>Link listo</b> <span class="muted">· ${esc(l.escuela || "")} · ${l.equipo ? (l.tipo === "familia" ? "familia (dueña del espacio)" : "profesional del equipo" + (l.rol ? " · " + esc(l.rol) : "")) : l.independiente ? "profesional (admin de su espacio)" : l.es_admin ? "directivo/a (admin)" : "docente"} · vence ${esc(fecha(l.expira))} · ${l.usos_max === 1 ? "un solo uso" : l.usos_max + " usos"}</span>
     <input readonly value="${esc(l.url)}" aria-label="Link de invitación">
     <div class="link-acciones"><button type="button" class="big chico" data-copiar>Copiar link</button>
     <a class="big alt chico" href="${esc(l.whatsapp)}" target="_blank" rel="noopener">Compartir por WhatsApp</a></div>
@@ -285,9 +308,9 @@ async function cargarEscuelas() {
     $("listaEscs").innerHTML = r.escuelas.length ? r.escuelas.map(e => `<div class="esc" data-id="${e.id}">
         <b>${esc(Puente.tituloEscuela(e.nombre))}</b> <span class="muted">· ${e.cue ? "CUE " + esc(e.cue) : "sin CUE"}${e.localidad ? " · " + esc(Puente.tituloEscuela(e.localidad)) : ""}</span>
         <div class="muted">${e.docentes} docente${e.docentes === 1 ? "" : "s"} (${e.admins} admin) · ${e.alumnos} alumno${e.alumnos === 1 ? "" : "s"}${e.links_pendientes ? ` · ${e.links_pendientes} link${e.links_pendientes === 1 ? "" : "s"} de docente pendiente${e.links_pendientes === 1 ? "" : "s"}` : ""}</div>
-        <div>${e.tipo === "independiente" ? '<span class="sello">profesional sin escuela</span>' : `<span class="sello ${e.aval_firmado ? "avanzando" : "estancado"}">${e.aval_firmado ? "con aval" : "sin aval"}</span>`} ${!e.activa ? '<span class="sello">desactivada</span>' : ""}</div>
+        <div>${e.tipo === "equipo" ? `<span class="sello">equipo · ${e.familias} familia${e.familias === 1 ? "" : "s"} · ${e.miembros} profesional${e.miembros === 1 ? "" : "es"}${e.miembros_pendientes ? " (+" + e.miembros_pendientes + " pendiente" + (e.miembros_pendientes === 1 ? "" : "s") + ")" : ""}</span>` : e.tipo === "independiente" ? '<span class="sello">profesional sin escuela</span>' : `<span class="sello ${e.aval_firmado ? "avanzando" : "estancado"}">${e.aval_firmado ? "con aval" : "sin aval"}</span>`} ${!e.activa ? '<span class="sello">desactivada</span>' : ""}</div>
         <div class="acc"><button type="button" class="enlace" data-a="ficha">Ficha</button>
-          ${e.activa ? `<button type="button" class="enlace" data-a="link">${e.tipo === "independiente" ? "Nuevo link para el/la profesional" : "Link para directivo/a"}</button>` : ""}
+          ${e.activa ? `<button type="button" class="enlace" data-a="link">${e.tipo === "equipo" ? "Link para sumar un/a profesional" : e.tipo === "independiente" ? "Nuevo link para el/la profesional" : "Link para directivo/a"}</button>` : ""}
           ${e.id !== r.mi_escuela ? `<button type="button" class="enlace" data-a="${e.activa ? "desactivar" : "activar"}" style="${e.activa ? "color:var(--bad)" : ""}">${e.activa ? "desactivar" : "reactivar"}</button>` : ""}</div>
         <div data-link></div></div>`).join("")
       : `<p class="vacio">Todavía no hay escuelas. Dá de alta la primera arriba.</p>`;
@@ -296,7 +319,12 @@ async function cargarEscuelas() {
       el.querySelector('[data-a="ficha"]').onclick = () => abrirFicha(id);
       const bl = el.querySelector('[data-a="link"]');
       if (bl) bl.onclick = async () => {
-        try { cajaLink(el.querySelector("[data-link]"), await crearLink({ escuela_id: id, es_admin: true })); }
+        try {
+          const eq = r.escuelas.find(x => x.id === id)?.tipo === "equipo";
+          const rol = eq ? prompt("Rol del/la profesional (fono, TO, psicopedagoga, maestra integradora, docente…)") : null;
+          if (eq && !rol) return;
+          cajaLink(el.querySelector("[data-link]"), await crearLink(eq ? { equipo: id, rol } : { escuela_id: id, es_admin: true }));
+        }
         catch (e) { el.querySelector("[data-link]").innerHTML = `<p class="error">${esc(e.message)}</p>`; }
       };
       const ba = el.querySelector('[data-a="desactivar"], [data-a="activar"]');
@@ -351,6 +379,18 @@ async function cargarInvitaciones() {
     });
   } catch (e) { $("invLista").innerHTML = `<p class="error">${esc(e.message)}</p>`; }
 }
+$("eqAbre").onchange = () => { $("eqPro").hidden = $("eqAbre").value !== "profesional"; };
+$("fEquipo").onsubmit = async ev => {
+  ev.preventDefault(); msg("msgEq", ""); $("eqNuevo").innerHTML = ""; $("eqNuevoPro").innerHTML = "";
+  try {
+    const r = await api("api/docentes", { method: "POST", body: { accion: "invitacion_crear", equipo_nuevo: true, alumno: $("eqAlumno").value, abre: $("eqAbre").value,
+      familia_nombre: $("eqFamNombre").value, vinculo: $("eqVinculo").value, profesional_nombre: $("eqProNombre").value, rol: $("eqRol").value } });
+    cajaLink($("eqNuevo"), r.enlace);
+    $("eqNuevo").insertAdjacentHTML("afterbegin", '<p><b>Link para la familia</b></p>');
+    if (r.enlace_profesional) { cajaLink($("eqNuevoPro"), r.enlace_profesional); $("eqNuevoPro").insertAdjacentHTML("afterbegin", '<p><b>Link para el/la profesional</b></p>'); }
+    ev.target.reset(); $("eqPro").hidden = true; cargarInvitaciones();
+  } catch (e) { msg("msgEq", e.message, true); }
+};
 $("fIndep").onsubmit = async ev => {
   ev.preventDefault(); msg("msgInd", "");
   try {

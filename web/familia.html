@@ -113,7 +113,7 @@ function htmlFicha() {
   const c = FICHA.consentimiento || {};
   const apoyos = Object.entries(APOYO_TXT).filter(([k]) => FICHA.apoyos && FICHA.apoyos[k]).map(([k, txt]) => `<dt>${txt}</dt><dd>${esc(FICHA.apoyos[k])}</dd>`).join("");
   return `<div class="card ficha"><details${c.dado ? "" : " open"}><summary><span class="rotulo" style="display:inline">La ficha de ${esc(FICHA.nombre)}</span></summary>
-    <p class="muted">La completa la escuela. Si algo no está bien, avisale a la docente.</p>
+    <p class="muted">${FICHA.equipo ? "La completa el equipo. Si algo no está bien, avisale a quien corresponda." : "La completa la escuela. Si algo no está bien, avisale a la docente."}</p>
     <dl>
       <dt>Contactos</dt><dd>${FICHA.contactos.map(x => `${esc(x.nombre)}${x.vinculo ? " (" + esc(x.vinculo) + ")" : ""}${x.telefono ? " · " + esc(x.telefono) : ""}${x.email ? " · " + esc(x.email) : ""}`).join("<br>") || "—"}</dd>
       ${apoyos}
@@ -157,6 +157,55 @@ function conectarFicha() {
     catch (e) { $("msgFicha").textContent = e.message; }
   };
 }
+// Enfoque equipo: la familia es la dueña del espacio. Aprueba, rechaza o saca profesionales e invita por link (WhatsApp).
+const ESTADO_EQ = { pendiente: ["estancado", "espera tu aprobación"], aprobado: ["avanzando", "en el equipo"], rechazado: ["", "rechazado"], baja: ["", "fuera del equipo"] };
+function htmlEquipo() {
+  if (!ESFAMILIA || !FICHA || !FICHA.equipo) return "";
+  const eq = FICHA.equipo;
+  const vivos = eq.miembros.filter(m => m.estado === "pendiente" || m.estado === "aprobado");
+  const viejos = eq.miembros.filter(m => m.estado === "rechazado" || m.estado === "baja");
+  const fila = m => `<div class="obj"><div style="flex:1"><b>${esc(m.nombre)}</b> <span class="muted">· ${esc(m.rol || "profesional")} · ${esc(m.email)}</span>
+      ${m.estado === "aprobado" && !m.confidencialidad ? `<div class="muted">Todavía no aceptó el compromiso de confidencialidad: hasta entonces no ve nada.</div>` : ""}</div>
+    <span><span class="sello ${ESTADO_EQ[m.estado][0]}">${ESTADO_EQ[m.estado][1]}</span>
+    ${m.estado === "pendiente" ? `<button type="button" class="big chico auto" data-eq="aprobar" data-m="${m.id}">Aprobar</button> <button type="button" class="enlace" data-eq="rechazar" data-m="${m.id}">rechazar</button>` : ""}
+    ${m.estado === "aprobado" ? `<button type="button" class="enlace" style="color:var(--bad)" data-eq="quitar" data-m="${m.id}">sacar del equipo</button>` : ""}</span></div>`;
+  return `<div class="card"><span class="rotulo">El equipo de ${esc(FICHA.nombre)}</span>
+    <p class="muted">Vos decidís quién entra. Cada profesional que aprobás ve el día, la ficha y los documentos de ${esc(FICHA.nombre)}, después de aceptar un compromiso de confidencialidad. Lo podés sacar cuando quieras.</p>
+    ${vivos.length ? vivos.map(fila).join("") : '<p class="vacio">Todavía no hay profesionales en el equipo.</p>'}
+    ${viejos.length ? `<details><summary class="muted">Antes estuvieron (${viejos.length})</summary>${viejos.map(fila).join("")}</details>` : ""}
+    <details style="margin-top:10px"><summary><b>Invitar a un/a profesional</b> <span class="muted">(link para mandar por WhatsApp)</span></summary>
+      <p class="muted">Sirve una sola vez y vence a los 7 días. Cuando la persona entre, la vas a ver acá para aprobarla.</p>
+      <label for="eqNombre">Nombre <span class="muted">(opcional)</span></label><input id="eqNombre" maxlength="80" placeholder="Ej: Lic. Ana Pérez">
+      <label for="eqRol">Rol</label><input id="eqRol" maxlength="40" list="eqRoles" placeholder="Fono, TO, psicopedagoga, maestra integradora…">
+      <datalist id="eqRoles">${(eq.roles || []).map(r => `<option>${esc(r)}</option>`).join("")}</datalist>
+      <button type="button" class="big alt chico" id="eqCrear" style="margin-top:8px">Crear link</button>
+      <div id="eqLink"></div>
+      ${eq.links.length ? `<p class="muted" style="margin-bottom:0">Links sin usar:</p>` + eq.links.map(l => `<div class="obj"><div style="flex:1">${esc(l.rol || "profesional")}${l.etiqueta ? " · " + esc(l.etiqueta) : ""}</div><button type="button" class="enlace" data-revocar="${l.id}">anular</button></div>`).join("") : ""}
+    </details>
+    <p class="muted" id="msgEquipo"></p></div>`;
+}
+function conectarEquipo() {
+  const el = $("equipoFam"); if (!el || !FICHA || !FICHA.equipo) return;
+  const accion = async (body, okTxt) => {
+    try { const r = await Puente.api("api/fichas", { method: "POST", body: { id: ALUMNO_ID, ...body } }); FICHA.equipo = r.equipo; el.innerHTML = htmlEquipo(); conectarEquipo(); $("msgEquipo").textContent = okTxt || ""; return r; }
+    catch (e) { $("msgEquipo").textContent = e.message; return null; }
+  };
+  el.querySelectorAll("[data-eq]").forEach(b => b.onclick = () => {
+    const a = b.dataset.eq;
+    if (a === "quitar" && !confirm("¿Sacar a esta persona del equipo? Deja de ver todo enseguida.")) return;
+    if (a === "rechazar" && !confirm("¿Rechazar a esta persona?")) return;
+    accion({ accion: "equipo_" + a, miembro_id: Number(b.dataset.m) }, { aprobar: "Aprobado ✓", rechazar: "Rechazado ✓", quitar: "Ya no está en el equipo ✓" }[a]);
+  });
+  el.querySelectorAll("[data-revocar]").forEach(b => b.onclick = () => accion({ accion: "equipo_link_revocar", link_id: Number(b.dataset.revocar) }, "Link anulado ✓"));
+  const c = $("eqCrear");
+  if (c) c.onclick = async () => {
+    const r = await accion({ accion: "equipo_invitar", nombre: $("eqNombre").value, rol: $("eqRol").value });
+    if (!r || !r.enlace) return;
+    el.querySelector("details:last-of-type").open = true;
+    $("eqLink").innerHTML = `<div class="logro" style="margin-top:8px"><b>Link listo</b> (copialo ahora, después no se ve más)<br><input readonly value="${esc(r.enlace.url)}" style="width:100%">
+      <a class="big chico" href="${esc(r.enlace.whatsapp)}" target="_blank" rel="noopener">Compartir por WhatsApp</a></div>`;
+  };
+}
 function actualizarFicha(a) { Object.assign(FICHA, a); const el = $("ficha"); el.innerHTML = htmlFicha(); el.querySelector("details").open = true; conectarFicha(); }
 
 function pintar() {
@@ -166,6 +215,7 @@ function pintar() {
     ${MODO === "sesion" ? `<div class="barra">${ESFAMILIA ? `<a href="#" id="salir">Salir</a>` : `<a href="docente.html">← Panel docente</a>`}</div>` : ""}
     ${MIS.length > 1 ? `<div class="chips">${MIS.map(a => `<button data-id="${a.id}" class="${a.id === ALUMNO_ID ? "on" : ""}">${esc(a.nombre)}</button>`).join("")}</div>` : ""}
     <div id="ficha">${htmlFicha()}</div>
+    <div id="equipoFam">${htmlEquipo()}</div>
     <div class="card"><span class="rotulo">Sus últimos días</span>
       ${dias.length ? "" : `<p class="vacio">Todavía no hay días publicados. Apenas la escuela cargue uno, lo vas a ver acá.</p>`}
       <div class="semana" id="semana">${dias.slice().reverse().map((d, i) => `<div class="dia" data-f="${d.fecha}">${animoImg(d.animo)}<div class="d">${esc(d.dia).slice(0,3)} ${d.fecha.slice(8)}</div></div>`).join("")}</div>
@@ -195,7 +245,7 @@ function pintar() {
     catch (e) { $("msgDocs").textContent = e.message; } finally { b.disabled = false; }
   });
   if ($("salir")) $("salir").onclick = e => { e.preventDefault(); Puente.salir(); };
-  conectarFicha();
+  conectarFicha(); conectarEquipo();
   document.querySelectorAll(".picto[data-h]").forEach(el => el.onclick = () => hablar(el.dataset.h));
   document.querySelectorAll("#sug button").forEach(b => b.onclick = () => enviar(b.textContent));
   if ($("f")) $("f").onsubmit = e => { e.preventDefault(); const v = $("q").value.trim(); if (v) { $("q").value = ""; enviar(v); } };

@@ -36,3 +36,6 @@ Sin base de datos (el demo) se ven todas.
 
 ## Informes y documentos: no dependen de esta variable
 Los informes y documentos que suben las seños y terapeutas **no** se prenden ni se apagan con `FAMILIA_FUNCIONES`. Rigen aunque la variable esté en el mínimo: la seño decide **documento por documento** con la casilla «Mostrar a la familia», y la familia ve solo esos. Ver `docs/documentos.md`.
+
+## Enfoque equipo
+En un espacio de equipo (`docs/enfoques.md`), la familia ve además «El equipo de…», para aprobar, rechazar, sacar e invitar profesionales. No depende de `FAMILIA_FUNCIONES`, porque es la gestión del espacio del que la familia es dueña. Lo demás sigue en el mínimo.
