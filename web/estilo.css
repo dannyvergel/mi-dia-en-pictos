@@ -364,3 +364,15 @@ main[tabindex="-1"]:focus, main[tabindex="-1"]:focus-visible { outline: none; bo
 /* Portada: botón para probar la demo abierta (sin cuenta). */
 .demo-btn { display: block; text-align: center; margin-top: 10px; }
 .demo-txt { text-align: center; margin: 4px 0 0; }
+
+/* ---------- Idiomas: selector Español / English (lo genera scripts/idiomas.js) y aviso sugerido (pie.js) ---------- */
+.idiomas { position: absolute; top: 10px; right: 14px; z-index: 3; font: 700 14px var(--texto); color: var(--tiza); }
+.idiomas a { color: var(--tiza); text-decoration: none; padding: 10px 4px; border-bottom: 2px solid transparent; }
+.idiomas a:hover { border-bottom-color: currentColor; }
+.idiomas a[aria-current="page"] { border-bottom-color: var(--lapiz); }
+.idiomas span { opacity: .6; }
+.aviso-idioma { background: #fdf6e1; border-bottom: 2px solid var(--lapiz); padding: 8px 14px; font-size: 15px; text-align: center; }
+.aviso-idioma a { font-weight: 700; color: var(--tinta); margin: 0 8px; }
+.aviso-idioma .enlace { background: none; border: 0; padding: 0; font: inherit; color: var(--gris); text-decoration: underline; cursor: pointer; }
+/* Páginas legales en inglés: aviso de traducción de cortesía */
+.cortesia { background: #eef3f8; border-left: 5px solid #7fb3d5; padding: 10px 14px; border-radius: 8px; margin: 0 0 14px; }

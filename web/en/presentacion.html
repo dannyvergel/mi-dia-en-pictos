@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- SEO e idiomas: lo genera scripts/idiomas.js (npm run idiomas). No editar a mano: cambiar scripts/idiomas/paginas.js. -->
+<title>How Puente works · Presentation in pictograms</title>
+<meta name="description" content="Puente in 10 slides: the teacher dictates the day, it becomes a pictogram strip, the student tells it and the family follows along. Data care and roadmap.">
+<link rel="canonical" href="https://puentepictos.app/en/presentacion.html">
+<link rel="alternate" hreflang="es-AR" href="https://puentepictos.app/presentacion.html">
+<link rel="alternate" hreflang="en" href="https://puentepictos.app/en/presentacion.html">
+<link rel="alternate" hreflang="x-default" href="https://puentepictos.app/presentacion.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Puente">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="es_AR">
+<meta property="og:title" content="How Puente works · Presentation in pictograms">
+<meta property="og:description" content="Puente in 10 slides: the teacher dictates the day, it becomes a pictogram strip, the student tells it and the family follows along. Data care and roadmap.">
+<meta property="og:url" content="https://puentepictos.app/en/presentacion.html">
+<meta property="og:image" content="https://puentepictos.app/og-en.png">
+<meta property="og:image:secure_url" content="https://puentepictos.app/og-en.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Chalkboard with the name Puente, the line “from school to home, in pictograms” and a strip of ARASAAC pictograms">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="How Puente works · Presentation in pictograms">
+<meta name="twitter:description" content="Puente in 10 slides: the teacher dictates the day, it becomes a pictogram strip, the student tells it and the family follows along. Data care and roadmap.">
+<meta name="twitter:image" content="https://puentepictos.app/og-en.png">
+<meta name="twitter:image:alt" content="Chalkboard with the name Puente, the line “from school to home, in pictograms” and a strip of ARASAAC pictograms">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://puentepictos.app/#organizacion","name":"Puente","url":"https://puentepictos.app/","logo":"https://puentepictos.app/icono-512.png","email":"soporte@puentepictos.app","description":"Free, non-profit project that brings the school day home in pictograms, for special education schools and families.","areaServed":"AR","sameAs":["https://github.com/dannyvergel/mi-dia-en-pictos"]},{"@type":"WebSite","@id":"https://puentepictos.app/#sitio","name":"Puente","url":"https://puentepictos.app/","inLanguage":["es-AR","en"],"publisher":{"@id":"https://puentepictos.app/#organizacion"}},{"@type":"WebPage","@id":"https://puentepictos.app/en/presentacion.html#pagina","url":"https://puentepictos.app/en/presentacion.html","name":"How Puente works · Presentation in pictograms","inLanguage":"en","isPartOf":{"@id":"https://puentepictos.app/#sitio"},"about":{"@id":"https://puentepictos.app/#puente"}},{"@type":"WebApplication","@id":"https://puentepictos.app/#puente","name":"Puente","url":"https://puentepictos.app/en/","applicationCategory":"EducationalApplication","operatingSystem":"Web, Android","inLanguage":"es-AR","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"ARS"},"description":"The teacher dictates how the day went and Puente turns it into a strip of ARASAAC pictograms the student can use to tell the family. For special education schools (autism, intellectual disability, communication needs). Currently in Spanish, in a pilot in Santa Fe, Argentina.","audience":{"@type":"EducationalAudience","educationalRole":"teacher, parent"},"publisher":{"@id":"https://puentepictos.app/#organizacion"}}]}</script>
+<!-- /SEO -->
+<meta name="theme-color" content="#2f4a3e">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" href="/icono.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/fuentes/fuentes.css">
+<style>
+:root{--papel:#fbf7ee;--renglon:#dfe8ef;--margen:#e6a5a0;--pizarron:#2f4a3e;--pizarron2:#263d33;--tiza:#f4f1e8;--madera:#8b5e3c;--tinta:#23364f;--lapiz:#f2b632;--ok:#3e7d4f;--warn:#c98200;--bad:#b5442e;--gris:#6b6f76;--borde:#e6dfcf;--mano:"Patrick Hand",cursive;--texto:"Atkinson Hyperlegible",system-ui,sans-serif}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:#1d2b25;font-family:var(--texto);color:var(--tinta)}
+#escena{position:absolute;left:50%;top:50%;width:1280px;height:720px;transform-origin:center;}
+.slide{position:absolute;inset:0;border-radius:18px;overflow:hidden;opacity:0;visibility:hidden;transition:opacity .5s,visibility .5s;
+  background-color:var(--papel);background-image:repeating-linear-gradient(to bottom,transparent 0 39px,var(--renglon) 39px 40px);padding:56px 80px 56px 120px}
+.slide::before{content:"";position:absolute;left:84px;top:0;bottom:0;width:3px;background:var(--margen);opacity:.7}
+.slide.on{opacity:1;visibility:visible}
+.slide.negra{background:radial-gradient(120% 140% at 20% 0%,#3a5a4c 0%,var(--pizarron) 45%,var(--pizarron2) 100%);color:var(--tiza);border:14px solid var(--madera);padding:56px 80px}
+.slide.negra::before{display:none}
+h1,h2{font-family:var(--mano);font-weight:400;margin:0}
+h2{font-size:58px;line-height:1.05;margin-bottom:18px}
+.kicker{font-weight:700;letter-spacing:2px;text-transform:uppercase;font-size:16px;color:var(--gris);margin-bottom:6px}
+.negra .kicker{color:#cfd9d3}
+p.lead{font-size:26px;line-height:1.4;max-width:900px;margin:0}
+.pic{width:100%;aspect-ratio:1;object-fit:contain}
+/* animaciones: solo corren en la diapo activa */
+.a{opacity:0}
+.on .a{animation:sube .6s cubic-bezier(.2,.8,.2,1) forwards;animation-delay:var(--d,0s)}
+@keyframes sube{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.on .pop{animation:pop .45s cubic-bezier(.2,1.4,.4,1) forwards;animation-delay:var(--d,0s)}
+@keyframes pop{from{opacity:0;transform:scale(.6) rotate(-4deg)}to{opacity:1;transform:none}}
+.on .sello{animation:sello .4s cubic-bezier(.2,1.6,.4,1) forwards;animation-delay:var(--d,0s)}
+@keyframes sello{from{opacity:0;transform:scale(2.2) rotate(-12deg)}to{opacity:1;transform:rotate(-3deg)}}
+
+/* 1 portada */
+.portada{display:flex;flex-direction:column;justify-content:center;height:100%}
+.portada h1{font-size:150px;line-height:1;text-shadow:0 0 2px #fff8,0 0 14px #ffffff22}
+.portada .bajada{font-family:var(--mano);font-size:44px;opacity:.9}
+.escribe{display:inline-block;overflow:hidden;white-space:nowrap;width:0}
+.on .escribe{animation:escribir 1.4s steps(12) forwards .3s}
+@keyframes escribir{to{width:6.2ch}}
+.tiza{position:absolute;bottom:-4px;right:120px;width:90px;height:16px;border-radius:4px;background:#f7f4ec;box-shadow:110px 2px 0 -2px #f2b6b0}
+.puentecito{position:absolute;right:110px;top:150px;width:330px;opacity:.9}
+.puentecito path{fill:none;stroke:var(--tiza);stroke-width:7;stroke-linecap:round;stroke-dasharray:600;stroke-dashoffset:600}
+.on .puentecito path{animation:traza 1.6s ease forwards;animation-delay:var(--d,0s)}
+@keyframes traza{to{stroke-dashoffset:0}}
+.pie{position:absolute;bottom:40px;left:80px;font-size:18px;opacity:.75}
+
+/* 2 problema */
+.dialogo{display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:40px}
+.burbuja{background:#fff;border:2px solid var(--borde);border-radius:22px;padding:22px 26px;font-size:28px;position:relative}
+.burbuja.chico{background:#fdf6e1;border-color:#efe2b8;font-family:var(--mano);font-size:60px;text-align:center}
+.puntos span{display:inline-block;animation:salta 1.2s infinite}
+.puntos span:nth-child(2){animation-delay:.15s}.puntos span:nth-child(3){animation-delay:.3s}
+@keyframes salta{40%{transform:translateY(-10px)}}
+.cuaderno{margin-top:36px;background:#fff;border:2px solid var(--borde);border-radius:12px;padding:20px 26px;font-family:var(--mano);font-size:34px;width:620px;transform:rotate(-1.2deg);box-shadow:0 10px 30px -18px #0005}
+
+/* 3 dicta */
+.dos{display:grid;grid-template-columns:420px 1fr;gap:56px;align-items:center;height:calc(100% - 120px)}
+.tel{width:340px;height:560px;border-radius:40px;background:#1f2a26;padding:14px;box-shadow:0 20px 40px -20px #000a;justify-self:center}
+.tel .pant{height:100%;border-radius:28px;background:var(--papel);overflow:hidden;position:relative;display:flex;flex-direction:column}
+.tel .barra{background:var(--pizarron);color:var(--tiza);font-family:var(--mano);font-size:26px;padding:14px 18px;border-bottom:5px solid var(--madera)}
+.tel .cuerpo{padding:16px;font-size:17px;line-height:1.45;flex:1}
+.mic{width:96px;height:96px;border-radius:50%;background:var(--bad);display:grid;place-items:center;margin:14px auto;position:relative}
+.mic img{width:58px;filter:brightness(0) invert(1)}
+.on .mic::after{content:"";position:absolute;inset:0;border-radius:50%;border:4px solid var(--bad);animation:onda 1.4s infinite}
+@keyframes onda{to{transform:scale(1.7);opacity:0}}
+.tipeo{overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;}
+.tipeo span{opacity:0}
+.on .tipeo span{animation:aparece .01s forwards;animation-delay:calc(.6s + var(--i) * .07s)}
+@keyframes aparece{to{opacity:1}}
+.puntos-lista{font-size:26px;line-height:1.5;margin:20px 0 0;padding:0;list-style:none}
+.puntos-lista li{margin:10px 0;padding-left:40px;position:relative}
+.puntos-lista li::before{content:"";position:absolute;left:0;top:12px;width:22px;height:22px;border-radius:50%;background:var(--lapiz)}
+
+/* 4 pictos */
+.relato{font-size:24px;background:#fff;border:2px dashed #d6cdb8;border-radius:12px;padding:14px 20px;margin:4px 0 26px}
+.relato mark{background:none;color:inherit;border-bottom:4px solid transparent}
+.on .relato mark{animation:marca .4s forwards;animation-delay:var(--d)}
+@keyframes marca{to{border-color:var(--lapiz);background:#fdf3d1}}
+.tira{display:grid;grid-template-columns:repeat(6,1fr);gap:18px}
+.card{background:#fff;border:3px solid #e2dccd;border-bottom-width:12px;border-radius:16px;padding:12px 10px 10px;text-align:center}
+.card .t{font-weight:700;text-transform:uppercase;letter-spacing:.5px;font-size:18px;margin-top:6px}
+.card .h{color:var(--gris);font-size:15px}
+.bien{border-bottom-color:var(--ok)}.regular{border-bottom-color:var(--warn)}.dificil{border-bottom-color:var(--bad)}
+.apoyo{border-style:dashed;border-color:var(--pizarron);border-bottom-style:solid;background:#f4f8f3}
+
+/* 5 alumno */
+.on .foco .card{animation:foco 7.2s infinite;animation-delay:calc(var(--i) * 1.2s)}
+@keyframes foco{0%,16%{transform:translateY(-14px) scale(1.06);box-shadow:0 16px 30px -14px #0006;border-color:var(--lapiz)}17%,100%{transform:none;box-shadow:none}}
+.voz{margin-top:34px;display:flex;align-items:center;gap:20px;font-size:28px}
+.ondas{display:flex;gap:6px;align-items:center;height:50px}
+.ondas i{width:8px;border-radius:4px;background:var(--pizarron);height:12px}
+.on .ondas i{animation:vol 0.9s infinite ease-in-out;animation-delay:calc(var(--i) * .1s)}
+@keyframes vol{50%{height:46px}}
+
+/* 6 familia */
+.chat{display:flex;flex-direction:column;gap:12px;margin-top:6px}
+.m{padding:8px 12px;border-radius:14px;max-width:90%;font-size:15px;line-height:1.35}
+.m.f{align-self:flex-end;background:var(--pizarron);color:var(--tiza);border-bottom-right-radius:3px}
+.m.p{align-self:flex-start;background:#fdf6e1;border:1px solid #efe2b8;border-bottom-left-radius:3px}
+.semana{display:flex;gap:6px;margin-bottom:12px}
+.semana div{flex:1;background:#fff;border:1.5px solid var(--borde);border-radius:8px;text-align:center;font-size:12px;padding:4px 0}
+.semana img{width:30px;height:30px;display:block;margin:0 auto}
+
+/* 7 agente */
+.cal{display:grid;grid-template-columns:repeat(5,74px);gap:10px;margin-top:6px}
+.cal .dh{font-weight:700;text-align:center;color:var(--gris);font-size:16px}
+.cal .d{height:62px;border-radius:10px;background:#fff;border:2px solid var(--borde);display:grid;place-items:center;font-size:18px}
+.on .cal .d.mal{animation:rojo .5s forwards;animation-delay:var(--d)}
+@keyframes rojo{to{background:#f6d9d1;border-color:var(--bad);color:var(--bad);font-weight:700}}
+.titular{font-family:var(--mano);font-size:40px;line-height:1.15;margin:0 0 20px}
+.obj{display:flex;justify-content:space-between;align-items:center;font-size:20px;padding:10px 0;border-bottom:2px dashed var(--borde)}
+.st{display:inline-block;padding:2px 12px;border:3px solid currentColor;border-radius:8px;font-size:15px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;opacity:0}
+.st.ok{color:var(--ok)}.st.bad{color:var(--bad)}.st.mid{color:var(--warn)}
+.pasos{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.pasos span{background:var(--pizarron);color:var(--tiza);border-radius:20px;padding:6px 14px;font-size:16px;font-weight:700}
+
+/* 8 cuidado + 9 futuro */
+.grilla{display:grid;grid-template-columns:repeat(2,1fr);gap:22px 34px;margin-top:20px}
+.item{background:#fff;border:2px solid var(--borde);border-radius:16px;padding:20px 22px;font-size:21px;line-height:1.35}
+.item b{display:block;font-family:var(--mano);font-weight:400;font-size:32px;margin-bottom:4px}
+.fases{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:24px;position:relative}
+.fase{background:#fff;border:2px solid var(--borde);border-top:10px solid var(--c);border-radius:14px;padding:20px;font-size:19px;line-height:1.4}
+.fase b{display:block;font-family:var(--mano);font-weight:400;font-size:32px}
+.fase small{display:block;color:var(--gris);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
+.fase ul{margin:8px 0 0;padding-left:20px}
+.gratis{margin-top:26px;font-size:24px;background:#eef5ec;border-left:8px solid var(--ok);padding:14px 20px;border-radius:8px}
+
+/* 10 cierre */
+.cierre{display:grid;grid-template-columns:1fr 300px;gap:60px;align-items:center;height:100%}
+.qr{background:var(--tiza);padding:18px;border-radius:14px}
+.qr svg{width:100%;height:auto;display:block}
+
+/* modo impresión / PDF: ?print o Ctrl+P. Todas las diapos apiladas, una por página, en su estado final */
+@media print{@page{size:1280px 720px;margin:0}}
+html.print,html.print body{height:auto;overflow:visible;background:#1d2b25;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+html.print #escena{position:static;transform:none!important;width:1280px;height:auto}
+html.print .slide{position:relative;width:1280px;height:720px;opacity:1;visibility:visible;transition:none;border-radius:0;break-after:page;page-break-after:always}
+html.print .slide:last-child{break-after:auto;page-break-after:auto}
+html.print *,html.print *::before,html.print *::after{animation:none!important;transition:none!important}
+html.print .a,html.print .pop,html.print .tipeo span{opacity:1}
+html.print .sello,html.print .st{opacity:1;transform:rotate(-3deg)}
+html.print .escribe{width:auto}
+html.print .puentecito path{stroke-dashoffset:0}
+html.print .relato mark{border-color:var(--lapiz);background:#fdf3d1}
+html.print .cal .d.mal{background:#f6d9d1;border-color:var(--bad);color:var(--bad);font-weight:700}
+html.print .ondas i:nth-child(odd){height:40px}html.print .ondas i:nth-child(3n){height:24px}
+html.print #ui,html.print .pie{display:none}
+/* controles */
+#ui{position:fixed;left:0;right:0;bottom:0;display:flex;align-items:center;gap:12px;padding:10px 16px;color:#cfd9d3;font-size:14px;z-index:5}
+#ui button{background:#ffffff1a;color:#fff;border:0;border-radius:8px;padding:8px 14px;font:inherit;cursor:pointer}
+#prog{flex:1;height:4px;background:#ffffff22;border-radius:2px;overflow:hidden}
+#prog i{display:block;height:100%;background:var(--lapiz);width:0;transition:width .4s}
+.cred{position:absolute;bottom:14px;right:24px;font-size:12px;color:var(--gris)}
+.negra .cred{color:#cfd9d3aa}
+/* Pie común (pie.js) en la portada pública: BETA, legales, crédito ARASAAC y donaciones */
+.pie-pres{position:absolute;left:24px;right:24px;bottom:10px;text-align:center;font-size:13px;color:#cfd9d3}
+.pie-pres p{margin:3px 0}.pie-pres a{color:#cfd9d3}
+.pie-pres .beta{display:inline-block;background:var(--lapiz);color:var(--tinta);font-weight:700;font-size:11px;padding:1px 7px;border-radius:10px}
+.pie-pres .pie-don-botones{display:flex;gap:10px 18px;justify-content:center;flex-wrap:wrap}
+.pie-pres .pie-don-item{display:flex;flex-direction:column;align-items:center;gap:2px}
+.pie-pres .pie-don-en{font-size:12px;opacity:.85}
+.pie-pres .boton-don{display:inline-block;border:1.5px solid #cfd9d3;color:#f4f1e8;border-radius:20px;padding:3px 14px;font-weight:700;text-decoration:none}
+.pie-pres .boton-don:hover{background:#f4f1e8;color:var(--tinta)}
+.pie-pres [hidden]{display:none}
+/* Selector Español / English (scripts/idiomas.js) */
+.idiomas{position:fixed;top:10px;right:16px;z-index:6;font:700 14px var(--texto);color:#cfd9d3}
+.idiomas a{color:#f4f1e8;text-decoration:none;padding:8px 4px;border-bottom:2px solid transparent}
+.idiomas a[aria-current="page"]{border-bottom-color:var(--lapiz)}
+html.print .idiomas{display:none}
+@media print{.pie-pres .pie-don{display:none}}
+</style>
+  <script src="/pie.js" defer></script>
+<script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
+  <script defer src="/_vercel/insights/script.js"></script>
+</head>
+<body>
+<!-- idiomas --><nav class="idiomas" aria-label="Idioma / Language"><a href="/presentacion.html" hreflang="es-AR" lang="es-AR" data-idioma="es">Español</a><span aria-hidden="true"> · </span><a href="/en/presentacion.html" hreflang="en" lang="en" data-idioma="en" aria-current="page">English</a></nav><!-- /idiomas --><div id="escena">
+
+<!-- 1 -->
+<section class="slide negra on">
+  <div class="portada">
+    <h1><span class="escribe">Puente</span></h1>
+    <div class="bajada a" style="--d:1.6s">from school to home, in pictograms</div>
+    <p class="a" style="--d:2.1s;font-size:24px;margin-top:30px;max-width:640px;opacity:.85">For children who cannot yet tell, in words, how their day went.</p>
+  </div>
+  <svg class="puentecito" viewBox="0 0 330 200"><path d="M10 170 Q165 20 320 170" style="--d:1s"/><path d="M60 170v-50M110 170v-85M165 170v-102M220 170v-85M270 170v-50M10 170h310" style="--d:1.8s"/></svg>
+  <div class="pie a" style="--d:2.6s">Tap or use the arrow keys to move on</div>
+  <span class="tiza"></span>
+</section>
+
+<!-- 2 -->
+<section class="slide">
+  <div class="kicker a">The problem</div>
+  <h2 class="a" style="--d:.15s">"What did you do at school today?"</h2>
+  <div class="dialogo">
+    <div>
+      <div class="burbuja a" style="--d:.5s">Families ask every afternoon. For a child with autism, or a child who does not speak, that question goes unanswered.</div>
+      <div class="cuaderno a" style="--d:1.4s">Good day today. Ate well. Best, your teacher.</div>
+    </div>
+    <div>
+      <div class="burbuja chico a" style="--d:.9s"><span class="puntos"><span>.</span><span>.</span><span>.</span></span></div>
+      <p class="a" style="--d:2s;font-size:24px;line-height:1.45;margin-top:30px">The teacher has a lot to tell but no time to write it down. And what does get written cannot help the child tell their day, or show how they are progressing.</p>
+    </div>
+  </div>
+  <div class="cred">Pictograms by Sergio Palao. Source: ARASAAC (http://www.arasaac.org). License: CC BY-NC-SA. Owner: Government of Aragón (Spain)</div>
+</section>
+
+<!-- 3 -->
+<section class="slide">
+  <div class="dos">
+    <div class="tel a" style="--d:.2s"><div class="pant">
+      <div class="barra">Puente</div>
+      <div class="mic"><img src="https://static.arasaac.org/pictograms/2912/2912_300.png" alt=""></div>
+      <div class="cuerpo tipeo" id="tipeo">He arrived happy and had a good breakfast. At 9 we went to music and he loved it. At long break the noise upset him and he put on his headphones. He ate lunch on his own with a spoon. When we left he said goodbye to his classmates without being asked.</div>
+    </div></div>
+    <div>
+      <div class="kicker a">Step 1 · the teacher</div>
+      <h2 class="a" style="--d:.15s">She dictates how the day went.<br>Two minutes, on her phone.</h2>
+      <ul class="puntos-lista">
+        <li class="a" style="--d:.9s">She talks the way she would to a colleague.</li>
+        <li class="a" style="--d:1.3s">No forms, no checkboxes.</li>
+        <li class="a" style="--d:1.7s">The teacher view is protected.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 4 -->
+<section class="slide">
+  <div class="kicker a">Step 2 · Puente</div>
+  <h2 class="a" style="--d:.15s">It turns her account into the child's day, in pictograms</h2>
+  <div class="relato a" style="--d:.4s">He <mark style="--d:.9s">arrived</mark> happy and had a good <mark style="--d:1.1s">breakfast</mark>. We went to <mark style="--d:1.3s">music</mark>. At <mark style="--d:1.5s">break</mark> the noise upset him. He ate <mark style="--d:1.7s">lunch</mark> on his own. He said <mark style="--d:1.9s">goodbye</mark> to his classmates.</div>
+  <div class="tira">
+    <div class="card bien pop" style="--d:2.2s"><img class="pic" src="https://static.arasaac.org/pictograms/32446/32446_300.png" alt=""><div class="t">Arrive</div><div class="h">08:00</div></div>
+    <div class="card bien pop" style="--d:2.4s"><img class="pic" src="https://static.arasaac.org/pictograms/4625/4625_300.png" alt=""><div class="t">Breakfast</div><div class="h">08:30</div></div>
+    <div class="card bien pop" style="--d:2.6s"><img class="pic" src="https://static.arasaac.org/pictograms/24791/24791_300.png" alt=""><div class="t">Music</div><div class="h">09:00</div></div>
+    <div class="card dificil pop" style="--d:2.8s"><img class="pic" src="https://static.arasaac.org/pictograms/33064/33064_300.png" alt=""><div class="t">Break</div><div class="h">11:00</div></div>
+    <div class="card bien pop" style="--d:3.0s"><img class="pic" src="https://static.arasaac.org/pictograms/28207/28207_300.png" alt=""><div class="t">Lunch</div><div class="h">12:00</div></div>
+    <div class="card bien pop" style="--d:3.2s"><img class="pic" src="https://static.arasaac.org/pictograms/6610/6610_300.png" alt=""><div class="t">Goodbye</div><div class="h">15:00</div></div>
+  </div>
+  <p class="a" style="--d:3.6s;font-size:20px;margin-top:22px;color:var(--gris)">Green: went well · Orange: a bit hard · Red: difficult. It also leaves a tidy record for the student's file.</p>
+</section>
+
+<!-- 5 -->
+<section class="slide">
+  <div class="kicker a">Step 3 · the student</div>
+  <h2 class="a" style="--d:.15s">Juan sees his day and can tell it</h2>
+  <div class="tira foco a" style="--d:.4s">
+    <div class="card bien" style="--i:0"><img class="pic" src="https://static.arasaac.org/pictograms/32446/32446_300.png" alt=""><div class="t">Arrive</div></div>
+    <div class="card bien" style="--i:1"><img class="pic" src="https://static.arasaac.org/pictograms/4625/4625_300.png" alt=""><div class="t">Breakfast</div></div>
+    <div class="card bien" style="--i:2"><img class="pic" src="https://static.arasaac.org/pictograms/24791/24791_300.png" alt=""><div class="t">Music</div></div>
+    <div class="card dificil" style="--i:3"><img class="pic" src="https://static.arasaac.org/pictograms/33064/33064_300.png" alt=""><div class="t">Break</div></div>
+    <div class="card bien" style="--i:4"><img class="pic" src="https://static.arasaac.org/pictograms/28207/28207_300.png" alt=""><div class="t">Lunch</div></div>
+    <div class="card bien" style="--i:5"><img class="pic" src="https://static.arasaac.org/pictograms/6610/6610_300.png" alt=""><div class="t">Goodbye</div></div>
+  </div>
+  <div class="voz a" style="--d:.8s">
+    <div class="ondas"><i style="--i:0"></i><i style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i><i style="--i:5"></i><i style="--i:6"></i></div>
+    <span>He taps each picture and hears it. At home, he points and tells.</span>
+  </div>
+</section>
+
+<!-- 6 -->
+<section class="slide">
+  <div class="dos">
+    <div class="tel a" style="--d:.2s"><div class="pant">
+      <div class="barra">Juan's notebook</div>
+      <div class="cuerpo">
+        <div class="semana">
+          <div><img src="https://static.arasaac.org/pictograms/35545/35545_300.png" alt="">Mon</div>
+          <div><img src="https://static.arasaac.org/pictograms/35547/35547_300.png" alt="">Tue</div>
+          <div><img src="https://static.arasaac.org/pictograms/31310/31310_300.png" alt="">Wed</div>
+          <div><img src="https://static.arasaac.org/pictograms/35547/35547_300.png" alt="">Thu</div>
+          <div><img src="https://static.arasaac.org/pictograms/35547/35547_300.png" alt="">Fri</div>
+        </div>
+        <div class="chat">
+          <div class="m f a" style="--d:1s">Which day is hardest for him?</div>
+          <div class="m p a" style="--d:2s">Mondays, at long break. On the 12th, 19th and 26th the playground noise upset him and he calmed down with his headphones. At home you can practise with the "help" pictogram.</div>
+          <div class="m f a" style="--d:3.4s">Should I give him ibuprofen?</div>
+          <div class="m p a" style="--d:4.2s">That is a question for his pediatrician. I can only tell you what the school recorded.</div>
+        </div>
+      </div>
+    </div></div>
+    <div>
+      <div class="kicker a">Step 4 · the family</div>
+      <h2 class="a" style="--d:.15s">A private space,<br>no app to install</h2>
+      <ul class="puntos-lista">
+        <li class="a" style="--d:.8s">They see the child's days in pictograms and how the child felt.</li>
+        <li class="a" style="--d:1.2s">They see which goals the child is making progress on.</li>
+        <li class="a" style="--d:1.6s">They can ask Puente questions anytime, and answers are based only on what the school recorded.</li>
+        <li class="a" style="--d:2s">It never diagnoses or gives medical advice.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 7 -->
+<section class="slide">
+  <div class="kicker a">Step 5 · the progress assistant</div>
+  <h2 class="a" style="--d:.15s" >With weeks of records, it spots what is easy to miss</h2>
+  <div class="pasos a" style="--d:.4s"><span>reads the profile</span><span>looks for patterns</span><span>checks the IEP goals</span><span>looks for evidence</span><span>builds the schedule</span></div>
+  <div class="dos" style="grid-template-columns:420px 1fr;height:auto;gap:50px;align-items:start">
+    <div class="a" style="--d:.6s">
+      <div class="cal">
+        <div class="dh">Mon</div><div class="dh">Tue</div><div class="dh">Wed</div><div class="dh">Thu</div><div class="dh">Fri</div>
+        <div class="d mal" style="--d:1.2s">12</div><div class="d">13</div><div class="d">14</div><div class="d">15</div><div class="d">16</div>
+        <div class="d mal" style="--d:1.5s">19</div><div class="d">20</div><div class="d">21</div><div class="d">22</div><div class="d">23</div>
+        <div class="d mal" style="--d:1.8s">26</div><div class="d">27</div><div class="d">28</div><div class="d">29</div><div class="d">30</div>
+      </div>
+      <p style="font-size:16px;color:var(--gris);margin-top:10px">Sample data, made up.</p>
+    </div>
+    <div>
+      <p class="titular a" style="--d:2.2s">Mondays are his hard day (3 out of 3), always at long break.</p>
+      <div class="obj a" style="--d:2.6s">Eating independently <span class="st ok sello" style="--d:3s">Almost there</span></div>
+      <div class="obj a" style="--d:2.7s">Greeting classmates <span class="st ok sello" style="--d:3.3s">Almost there</span></div>
+      <div class="obj a" style="--d:2.8s">Getting through break <span class="st mid sello" style="--d:3.6s">Steady</span></div>
+      <div class="obj a" style="--d:2.9s">Asking for help with pictograms <span class="st bad sello" style="--d:3.9s">Needs work</span></div>
+      <p class="a" style="--d:4.3s;font-size:19px;margin-top:16px">It suggests strategies with their sources and builds the visual schedule for next Monday, with new supports: the break-time story and headphones before going out. <b>The teacher decides.</b></p>
+    </div>
+  </div>
+</section>
+
+<!-- 8 -->
+<section class="slide">
+  <div class="kicker a">Handled with care</div>
+  <h2 class="a" style="--d:.15s">This is children's data. Here is how we treat it.</h2>
+  <div class="grilla">
+    <div class="item a" style="--d:.5s"><b>Private</b>Each family only sees their own child. The teacher view requires sign-in. Internal notes never leave the school.</div>
+    <div class="item a" style="--d:.8s"><b>No diagnoses</b>Puente describes what happened and what works. It does not label, it does not prescribe, and it does not replace any professional.</div>
+    <div class="item a" style="--d:1.1s"><b>The teacher decides</b>The assistant suggests and shows where each suggestion comes from. Nothing reaches the family without going through her.</div>
+    <div class="item a" style="--d:1.4s"><b>Low cost</b>It uses inexpensive AI models with a free fallback: the cost per student is a few cents a month.</div>
+  </div>
+</section>
+
+<!-- 9 -->
+<section class="slide">
+  <div class="kicker a">Where it is heading</div>
+  <h2 class="a" style="--d:.15s">From one teacher to each child's whole team</h2>
+  <div class="fases">
+    <div class="fase a" style="--c:var(--lapiz);--d:.5s"><small>0 to 3 months</small><b>Pilot</b><ul><li>Schools and inclusion support teams in Rosario, Argentina</li><li>Consent from every family</li><li>We measure time saved and real use</li></ul></div>
+    <div class="fase a" style="--c:#8fbf8a;--d:.9s"><small>3 to 12 months</small><b>Team</b><ul><li>Support staff, therapists and school leaders, each with their own role</li><li>Reports ready for the student file and health insurance</li><li>WhatsApp notices and offline use</li></ul></div>
+    <div class="fase a" style="--c:#7fb3d5;--d:1.3s"><small>12 months and beyond</small><b>Community</b><ul><li>All of Argentina and Spanish-speaking Latin America</li><li>Each school's own pictograms</li><li>Open source, so any institution can host it</li></ul></div>
+  </div>
+  <div class="gratis a" style="--d:1.8s"><b>Free, always.</b> Non-profit, like the ARASAAC pictograms that make it possible.</div>
+</section>
+
+<!-- 10 -->
+<section class="slide negra">
+  <div class="cierre">
+    <div>
+      <p class="a" style="font-size:120px;font-family:var(--mano);line-height:1;margin:0">Puente</p><!-- un solo h1 por página: el de la portada -->
+      <div class="bajada a" style="--d:.3s;font-family:var(--mano);font-size:42px">from school to home, in pictograms</div>
+      <p class="a" style="--d:.8s;font-size:26px;margin-top:30px;max-width:620px">So every child can tell their day, and their family can be part of it.</p>
+      <p class="a" style="--d:1.1s;font-size:22px;opacity:.85">puentepictos.app</p>
+    </div>
+    <div class="qr pop" style="--d:1.3s"><svg version="1.1" viewBox="0 0 31 31" xmlns="http://www.w3.org/2000/svg"><path d="M1,1H2V2H1zM2,1H3V2H2zM3,1H4V2H3zM4,1H5V2H4zM5,1H6V2H5zM6,1H7V2H6zM7,1H8V2H7zM11,1H12V2H11zM14,1H15V2H14zM17,1H18V2H17zM20,1H21V2H20zM23,1H24V2H23zM24,1H25V2H24zM25,1H26V2H25zM26,1H27V2H26zM27,1H28V2H27zM28,1H29V2H28zM29,1H30V2H29zM1,2H2V3H1zM7,2H8V3H7zM9,2H10V3H9zM11,2H12V3H11zM15,2H16V3H15zM16,2H17V3H16zM17,2H18V3H17zM19,2H20V3H19zM20,2H21V3H20zM23,2H24V3H23zM29,2H30V3H29zM1,3H2V4H1zM3,3H4V4H3zM4,3H5V4H4zM5,3H6V4H5zM7,3H8V4H7zM10,3H11V4H10zM12,3H13V4H12zM14,3H15V4H14zM15,3H16V4H15zM17,3H18V4H17zM19,3H20V4H19zM20,3H21V4H20zM23,3H24V4H23zM25,3H26V4H25zM26,3H27V4H26zM27,3H28V4H27zM29,3H30V4H29zM1,4H2V5H1zM3,4H4V5H3zM4,4H5V5H4zM5,4H6V5H5zM7,4H8V5H7zM10,4H11V5H10zM12,4H13V5H12zM13,4H14V5H13zM14,4H15V5H14zM15,4H16V5H15zM16,4H17V5H16zM19,4H20V5H19zM23,4H24V5H23zM25,4H26V5H25zM26,4H27V5H26zM27,4H28V5H27zM29,4H30V5H29zM1,5H2V6H1zM3,5H4V6H3zM4,5H5V6H4zM5,5H6V6H5zM7,5H8V6H7zM9,5H10V6H9zM10,5H11V6H10zM11,5H12V6H11zM12,5H13V6H12zM15,5H16V6H15zM19,5H20V6H19zM20,5H21V6H20zM21,5H22V6H21zM23,5H24V6H23zM25,5H26V6H25zM26,5H27V6H26zM27,5H28V6H27zM29,5H30V6H29zM1,6H2V7H1zM7,6H8V7H7zM14,6H15V7H14zM18,6H19V7H18zM19,6H20V7H19zM20,6H21V7H20zM21,6H22V7H21zM23,6H24V7H23zM29,6H30V7H29zM1,7H2V8H1zM2,7H3V8H2zM3,7H4V8H3zM4,7H5V8H4zM5,7H6V8H5zM6,7H7V8H6zM7,7H8V8H7zM9,7H10V8H9zM11,7H12V8H11zM13,7H14V8H13zM15,7H16V8H15zM17,7H18V8H17zM19,7H20V8H19zM21,7H22V8H21zM23,7H24V8H23zM24,7H25V8H24zM25,7H26V8H25zM26,7H27V8H26zM27,7H28V8H27zM28,7H29V8H28zM29,7H30V8H29zM11,8H12V9H11zM12,8H13V9H12zM13,8H14V9H13zM14,8H15V9H14zM15,8H16V9H15zM17,8H18V9H17zM18,8H19V9H18zM19,8H20V9H19zM1,9H2V10H1zM3,9H4V10H3zM5,9H6V10H5zM7,9H8V10H7zM10,9H11V10H10zM12,9H13V10H12zM13,9H14V10H13zM15,9H16V10H15zM16,9H17V10H16zM18,9H19V10H18zM25,9H26V10H25zM28,9H29V10H28zM5,10H6V11H5zM9,10H10V11H9zM10,10H11V11H10zM15,10H16V11H15zM16,10H17V11H16zM18,10H19V11H18zM19,10H20V11H19zM21,10H22V11H21zM23,10H24V11H23zM26,10H27V11H26zM29,10H30V11H29zM2,11H3V12H2zM3,11H4V12H3zM7,11H8V12H7zM8,11H9V12H8zM13,11H14V12H13zM14,11H15V12H14zM18,11H19V12H18zM19,11H20V12H19zM22,11H23V12H22zM23,11H24V12H23zM27,11H28V12H27zM28,11H29V12H28zM29,11H30V12H29zM1,12H2V13H1zM3,12H4V13H3zM5,12H6V13H5zM8,12H9V13H8zM9,12H10V13H9zM11,12H12V13H11zM12,12H13V13H12zM13,12H14V13H13zM16,12H17V13H16zM18,12H19V13H18zM21,12H22V13H21zM22,12H23V13H22zM25,12H26V13H25zM28,12H29V13H28zM3,13H4V14H3zM4,13H5V14H4zM6,13H7V14H6zM7,13H8V14H7zM8,13H9V14H8zM10,13H11V14H10zM12,13H13V14H12zM17,13H18V14H17zM18,13H19V14H18zM20,13H21V14H20zM21,13H22V14H21zM22,13H23V14H22zM23,13H24V14H23zM26,13H27V14H26zM28,13H29V14H28zM29,13H30V14H29zM1,14H2V15H1zM3,14H4V15H3zM5,14H6V15H5zM8,14H9V15H8zM9,14H10V15H9zM11,14H12V15H11zM14,14H15V15H14zM16,14H17V15H16zM17,14H18V15H17zM18,14H19V15H18zM21,14H22V15H21zM22,14H23V15H22zM23,14H24V15H23zM26,14H27V15H26zM29,14H30V15H29zM2,15H3V16H2zM4,15H5V16H4zM7,15H8V16H7zM8,15H9V16H8zM11,15H12V16H11zM12,15H13V16H12zM13,15H14V16H13zM15,15H16V16H15zM16,15H17V16H16zM17,15H18V16H17zM18,15H19V16H18zM19,15H20V16H19zM21,15H22V16H21zM22,15H23V16H22zM23,15H24V16H23zM24,15H25V16H24zM25,15H26V16H25zM26,15H27V16H26zM28,15H29V16H28zM29,15H30V16H29zM3,16H4V17H3zM5,16H6V17H5zM9,16H10V17H9zM12,16H13V17H12zM13,16H14V17H13zM14,16H15V17H14zM15,16H16V17H15zM17,16H18V17H17zM18,16H19V17H18zM19,16H20V17H19zM20,16H21V17H20zM21,16H22V17H21zM26,16H27V17H26zM28,16H29V17H28zM5,17H6V18H5zM7,17H8V18H7zM8,17H9V18H8zM10,17H11V18H10zM11,17H12V18H11zM15,17H16V18H15zM16,17H17V18H16zM17,17H18V18H17zM18,17H19V18H18zM23,17H24V18H23zM26,17H27V18H26zM28,17H29V18H28zM29,17H30V18H29zM2,18H3V19H2zM3,18H4V19H3zM4,18H5V19H4zM6,18H7V19H6zM8,18H9V19H8zM9,18H10V19H9zM15,18H16V19H15zM16,18H17V19H16zM18,18H19V19H18zM21,18H22V19H21zM22,18H23V19H22zM23,18H24V19H23zM26,18H27V19H26zM27,18H28V19H27zM29,18H30V19H29zM1,19H2V20H1zM3,19H4V20H3zM4,19H5V20H4zM7,19H8V20H7zM11,19H12V20H11zM12,19H13V20H12zM14,19H15V20H14zM17,19H18V20H17zM22,19H23V20H22zM24,19H25V20H24zM25,19H26V20H25zM28,19H29V20H28zM29,19H30V20H29zM2,20H3V21H2zM4,20H5V21H4zM5,20H6V21H5zM10,20H11V21H10zM11,20H12V21H11zM12,20H13V21H12zM13,20H14V21H13zM16,20H17V21H16zM18,20H19V21H18zM19,20H20V21H19zM26,20H27V21H26zM28,20H29V21H28zM1,21H2V22H1zM6,21H7V22H6zM7,21H8V22H7zM8,21H9V22H8zM9,21H10V22H9zM10,21H11V22H10zM12,21H13V22H12zM13,21H14V22H13zM18,21H19V22H18zM21,21H22V22H21zM22,21H23V22H22zM23,21H24V22H23zM24,21H25V22H24zM25,21H26V22H25zM9,22H10V23H9zM10,22H11V23H10zM11,22H12V23H11zM12,22H13V23H12zM14,22H15V23H14zM17,22H18V23H17zM20,22H21V23H20zM21,22H22V23H21zM25,22H26V23H25zM27,22H28V23H27zM28,22H29V23H28zM29,22H30V23H29zM1,23H2V24H1zM2,23H3V24H2zM3,23H4V24H3zM4,23H5V24H4zM5,23H6V24H5zM6,23H7V24H6zM7,23H8V24H7zM15,23H16V24H15zM17,23H18V24H17zM20,23H21V24H20zM21,23H22V24H21zM23,23H24V24H23zM25,23H26V24H25zM26,23H27V24H26zM28,23H29V24H28zM29,23H30V24H29zM1,24H2V25H1zM7,24H8V25H7zM10,24H11V25H10zM11,24H12V25H11zM12,24H13V25H12zM13,24H14V25H13zM14,24H15V25H14zM15,24H16V25H15zM16,24H17V25H16zM18,24H19V25H18zM21,24H22V25H21zM25,24H26V25H25zM26,24H27V25H26zM28,24H29V25H28zM1,25H2V26H1zM3,25H4V26H3zM4,25H5V26H4zM5,25H6V26H5zM7,25H8V26H7zM9,25H10V26H9zM11,25H12V26H11zM12,25H13V26H12zM15,25H16V26H15zM18,25H19V26H18zM19,25H20V26H19zM21,25H22V26H21zM22,25H23V26H22zM23,25H24V26H23zM24,25H25V26H24zM25,25H26V26H25zM29,25H30V26H29zM1,26H2V27H1zM3,26H4V27H3zM4,26H5V27H4zM5,26H6V27H5zM7,26H8V27H7zM10,26H11V27H10zM11,26H12V27H11zM12,26H13V27H12zM13,26H14V27H13zM15,26H16V27H15zM17,26H18V27H17zM25,26H26V27H25zM27,26H28V27H27zM28,26H29V27H28zM29,26H30V27H29zM1,27H2V28H1zM3,27H4V28H3zM4,27H5V28H4zM5,27H6V28H5zM7,27H8V28H7zM9,27H10V28H9zM11,27H12V28H11zM15,27H16V28H15zM18,27H19V28H18zM22,27H23V28H22zM24,27H25V28H24zM25,27H26V28H25zM26,27H27V28H26zM29,27H30V28H29zM1,28H2V29H1zM7,28H8V29H7zM12,28H13V29H12zM13,28H14V29H13zM16,28H17V29H16zM18,28H19V29H18zM20,28H21V29H20zM21,28H22V29H21zM22,28H23V29H22zM24,28H25V29H24zM28,28H29V29H28zM1,29H2V30H1zM2,29H3V30H2zM3,29H4V30H3zM4,29H5V30H4zM5,29H6V30H5zM6,29H7V30H6zM7,29H8V30H7zM9,29H10V30H9zM11,29H12V30H11zM13,29H14V30H13zM15,29H16V30H15zM17,29H18V30H17zM18,29H19V30H18zM20,29H21V30H20zM21,29H22V30H21zM23,29H24V30H23zM25,29H26V30H25zM26,29H27V30H26zM28,29H29V30H28zM29,29H30V30H29z" id="qr-path" fill="#000000" fill-opacity="1" fill-rule="nonzero" stroke="none"/></svg></div>
+  </div>
+  <div class="pie-pres"><div id="puente-pie"></div></div>
+  <span class="tiza"></span>
+</section>
+
+</div>
+<div id="ui"><button id="ant" aria-label="Previous">‹</button><span id="num">1 / 10</span><div id="prog"><i></i></div><button id="auto">Play</button><button id="sig" aria-label="Next">›</button></div>
+<script>
+const S = [...document.querySelectorAll(".slide")], esc = document.getElementById("escena");
+if (new URLSearchParams(location.search).has("print")) document.documentElement.classList.add("print");
+addEventListener("beforeprint", () => document.documentElement.classList.add("print"));
+addEventListener("afterprint", () => { if (!new URLSearchParams(location.search).has("print")) document.documentElement.classList.remove("print"); });
+let i = 0, timer = null;
+// relato tipeado letra por letra
+const tp = document.getElementById("tipeo");
+tp.innerHTML = [...tp.textContent].map((c, k) => `<span style="--i:${k}">${c}</span>`).join("");
+function ajustar() { const s = Math.min(innerWidth / 1280, (innerHeight - 50) / 720) * .97; esc.style.transform = `translate(-50%,calc(-50% - 20px)) scale(${s})`; }
+function ir(n) {
+  n = Math.max(0, Math.min(S.length - 1, n));
+  S[i].classList.remove("on"); void S[n].offsetWidth; S[n].classList.add("on"); i = n;
+  document.getElementById("num").textContent = `${i + 1} / ${S.length}`;
+  document.querySelector("#prog i").style.width = ((i + 1) / S.length * 100) + "%";
+  history.replaceState(null, "", "#" + (i + 1));
+}
+function auto() {
+  const b = document.getElementById("auto");
+  if (timer) { clearInterval(timer); timer = null; b.textContent = "Play"; return; }
+  b.textContent = "Pause"; timer = setInterval(() => i < S.length - 1 ? ir(i + 1) : auto(), 9000);
+}
+addEventListener("resize", ajustar); ajustar();
+addEventListener("keydown", e => {
+  if (["ArrowRight", "PageDown", " ", "Enter"].includes(e.key)) { e.preventDefault(); ir(i + 1); }
+  if (["ArrowLeft", "PageUp", "Backspace"].includes(e.key)) ir(i - 1);
+  if (e.key === "Home") ir(0); if (e.key === "End") ir(S.length - 1);
+  if (e.key.toLowerCase() === "p") auto();
+  if (e.key.toLowerCase() === "f") document.documentElement.requestFullscreen?.();
+});
+document.getElementById("sig").onclick = () => ir(i + 1);
+document.getElementById("ant").onclick = () => ir(i - 1);
+document.getElementById("auto").onclick = auto;
+esc.addEventListener("click", e => ir(e.clientX > innerWidth / 3 ? i + 1 : i - 1));
+let x0 = null;
+addEventListener("touchstart", e => x0 = e.touches[0].clientX, { passive: true });
+addEventListener("touchend", e => { if (x0 === null) return; const dx = e.changedTouches[0].clientX - x0; if (Math.abs(dx) > 40) { e.preventDefault(); ir(dx < 0 ? i + 1 : i - 1); } x0 = null; });
+const h = parseInt(location.hash.slice(1)); if (h > 1) ir(h - 1); else ir(0);
+</script>
+</body>
+</html>

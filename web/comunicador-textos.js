@@ -4,7 +4,7 @@
 // Lo controla test/comunicador.test.js: el inglés tiene que tener todas las claves del español.
 (function (raiz) {
   const ES = {
-    tituloDoc: "Puente Comunicador · Comunicador con pictogramas",
+    tituloDoc: "Puente Comunicador · Comunicador con pictogramas gratis (CAA)",
     idiomaAria: "Idioma / Language",
     saltar: "Saltar al tablero",
     titulo: "Comunicador",
@@ -72,7 +72,7 @@
     apk: "<a href=\"/descargar/comunicador.apk\" download>Bajar la app para Android</a> (Puente Comunicador)"
   };
   const EN = {
-    tituloDoc: "Puente Comunicador · Picture communication board",
+    tituloDoc: "Puente Comunicador · Free AAC picture communication board",
     idiomaAria: "Idioma / Language",
     saltar: "Skip to the board",
     titulo: "Communication board",
@@ -142,6 +142,8 @@
   const IDIOMAS = ["es", "en"];
   const HTML_LANG = { es: "es-AR", en: "en" };
   // Qué idioma usar: ?lang=en|es manda; si no, la elección guardada; si no, el idioma del navegador (en* → inglés, lo demás → español).
+  // En la web, la página llama elegirIdioma(search, idiomaDeLaURL, ""): /comunicador.html es español y /en/comunicador.html inglés
+  // (cada idioma con su URL, para Google). La elección guardada y el navegador solo deciden dentro de la app instalada.
   function elegirIdioma(search, guardado, navegador) {
     const q = new URLSearchParams(search || "").get("lang");
     const corto = String(q || "").toLowerCase().slice(0, 2);

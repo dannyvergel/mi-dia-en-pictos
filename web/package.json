@@ -11,6 +11,7 @@
   },
   "scripts": {
     "test": "node --test test/*.test.js",
+    "idiomas": "node scripts/idiomas.js",
     "local": "node scripts/dev.js",
     "migrar": "node scripts/migrar.js",
     "padron": "node scripts/padron.js"
