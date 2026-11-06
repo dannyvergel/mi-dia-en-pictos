@@ -7,6 +7,8 @@ const almacen = require("../api/_lib/almacen");
 async function baseNueva() {
   if (!("PILOTO_SOLO_INVITACION" in process.env)) process.env.PILOTO_SOLO_INVITACION = "0";
   if (!("PILOTO_MAX_USUARIOS" in process.env)) process.env.PILOTO_MAX_USUARIOS = "0";
+  // Los tests de antes prueban todas las funciones de la familia; test/familia-minimo.test.js prueba el mínimo.
+  if (!("FAMILIA_FUNCIONES" in process.env)) process.env.FAMILIA_FUNCIONES = "todas";
   const pg = new PGlite();
   db.usarBaseDePrueba(pg);
   pg.blobs = almacen.usarAlmacenDePrueba(true);
