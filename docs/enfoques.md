@@ -21,7 +21,7 @@ Sin cambios.
 - Pendiente: que la familia o un/a profesional abran el espacio solos, sin pasar por la plataforma. Haría falta un formulario público con aprobación de la plataforma o un alta abierta con tope de cupos. Queda detrás de la invitación de plataforma.
 
 ### La familia es la dueña
-- Da el consentimiento, como en la escuela.
+- Da el consentimiento, como en la escuela. **En equipo, sin consentimiento vigente nadie del equipo ve al chico** (ver «Consentimiento de la familia»).
 - Ve a todo el equipo en `familia.html` («El equipo de …»), con email, rol y estado.
 - **Aprueba o rechaza** a cada profesional que usó un link y **puede sacar** a cualquiera.
 - Invita a profesionales con un link de un solo uso (7 días), para compartir por WhatsApp.
@@ -31,10 +31,23 @@ Sin cambios.
 - Se invitan por link, sin mandar mail. Al abrirlo, la persona pone su email y le llega el código, como siempre. El rol se elige de una lista (fono, TO, psicopedagoga, maestra integradora, docente, acompañante, psicóloga) o se escribe libre, hasta 40 caracteres.
 - Pueden invitar: la familia, cualquier integrante con acceso o la plataforma. **Siempre queda pendiente hasta que la familia lo aprueba**, aunque la invitación la haya hecho la propia familia.
 - La cuenta es una fila de `docentes`. Si la persona no tiene escuela, va con `escuela_id` NULL. Si ya era seño de una escuela, sigue en su escuela y además integra el equipo. Una misma persona puede estar en varios equipos.
-- **Para ver algo hace falta estar aprobado por la familia y haber aceptado el compromiso de confidencialidad.** Se acepta con un checkbox en `docente.html` («Mis equipos») y se guardan la fecha, la versión del texto y la auditoría.
+- **Para ver algo hacen falta tres cosas: estar aprobado por la familia, haber aceptado el compromiso de confidencialidad y que la familia tenga el consentimiento vigente.** La confidencialidad se acepta con un checkbox en `docente.html` («Mis equipos») y se guardan la fecha, la versión del texto y la auditoría.
 - Con acceso, ve el día, la ficha y los documentos del chico. Puede cargar el día, editar apoyos y objetivos, y subir documentos.
 - No puede tocar el nombre, los contactos ni el consentimiento. Tampoco puede invitar familias, asignar, dar de baja familias ni borrar al chico (403), aunque sea admin de su propia escuela. Eso lo decide la familia, o la plataforma.
 - Se puede ir del equipo por su cuenta.
+
+### Consentimiento de la familia
+Decisión de Danny del 2026-11-05.
+- En un espacio de equipo, un/a profesional ve al chico solo si está aprobado/a por la familia, aceptó la confidencialidad **y** la ficha tiene `consentimiento.dado = true`.
+- Sin consentimiento no ve nada: ni el día, ni la ficha, ni los documentos, ni el agente. Tampoco puede invitar a otros profesionales. «Mis alumnos» queda vacío. Si pide un chico por id, recibe **403** con «Falta el consentimiento de la familia…». En «Mis equipos» (`docente.html`) aparece el aviso «Falta el consentimiento de la familia» (`falta: "consentimiento"` en `GET api/docentes?equipos=1`).
+- Si la familia **retira** el consentimiento (`consentir` con `dado: false`), se pierde el acceso en el momento. Si lo vuelve a dar, se recupera. La aprobación y la confidencialidad no se tocan.
+- Puede seguir entrando a Puente (integra un equipo vivo) para ver «Mis equipos» y el aviso.
+- Cuenta cualquier consentimiento con `dado: true`, sin importar quién lo cargó. En equipo solo pueden cargarlo la familia o la plataforma: los integrantes no tocan el consentimiento.
+- **El enfoque escuela queda como estaba**: la seño asignada o la admin ven al alumno aunque no haya consentimiento.
+
+### Mails a la familia
+- Al compartir un informe o documento, el mail dice «**El equipo** compartió un informe de …» en un espacio de equipo y «La escuela compartió…» en escuela o independiente. El asunto es el mismo («Nuevo informe de … en Puente»). Nunca lleva título, contenido ni adjunto.
+- El pie de marca de todos los mails («Puente · de la escuela a casa, en pictogramas») no se cambió.
 
 ### Compromiso de confidencialidad
 - El texto está en `web/api/_lib/legal.js` (`TEXTO_CONFIDENCIALIDAD_EQUIPO`, versión `VERSION_CONFIDENCIALIDAD_EQUIPO = 2026-11-05-borrador`).
@@ -53,8 +66,9 @@ Sin cambios.
 
 ## Dónde está el código
 - Regla de acceso centralizada en `web/api/_lib/alumnos.js`:
-  - `condVisible` y `puedeVer` ya incluyen a los integrantes con acceso (`sqlMiembroConAcceso`).
-  - `alumnoConAcceso(yo, id)` es el helper que usan los documentos.
+  - `condVisible` y `puedeVer` ya incluyen a los integrantes con acceso (`sqlMiembroConAcceso`, que exige aprobación, confidencialidad y consentimiento vigente con `sqlConsentimiento`).
+  - `alumnoConAcceso(yo, id)` es el helper que usan los documentos. Si el único motivo es el consentimiento, corta con 403 (`exigirConsentimiento` / `FALTA_CONSENTIMIENTO`). Lo mismo hacen la ficha (`api/fichas.js`), el día (`api/familia.js`) y `exigirVisible`.
+  - `exigirVisible(yo, id)`: busca al alumno por id. Lo usan `api/dia.js` y `api/agente.js` cuando reciben `alumno_id`. Por nombre (`exigirVisiblePorNombre`) queda solo por compatibilidad (modo PIN y clientes viejos).
   - `sqlEnEquipoVivo` sirve para el login y los cupos.
   - Están también las funciones del equipo: `miembrosDe`, `misEquipos`, `resolverMiembro`, `aceptarConfidencialidad`, `salirDelEquipo` y `cerrarEquipo`.
 - Links: `web/api/_lib/enlaces.js` (`crearEquipo`, `crearMiembro`, `pendientesEquipo`, `revocarEnEquipo`, y el alta como pendiente en `verificar`).
@@ -63,10 +77,11 @@ Sin cambios.
   - `api/fichas.js`: para la familia, `equipo_invitar`, `equipo_aprobar`, `equipo_rechazar`, `equipo_quitar` y `equipo_link_revocar`; restricciones para los integrantes.
 - Sesión y login: `_lib/seguridad.js` (`leerSesion`) y `_lib/identidad.js` (`cuentaPara`) dejan entrar a quien integra un equipo vivo aunque no tenga escuela.
 - Cupos: `_lib/piloto.js` (`sqlUsados`).
-- Tests: `web/test/equipos.test.js`.
+- Cuaderno del día (`cuaderno.html`): con cuentas, la clave de cada chico es su **id**. Manda `alumno_id` a `api/dia`, `api/agente` y `api/familia`, guarda `alumno_id` en cada día del historial y filtra por id. Si dos chicos se llaman igual, el selector agrega el nombre del espacio (`espacio_nombre` en `GET api/fichas`). Los días viejos sin id se asignan por nombre solo si el nombre no se repite. Las herramientas del agente (`_lib/tools.js`) también filtran por id cuando lo hay.
+- Tests: `web/test/equipos.test.js` (incluye consentimiento, cuaderno por id y mail de equipo) y `web/test/documentos.test.js`.
 
 ## Pendientes para confirmar
-- Revisión legal del compromiso de confidencialidad y de cómo encaja con el consentimiento de la familia (hoy la familia aprueba, pero no se exige el consentimiento dado para que el equipo vea).
+- Revisión legal del compromiso de confidencialidad y de cómo encaja con el consentimiento de la familia (desde el 2026-11-05 se exige el consentimiento vigente para que el equipo vea).
 - Apertura del espacio por la familia o un/a profesional sin la plataforma.
 - Que la familia sume a otro familiar (por ahora lo hace la plataforma).
-- Si un/a profesional integra dos equipos con chicos del mismo nombre de pila, el Cuaderno del día (que busca por nombre) toma el primero. Habría que elegir por id.
+- El mail de invitación a la familia (`avisos.js`, «…para que la escuela registre y comparta esta información») todavía dice «la escuela» también en equipo. No se tocó porque no estaba en el pedido.

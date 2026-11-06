@@ -149,7 +149,8 @@ test("informar: manda el mail sin título, contenido ni adjunto; sin visible da 
     const m = buzon[0];
     assert.deepEqual(m.to, ["laura@mail.com"]);
     assert.equal(m.subject, "Nuevo informe de Juan en Puente");
-    assert.match(m.text, /compartió un informe de Juan/);
+    assert.match(m.text, /La escuela compartió un informe de Juan/); // enfoque escuela: sin cambios
+    assert.match(m.html, /La escuela compartió un <b>informe<\/b>/);
     assert.match(m.text, /\/login\.html\?familia/);
     for (const t of ["TITULO-PRIVADO", "fonoaudiología", CONTENIDO, "informe fono"]) {
       assert.equal(m.text.includes(t), false, t); assert.equal(m.html.includes(t), false, t); assert.equal(m.subject.includes(t), false, t);

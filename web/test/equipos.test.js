@@ -12,6 +12,11 @@ const correo = require("../api/_lib/correo");
 const db = require("../api/_lib/db");
 const { SCHEMA } = require("../api/_lib/schema");
 const piloto = require("../api/_lib/piloto");
+const dia = require("../api/dia");
+const agente = require("../api/agente");
+const { crearHerramientas } = require("../api/_lib/tools");
+const fs = require("fs");
+const path = require("path");
 
 process.env.DOCENTE_PIN = "4321";
 delete process.env.VERCEL_ENV; delete process.env.RESEND_API_KEY; delete process.env.OPENROUTER_API_KEY;
@@ -195,6 +200,7 @@ test("rechazo y baja: la familia rechaza o saca; se pierde el acceso, se libera 
   const r = await abrirEquipo({ alumno: "Juani", abre: "familia" });
   const { escuela_id, alumno_id } = r.equipo;
   const fam = await entraFamilia(r.enlace, "mama.juani@familia.com");
+  assert.equal((await post(fam, fichas, { accion: "consentir", id: alumno_id, dado: true })).status, 200);
   const crear = async (email, rol) => {
     const l = (await post(fam, fichas, { accion: "equipo_invitar", id: alumno_id, rol })).body.enlace;
     const { c, r: v } = await usar(tokenDe(l), email, "Pro " + rol);
@@ -291,4 +297,130 @@ test("enfoque escuela sin cambios: la dirección no puede sumar seños comunes a
   const fp = await entrarConCodigo(pg, "fam.pepe@x.com", "familia");
   assert.equal((await post(fp, fichas, { accion: "equipo_invitar", id: al, rol: "TO" })).status, 400);
   assert.equal((await fichaFamilia(fp, al)).equipo, undefined);
+});
+
+// ---------- Ajustes del 2026-11-05 (docs/enfoques.md) ----------
+// Arma un equipo con un/a profesional aprobado/a y con la confidencialidad aceptada. consentir: si la familia da el consentimiento.
+async function equipoListo({ alumno, emailFam, emailPro, consentir = true, pro = null }) {
+  const r = await abrirEquipo({ alumno, abre: "familia" });
+  const { escuela_id, alumno_id } = r.equipo;
+  const fam = await entraFamilia(r.enlace, emailFam);
+  if (consentir) assert.equal((await post(fam, fichas, { accion: "consentir", id: alumno_id, dado: true })).status, 200);
+  const l = (await post(fam, fichas, { accion: "equipo_invitar", id: alumno_id, rol: "Fonoaudióloga" })).body.enlace;
+  const { c, r: v } = await usar(tokenDe(l), emailPro, "Pro", pro || cliente());
+  assert.equal(v.status, 200, JSON.stringify(v.body));
+  const m = (await fichaFamilia(fam, alumno_id)).equipo.miembros.find(x => x.email === emailPro);
+  assert.equal((await post(fam, fichas, { accion: "equipo_aprobar", id: alumno_id, miembro_id: m.id })).status, 200);
+  assert.equal((await post(c, docentes, { accion: "equipo_confidencialidad", escuela_id, acepto: true })).status, 200);
+  return { fam, pro: c, escuela_id, alumno_id };
+}
+
+test("consentimiento: sin el consentimiento vigente de la familia el/la profesional aprobado/a no ve nada (403 / lista vacía)", async () => {
+  const { fam, pro, escuela_id, alumno_id } = await equipoListo({ alumno: "Mora", emailFam: "fam.mora@familia.com", emailPro: "fono.mora@x.com", consentir: false });
+  const sinConsentimiento = async () => {
+    assert.deepEqual(await misAlumnos(pro), []);
+    const eq = (await pro.llamar(docentes, { query: { equipos: "1" } })).body.equipos.find(e => e.escuela_id === escuela_id);
+    assert.equal(eq.falta, "consentimiento"); assert.equal(eq.acceso, false); assert.equal(eq.consentimiento, false);
+    assert.equal(eq.miembros, undefined);
+    const ficha = await pro.llamar(fichas, { query: { id: String(alumno_id) } });
+    assert.equal(ficha.status, 403); assert.match(ficha.body.error, /Falta el consentimiento de la familia/);
+    // Día (vista y publicar), documentos (lista y subir), Cuaderno (día con IA) y agente: 403.
+    assert.equal((await pro.llamar(familia, { query: { alumno: String(alumno_id) } })).status, 403);
+    assert.equal((await post(pro, familia, { accion: "publicar", alumno_id, registros: [{ fecha: "2026-11-05", actividades: [] }] })).status, 403);
+    const docsL = await pro.llamar(fichas, { query: { documentos: String(alumno_id) } });
+    assert.equal(docsL.status, 403); assert.match(docsL.body.error, /Falta el consentimiento/);
+    assert.equal((await post(pro, fichas, { accion: "doc_subir", id: alumno_id, tipo: "informe", titulo: "x", nombre: "x.pdf", mime: "application/pdf", datos: PDF })).status, 403);
+    assert.equal((await post(pro, dia, { alumno_id, alumno: "Mora", texto: "Llegó contento." })).status, 403);
+    assert.equal((await post(pro, agente, { alumno_id, alumno: "Mora", registros: [{ alumno: "Mora", fecha: "2026-11-05", actividades: [] }] })).status, 403);
+    // Por nombre (clientes viejos) tampoco lo encuentra.
+    assert.equal((await post(pro, agente, { alumno: "Mora", registros: [{ alumno: "Mora", fecha: "2026-11-05", actividades: [] }] })).status, 404);
+    // Tampoco puede invitar a otro/a profesional.
+    assert.equal((await post(pro, docentes, { accion: "invitacion_crear", equipo: escuela_id, rol: "TO" })).status, 403);
+  };
+  await sinConsentimiento();
+
+  // La familia da el consentimiento: ahora sí ve.
+  assert.equal((await post(fam, fichas, { accion: "consentir", id: alumno_id, dado: true })).status, 200);
+  assert.deepEqual(await misAlumnos(pro), [alumno_id]);
+  const eq = (await pro.llamar(docentes, { query: { equipos: "1" } })).body.equipos.find(e => e.escuela_id === escuela_id);
+  assert.equal(eq.falta, null); assert.equal(eq.acceso, true); assert.equal(eq.consentimiento, true);
+  assert.equal((await pro.llamar(fichas, { query: { id: String(alumno_id) } })).status, 200);
+  assert.equal((await pro.llamar(fichas, { query: { documentos: String(alumno_id) } })).status, 200);
+  assert.equal((await pro.llamar(familia, { query: { alumno: String(alumno_id) } })).status, 200);
+  assert.equal((await post(pro, dia, { alumno_id, alumno: "Mora", texto: "Llegó contento." })).status, 503); // pasó el permiso; sin key de IA
+  assert.equal((await post(pro, agente, { alumno_id, alumno: "Mora", registros: [{ alumno: "Mora", alumno_id, fecha: "2026-11-05", actividades: [] }] })).status, 200);
+
+  // La familia lo retira: se pierde el acceso otra vez.
+  assert.equal((await post(fam, fichas, { accion: "consentir", id: alumno_id, dado: false })).status, 200);
+  await sinConsentimiento();
+
+  // docente.html muestra el mensaje claro.
+  const html = fs.readFileSync(path.join(__dirname, "..", "docente.html"), "utf8");
+  assert.ok(html.includes('e.falta === "consentimiento"'));
+  assert.ok(html.includes("Falta el consentimiento de la familia"));
+});
+
+test("consentimiento: el enfoque escuela queda como está (la seño ve a su alumno aunque la familia no haya consentido)", async () => {
+  const al = Number((await pg.query("INSERT INTO alumnos (escuela_id, nombre) VALUES ($1, 'Rocío') RETURNING id", [escuelaId])).rows[0].id);
+  await pg.query(`INSERT INTO fichas (alumno_id, consentimiento) VALUES ($1, '{"dado": false}')`, [al]);
+  assert.ok((await misAlumnos(seno)).includes(al));
+  assert.equal((await seno.llamar(fichas, { query: { id: String(al) } })).status, 200);
+  assert.equal((await seno.llamar(fichas, { query: { documentos: String(al) } })).status, 200);
+  assert.equal((await post(seno, dia, { alumno_id: al, alumno: "Rocío", texto: "Bien." })).status, 503);
+});
+
+test("cuaderno por id: dos equipos con chicos del mismo nombre no se confunden", async () => {
+  const uno_ = await equipoListo({ alumno: "Nico", emailFam: "fam.nico1@familia.com", emailPro: "to.nico@x.com" });
+  const dos = await equipoListo({ alumno: "Nico", emailFam: "fam.nico2@familia.com", emailPro: "to.nico@x.com", pro: uno_.pro });
+  const pro = uno_.pro;
+  assert.notEqual(uno_.alumno_id, dos.alumno_id);
+  const lista = (await pro.llamar(fichas)).body.alumnos.filter(a => a.nombre === "Nico");
+  assert.equal(lista.length, 2);
+  assert.ok(lista.every(a => typeof a.espacio_nombre === "string")); // para distinguirlos en el selector
+  // Objetivos distintos en cada ficha: el agente usa los del chico pedido por id, no el primero con ese nombre.
+  assert.equal((await post(pro, fichas, { accion: "guardar", id: uno_.alumno_id, apoyos: {}, objetivos: ["Esperar su turno"] })).status, 200);
+  assert.equal((await post(pro, fichas, { accion: "guardar", id: dos.alumno_id, apoyos: {}, objetivos: ["Pedir agua con pictos"] })).status, 200);
+  const regs = id => [1, 2, 3].map(i => ({ alumno: "Nico", alumno_id: id, fecha: `2026-11-0${i}`, animo_general: "contento",
+    actividades: [{ hora: "09:00", actividad: "Pidió agua con pictos", palabra_clave: "agua", estado: "bien" }], logros: [] }));
+  const ag = await post(pro, agente, { alumno_id: dos.alumno_id, alumno: "Nico", registros: regs(dos.alumno_id) });
+  assert.equal(ag.status, 200, JSON.stringify(ag.body));
+  const objs = (ag.body.resultado.ppi || []).map(o => o.objetivo);
+  assert.ok(objs.includes("Pedir agua con pictos"), JSON.stringify(objs));
+  assert.ok(!objs.includes("Esperar su turno"));
+  // El día (IA) por id: pasa el permiso para los dos; un id ajeno da 404.
+  assert.equal((await post(pro, dia, { alumno_id: dos.alumno_id, alumno: "Nico", texto: "Bien." })).status, 503);
+  assert.equal((await post(pro, dia, { alumno_id: uno_.alumno_id, alumno: "Nico", texto: "Bien." })).status, 503);
+  assert.equal((await post(seno, dia, { alumno_id: dos.alumno_id, alumno: "Nico", texto: "Bien." })).status, 404);
+  // Publicar por id: cada día va al espacio de su chico.
+  assert.equal((await post(pro, familia, { accion: "publicar", alumno_id: dos.alumno_id, registros: regs(dos.alumno_id) })).status, 200);
+  const [a1, a2] = (await pg.query("SELECT blob_token FROM alumnos WHERE id = ANY($1::bigint[]) ORDER BY id", [[uno_.alumno_id, dos.alumno_id]])).rows;
+  assert.equal(a1.blob_token, null); assert.ok(a2.blob_token);
+  // Las herramientas del agente filtran por id cuando lo hay (mismo nombre, otro chico: afuera).
+  const h = crearHerramientas({ alumno: "Nico", alumno_id: dos.alumno_id, registros: [...regs(dos.alumno_id), ...regs(uno_.alumno_id).map(r => ({ ...r, fecha: "2026-10-0" + r.fecha.slice(-1) }))] });
+  assert.equal(h.leer_historial.run().total_dias, 3);
+  // El Cuaderno usa el id como clave y lo manda a api/dia, api/agente y api/familia.
+  const cu = fs.readFileSync(path.join(__dirname, "..", "cuaderno.html"), "utf8");
+  assert.ok(cu.includes("alumnos.map(a => [String(a.id), a])"));
+  assert.ok(!cu.includes("alumnos.map(a => [a.nombre, a])"));
+  assert.match(cu, /fetch\("api\/dia"[^\n]*\n?[^\n]*body/);
+  assert.ok(cu.includes("alumno_id: idDe(k)"));
+});
+
+test("mail de documentos: en un espacio de equipo dice «El equipo compartió», sin título ni contenido", async () => {
+  const { pro, alumno_id } = await equipoListo({ alumno: "Dante", emailFam: "fam.dante@familia.com", emailPro: "psp.dante@x.com" });
+  const buzon = correo.usarBuzonDePrueba(true);
+  try {
+    const s = await post(pro, fichas, { accion: "doc_subir", id: alumno_id, tipo: "informe", titulo: "TITULO-SECRETO", nombre: "i.pdf", mime: "application/pdf",
+      datos: PDF, mostrar_familia: true, notificar: true });
+    assert.equal(s.status, 200, JSON.stringify(s.body));
+    assert.equal(buzon.length, 1);
+    const m = buzon[0];
+    assert.deepEqual(m.to, ["fam.dante@familia.com"]);
+    assert.equal(m.subject, "Nuevo informe de Dante en Puente");
+    assert.match(m.text, /El equipo compartió un informe de Dante/);
+    assert.match(m.html, /El equipo compartió un <b>informe<\/b>/);
+    // (El pie de marca «de la escuela a casa» es igual para todos los mails y no se tocó.)
+    for (const t of [m.text, m.html, m.subject]) { assert.equal(/la escuela compartió/i.test(t), false); assert.equal(t.includes("TITULO-SECRETO"), false); }
+    assert.equal("attachments" in m, false);
+  } finally { correo.usarBuzonDePrueba(false); }
 });
