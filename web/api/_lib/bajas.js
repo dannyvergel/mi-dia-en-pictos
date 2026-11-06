@@ -4,10 +4,12 @@
 //    y sus informes y documentos (las filas y los archivos en Blob).
 //  · Baja de una familia (la propia familia, o una admin para los alumnos de su escuela): su contacto en las fichas,
 //    su historial de chat, sus vínculos, sesiones, códigos e invitaciones; la cuenta se borra si no le queda otro alumno.
+//    En un espacio de equipo sin otra familia, además se cierra el equipo (integrantes a baja, links anulados).
 // Cada baja queda en la auditoría: quién (tipo + id), cuándo y cuánto se borró. Nunca nombres ni emails.
 const { q, uno, transaccion } = require("./db");
 const { borrarFamilia: borrarBlob, borrarArchivo } = require("./almacen");
 const auditoria = require("./auditoria");
+const A = require("./alumnos");
 const { hoyLocal } = require("./http");
 
 const n = rows => (rows || []).length;
@@ -34,8 +36,12 @@ async function borrarFamiliasHuerfanas(ids, { invitaciones = true } = {}) {
 
 // yo: docente con sesión (ya verificado que puede borrar este alumno). Devuelve el resumen (sin datos personales).
 async function bajaAlumno(req, yo, alumnoId) {
-  const a = await uno("SELECT id, escuela_id, blob_token FROM alumnos WHERE id = $1", [Number(alumnoId) || 0]);
+  const a = await uno("SELECT a.id, a.escuela_id, a.blob_token, e.tipo AS espacio_tipo FROM alumnos a JOIN escuelas e ON e.id = a.escuela_id WHERE a.id = $1", [Number(alumnoId) || 0]);
   if (!a) return null;
+  // Enfoque equipo: sin el chico el espacio no tiene sentido. Se dan de baja los integrantes y se desactiva el espacio.
+  const miembros_dados_de_baja = a.espacio_tipo === "equipo"
+    ? await A.cerrarEquipo(req, a.escuela_id, { actor_tipo: "docente", actor_id: yo.id, motivo: "baja del alumno" }) : 0;
+  if (a.espacio_tipo === "equipo") await q("UPDATE escuelas SET activa = false, actualizado = now(), actualizado_por = 'baja del alumno' WHERE id = $1", [a.escuela_id]);
   const familias = (await q("SELECT familia_id FROM familia_alumno WHERE alumno_id = $1", [a.id])).map(f => Number(f.familia_id));
   const turnos = await uno("SELECT count(*)::int AS n FROM chat_turnos WHERE alumno_id = $1", [a.id]);
   // Informes y documentos: se leen las rutas antes de borrar las filas, para después borrar los archivos del Blob.
@@ -58,7 +64,7 @@ async function bajaAlumno(req, yo, alumnoId) {
   // blob_borrado: true solo si se borró todo lo que había en Blob (días y documentos).
   const blob_borrado = dias_borrados && documentos_borrados;
   const resumen = { familias_desvinculadas: familias.length, familias_borradas, turnos_chat: turnos?.n || 0, dias_publicados: !!a.blob_token,
-    documentos: rutas.length, blob_borrado };
+    documentos: rutas.length, blob_borrado, ...(a.espacio_tipo === "equipo" ? { miembros_dados_de_baja } : {}) };
   await auditoria.registrar(req, { evento: "baja_alumno", actor_tipo: "docente", actor_id: yo.id, escuela_id: a.escuela_id,
     objeto_tipo: "alumno", objeto_id: a.id, detalle: resumen });
   if (!dias_borrados) console.error(`[puente] baja alumno #${a.id}: los días en Blob no se pudieron borrar; reintentar a mano`);
@@ -92,8 +98,17 @@ async function bajaFamilia(req, actorSesion, familiaId, alumnoIds = null) {
     await q("DELETE FROM invitaciones WHERE email = $1 AND alumno_id = ANY($2::bigint[])", [f.email, alcance]);
     await q("DELETE FROM familia_alumno WHERE familia_id = $1 AND alumno_id = ANY($2::bigint[])", [f.id, alcance]);
   }
+  // Enfoque equipo: la familia es la dueña. Si en un espacio de equipo no queda ninguna familia, el equipo se cierra:
+  // cada integrante pasa a baja (queda en la auditoría) y se anulan los links pendientes. El espacio y los datos del chico quedan.
+  let miembros_dados_de_baja = 0;
+  if (alcance.length) {
+    const huerfanos = await q(`SELECT DISTINCT a.escuela_id FROM alumnos a JOIN escuelas e ON e.id = a.escuela_id WHERE a.id = ANY($1::bigint[])
+      AND e.tipo = 'equipo' AND NOT EXISTS (SELECT 1 FROM familia_alumno fa WHERE fa.alumno_id = a.id)`, [alcance]);
+    const sa = auditoria.actor(actorSesion);
+    for (const h of huerfanos) miembros_dados_de_baja += await A.cerrarEquipo(req, h.escuela_id, { actor_tipo: sa.actor_tipo, actor_id: sa.actor_id, motivo: "baja de la familia" });
+  }
   const cuenta_borrada = (await borrarFamiliasHuerfanas([f.id])) > 0;
-  const resumen = { alumnos: alcance.length, contactos_quitados, consentimientos_retirados, turnos_chat: n(turnos), cuenta_borrada };
+  const resumen = { alumnos: alcance.length, contactos_quitados, consentimientos_retirados, turnos_chat: n(turnos), cuenta_borrada, miembros_dados_de_baja };
   const a = auditoria.actor(actorSesion);
   await auditoria.registrar(req, { evento: "baja_familia", ...a, objeto_tipo: "familia", objeto_id: f.id,
     detalle: { ...resumen, por: actorSesion.tipo === "familia" ? "la familia" : "la escuela" } });

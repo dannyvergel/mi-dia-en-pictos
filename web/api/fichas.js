@@ -24,6 +24,12 @@
 //   Piloto: sumar emails nuevos de familia (crear/guardar) respeta el tope de cupos (409 "El piloto está completo").
 //   POST accion=importar_previa | importar_confirmar | importar_enviar   (solo admins de escuela / plataforma)
 //                                        Importación masiva de docentes y alumnos con familias: ver _lib/importacion.js
+// Enfoque equipo (docs/enfoques.md): en un espacio de equipo, los integrantes aprobados ven y editan apoyos y objetivos, el
+//   día y los documentos; contactos, consentimiento, invitar familias, asignar, bajas y borrar quedan para la familia / plataforma (403).
+//   GET suma a cada alumno de equipo { espacio: 'equipo', equipo: { miembros (aprobados), links, roles } }.
+//   Familia: POST accion=equipo_invitar { id, nombre?, rol } → link para un/a profesional (queda pendiente hasta que lo apruebe)
+//            POST accion=equipo_aprobar | equipo_rechazar | equipo_quitar { id, miembro_id }   POST accion=equipo_link_revocar { id, link_id }
+//            GET devuelve el equipo completo (con emails y estados); la exportación incluye los integrantes.
 // Familia: ve solo los alumnos vinculados a su email (los emails de "contactos" de la ficha), de escuelas activas.
 //   GET                                → sus alumnos con la ficha (solo lectura)
 //   POST accion=consentir   { id, dado }
@@ -48,17 +54,34 @@ const piloto = require("./_lib/piloto");
 const docs = require("./_lib/documentos");
 const { cuerpo, consulta, exigirJson, manejarError, errorPublico, hoyLocal } = require("./_lib/http");
 
-const SELECT = `SELECT a.id, a.nombre, a.grado, a.blob_token IS NOT NULL AS publicado, f.contactos, f.apoyos, f.objetivos, f.consentimiento, f.actualizado
+const SELECT = `SELECT a.id, a.nombre, a.grado, a.escuela_id, (SELECT tipo FROM escuelas WHERE id = a.escuela_id) AS espacio_tipo,
+  a.blob_token IS NOT NULL AS publicado, f.contactos, f.apoyos, f.objetivos, f.consentimiento, f.actualizado
   FROM alumnos a LEFT JOIN fichas f ON f.alumno_id = a.id`;
 const { funcionesFamilia } = require("./_lib/funciones");
 const forma = r => r && ({ id: Number(r.id), nombre: r.nombre, grado: r.grado || "", publicado: !!r.publicado, contactos: r.contactos || [], apoyos: r.apoyos || {},
   objetivos: r.objetivos || [], consentimiento: r.consentimiento || { dado: false }, actualizado: r.actualizado });
 
 // Suma a cada alumno sus docentes asignadas y cuándo se invitó a cada email de contacto.
+// En un espacio de equipo suma también el equipo (integrantes aprobados) y los links pendientes para sumar profesionales.
 async function completar(filas) {
   const ids = filas.map(r => Number(r.id));
   const [asig, invs, links] = await Promise.all([A.asignadas(ids), inv.enviadas(ids), enlaces.pendientesFamilia(ids)]);
-  return filas.map(r => ({ ...forma(r), docentes: asig[Number(r.id)] || [], invitaciones: invs[Number(r.id)] || {}, links_familia: links[Number(r.id)] || [] }));
+  const out = [];
+  for (const r of filas) {
+    const x = { ...forma(r), docentes: asig[Number(r.id)] || [], invitaciones: invs[Number(r.id)] || {}, links_familia: links[Number(r.id)] || [] };
+    if (r.espacio_tipo === "equipo") {
+      x.espacio = "equipo";
+      x.equipo = { escuela_id: Number(r.escuela_id), miembros: await A.miembrosDe(r.escuela_id), links: await enlaces.pendientesEquipo(r.escuela_id), roles: A.ROLES_EQUIPO };
+    }
+    out.push(x);
+  }
+  return out;
+}
+// Lo que la familia (dueña) ve del equipo de un alumno: todos los integrantes con su estado y los links pendientes.
+async function equipoParaFamilia(r) {
+  if (r.espacio_tipo !== "equipo") return null;
+  return { escuela_id: Number(r.escuela_id), miembros: await A.miembrosDe(r.escuela_id, { completo: true }),
+    links: await enlaces.pendientesEquipo(r.escuela_id), roles: A.ROLES_EQUIPO };
 }
 
 async function alumnoDeDocente(yo, id) {
@@ -103,8 +126,11 @@ async function docente(req, res, yo) {
     return res.status(200).json({ alumnos: await completar(filas), apoyos: F.APOYOS, docentes: docentes.map(d => ({ ...d, id: Number(d.id) })),
       yo: Number(yo.id), es_admin: !!yo.es_admin });
   }
-  const b = cuerpo(req);
+  let b = cuerpo(req);
   if (String(b.accion || "").startsWith("importar_")) return importacion.manejar(req, res, yo, b);
+  // Enfoque equipo: contactos, invitaciones de familia, asignaciones, bajas y borrar los decide la familia (o la plataforma).
+  if (["invitar", "link_familia", "link_revocar", "asignar", "desasignar", "borrar", "baja_familia"].includes(b.accion))
+    await A.exigirNoEquipo(b.id, S.esPlataforma(yo));
   if (b.accion === "doc_subir") return res.status(200).json(await docs.subir(req, yo, b));
   if (b.accion === "doc_cambiar") return res.status(200).json(await docs.cambiar(req, yo, b));
   if (b.accion === "doc_borrar") return res.status(200).json(await docs.borrar(req, yo, b));
@@ -124,6 +150,10 @@ async function docente(req, res, yo) {
   }
   if (b.accion === "guardar") {
     const actual = await alumnoDeDocente(yo, b.id);
+    // Enfoque equipo: los integrantes editan apoyos y objetivos. Nombre, contactos y consentimiento son de la familia.
+    if (actual.espacio_tipo === "equipo" && !S.esPlataforma(yo)) {
+      b = { ...b, nombre: actual.nombre, contactos: actual.contactos || [], consentimiento: undefined };
+    }
     const nombre = b.nombre != null ? F.validarNombre(b.nombre) : actual.nombre;
     const contactos = F.validarContactos(b.contactos), apoyos = F.validarApoyos(b.apoyos), objetivos = F.validarObjetivos(b.objetivos);
     // Piloto: cada email nuevo de familia es una cuenta (un cupo). Se corta antes de guardar nada.
@@ -208,6 +238,18 @@ async function docente(req, res, yo) {
   throw errorPublico("Acción desconocida");
 }
 
+// Enfoque equipo: la familia (dueña) invita, aprueba, rechaza o saca profesionales, y anula links pendientes.
+async function equipoFamilia(req, res, fam, a, b) {
+  if (a.espacio_tipo !== "equipo") throw errorPublico(A.NO_ES_EQUIPO, 400);
+  const escuelaId = Number(a.escuela_id), actor = { tipo: "familia", usuario: fam };
+  let enlace = null;
+  if (b.accion === "equipo_invitar") enlace = await enlaces.crearMiembro(req, actor, escuelaId, b);
+  else if (b.accion === "equipo_link_revocar") await enlaces.revocarEnEquipo(req, actor, escuelaId, b.link_id);
+  else if (["equipo_aprobar", "equipo_rechazar", "equipo_quitar"].includes(b.accion)) await A.resolverMiembro(req, fam, escuelaId, b.miembro_id, b.accion.slice(7));
+  else throw errorPublico("Acción desconocida");
+  return res.status(200).json({ ok: true, ...(enlace ? { enlace } : {}), equipo: await equipoParaFamilia(a) });
+}
+
 async function familia(req, res, fam) {
   const ses = { tipo: "familia", usuario: fam };
   if (req.method === "GET") {
@@ -219,15 +261,24 @@ async function familia(req, res, fam) {
     if (consulta(req, "exportar") === "1") { // derecho de acceso: todo lo que Puente guarda de esta familia
       const chat = await q("SELECT alumno_id, rol, texto, creado FROM chat_turnos WHERE usuario_tipo = 'familia' AND usuario_id = $1 ORDER BY id", [fam.id]);
       await auditoria.registrar(req, { evento: "exportacion", ...auditoria.actor(ses), detalle: { alumnos: filas.length } });
+      const equipos = [];
+      for (const r of filas) { const e = await equipoParaFamilia(r); if (e) equipos.push({ alumno_id: Number(r.id), miembros: e.miembros }); }
       return res.status(200).json({ exportado: new Date().toISOString(), email: fam.email, alumnos: filas.map(forma),
         chat: chat.map(t => ({ ...t, alumno_id: Number(t.alumno_id) })),
+        equipos, // enfoque equipo: integrantes de cada espacio (con estados, fechas y confidencialidad)
         documentos: await docs.exportarFamilia(fam) }); // metadatos (sin los archivos: cada uno se baja desde Puente)
     }
     await auditoria.registrar(req, { evento: "ficha_ver", ...auditoria.actor(ses), detalle: { alumnos: filas.length } });
     // Fuera de la exportación, la familia ve solo lo prendido en FAMILIA_FUNCIONES (ver _lib/funciones.js).
     const fx = funcionesFamilia();
-    const vista = r => { const f = forma(r); if (!fx.ficha) { delete f.apoyos; delete f.objetivos; } return f; };
-    return res.status(200).json({ alumnos: filas.map(vista), apoyos: F.APOYOS, email: fam.email, privacidad: legal.VERSION_PRIVACIDAD });
+    const vista = async r => {
+      const f = forma(r); if (!fx.ficha) { delete f.apoyos; delete f.objetivos; }
+      const e = await equipoParaFamilia(r); // la gestión del equipo no depende de FAMILIA_FUNCIONES: es de la dueña
+      if (e) { f.espacio = "equipo"; f.equipo = e; }
+      return f;
+    };
+    const alumnos = []; for (const r of filas) alumnos.push(await vista(r));
+    return res.status(200).json({ alumnos, apoyos: F.APOYOS, email: fam.email, privacidad: legal.VERSION_PRIVACIDAD });
   }
   const b = cuerpo(req);
   if (b.accion === "baja") {
@@ -237,6 +288,7 @@ async function familia(req, res, fam) {
     return res.status(200).json({ ok: true, resumen });
   }
   const a = await alumnoDeFamilia(fam, b.id);
+  if (String(b.accion || "").startsWith("equipo_")) return equipoFamilia(req, res, fam, a, b);
   const contactos = a.contactos || [];
   const yo = contactos.find(c => c.email === fam.email);
   if (b.accion === "consentir") {

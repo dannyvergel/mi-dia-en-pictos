@@ -237,7 +237,45 @@ const SCHEMA = [
     notificado TIMESTAMPTZ,
     creado TIMESTAMPTZ NOT NULL DEFAULT now()
   )`,
-  `CREATE INDEX IF NOT EXISTS documentos_alumno ON documentos (alumno_id, creado DESC)`
+  `CREATE INDEX IF NOT EXISTS documentos_alumno ON documentos (alumno_id, creado DESC)`,
+  // ---------- Dos enfoques: escuela y equipo (docs/enfoques.md) ----------
+  // tipo: 'escuela' (dirección → seños → familias), 'independiente' (profesional con espacio propio, PR #19) o
+  // 'equipo' (un espacio por chico: la familia es dueña y aprueba a cada profesional). Cualquier otro valor se corrige a 'escuela'.
+  `UPDATE escuelas SET tipo = 'escuela' WHERE tipo NOT IN ('escuela', 'independiente', 'equipo')`,
+  `DO $$ BEGIN
+     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'escuelas_tipo_check') THEN
+       ALTER TABLE escuelas ADD CONSTRAINT escuelas_tipo_check CHECK (tipo IN ('escuela', 'independiente', 'equipo'));
+     END IF;
+   END $$`,
+  // Quién abrió el espacio de equipo ('familia' o 'profesional'); vacío en los otros enfoques.
+  `ALTER TABLE escuelas ADD COLUMN IF NOT EXISTS abierto_por TEXT NOT NULL DEFAULT ''`,
+  // Integrantes de un espacio de equipo (profesionales). La cuenta es una fila de docentes (puede no tener escuela, o ser
+  // seño de una escuela y además integrar el equipo de un chico). Estado: pendiente (usó el link, espera que la familia lo
+  // apruebe) → aprobado | rechazado; baja (lo sacó la familia, se fue o la familia se dio de baja). Pendiente y aprobado
+  // ocupan cupo. Solo ve al chico si está aprobado y aceptó el compromiso de confidencialidad (fecha + versión del texto).
+  `CREATE TABLE IF NOT EXISTS equipo_miembros (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    escuela_id BIGINT NOT NULL REFERENCES escuelas(id) ON DELETE CASCADE,
+    docente_id BIGINT NOT NULL REFERENCES docentes(id) ON DELETE CASCADE,
+    rol TEXT NOT NULL DEFAULT '',
+    estado TEXT NOT NULL DEFAULT 'pendiente' CHECK (estado IN ('pendiente', 'aprobado', 'rechazado', 'baja')),
+    enlace_id BIGINT REFERENCES enlaces(id) ON DELETE SET NULL,
+    invitado_por_tipo TEXT,
+    invitado_por BIGINT,
+    creado TIMESTAMPTZ NOT NULL DEFAULT now(),
+    resuelto TIMESTAMPTZ,
+    resuelto_por_tipo TEXT,
+    resuelto_por BIGINT,
+    motivo TEXT NOT NULL DEFAULT '',
+    confidencialidad TIMESTAMPTZ,
+    confidencialidad_version TEXT,
+    UNIQUE (escuela_id, docente_id)
+  )`,
+  `CREATE INDEX IF NOT EXISTS equipo_miembros_docente ON equipo_miembros (docente_id, estado)`,
+  // Links de invitación a un equipo: tipo 'docente' en un espacio tipo 'equipo', con el rol. Los crea la familia
+  // (creado_por_familia), un integrante aprobado (creado_por) o la plataforma.
+  `ALTER TABLE enlaces ADD COLUMN IF NOT EXISTS rol TEXT NOT NULL DEFAULT ''`,
+  `ALTER TABLE enlaces ADD COLUMN IF NOT EXISTS creado_por_familia BIGINT REFERENCES familias(id) ON DELETE SET NULL`
 ];
 
 module.exports = { SCHEMA };

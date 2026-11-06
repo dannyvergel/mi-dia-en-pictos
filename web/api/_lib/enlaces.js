@@ -6,6 +6,10 @@
 //    deja a la persona como admin de ese espacio: suma alumnos y familias como cualquier escuela. Ocupa un cupo.
 //  · Familia: lo crea desde la ficha una docente que ve a ese alumno. Queda ligado al alumno: al usarlo, el email se suma a
 //    los contactos de la ficha y la familia entra a su espacio (después da el consentimiento ahí, como siempre).
+//  · Equipo (enfoque equipo, docs/enfoques.md): la plataforma abre el espacio de un chico (escuelas.tipo = 'equipo') con su
+//    alumno y el link de la familia (dueña); si lo pidió un/a profesional, también el link de esa persona. Después invitan la
+//    familia o cualquier integrante aprobado: link tipo 'docente' en un espacio de equipo, con un rol. Quien lo usa queda
+//    PENDIENTE hasta que la familia lo aprueba. No se manda mail: el link se comparte por WhatsApp (el código llega al abrirlo).
 // Por defecto: un solo uso y 7 días. Se pueden revocar. Solo se guarda el hash del token (SHA-256): el link completo se
 // muestra una sola vez, al crearlo. El token va en el fragmento (#invitacion=…), así no queda en logs ni en Referer.
 // Respetan el tope de cupos (_lib/piloto.js): no se crean links, ni se usa uno pendiente, si el piloto está completo.
@@ -39,7 +43,7 @@ function estadoDe(l) {
 }
 const forma = l => ({
   id: Number(l.id), tipo: l.tipo, estado: estadoDe(l), escuela_id: Number(l.escuela_id), escuela: l.escuela_nombre || undefined,
-  independiente: l.escuela_tipo === "independiente",
+  independiente: l.escuela_tipo === "independiente", equipo: l.escuela_tipo === "equipo", rol: l.rol || "",
   alumno_id: l.alumno_id != null ? Number(l.alumno_id) : null, alumno: l.alumno_nombre || undefined, es_admin: !!l.es_admin,
   etiqueta: l.etiqueta || "", vinculo: l.vinculo || "", usos: Number(l.usos), usos_max: Number(l.usos_max), expira: l.expira, creado: l.creado,
   creado_por: l.creador_nombre || undefined, usado: l.usado || null, revocado: l.revocado || null
@@ -48,6 +52,10 @@ const forma = l => ({
 function mensajeWhatsapp(l, url) {
   const vence = fechaCorta(l.expira);
   const indep = l.escuela_tipo === "independiente";
+  if (l.escuela_tipo === "equipo" && l.tipo === "familia")
+    return `Hola! Abrimos en Puente el espacio de ${l.alumno_nombre} para seguir su día con pictogramas junto a sus profesionales. Vos sos quien decide quién entra. Entrá con este link, poné tu email y el código que te llega (sin contraseña): ${url} . Es personal, sirve una sola vez y vence el ${vence}.`;
+  if (l.escuela_tipo === "equipo")
+    return `Hola! Te invito a sumarte en Puente al equipo de ${l.alumno_nombre}${l.rol ? " como " + l.rol : ""}. Entrá con este link, poné tu email y el código que te llega (sin contraseña): ${url} . La familia tiene que aprobarte antes de que veas algo. Es personal, sirve una sola vez y vence el ${vence}.`;
   if (indep && l.tipo === "familia")
     return `Hola! Te invito a Puente para seguir el día de ${l.alumno_nombre} con pictogramas. Entrá con este link, poné tu email y el código que te llega (sin contraseña): ${url} . Es personal, sirve una sola vez y vence el ${vence}.`;
   if (indep)
@@ -60,14 +68,16 @@ function mensajeWhatsapp(l, url) {
 const SELECT = `SELECT l.*, es.nombre AS escuela_nombre, es.activa AS escuela_activa, es.tipo AS escuela_tipo, a.nombre AS alumno_nombre, d.nombre AS creador_nombre
   FROM enlaces l JOIN escuelas es ON es.id = l.escuela_id LEFT JOIN alumnos a ON a.id = l.alumno_id LEFT JOIN docentes d ON d.id = l.creado_por`;
 
+// yo: docente que crea el link; con datos.creado_por_familia, lo crea esa familia (yo = { id } de la familia).
 async function insertar(req, yo, datos) {
   const token = crypto.randomBytes(24).toString("base64url");
-  const r = await uno(`INSERT INTO enlaces (token_hash, tipo, escuela_id, alumno_id, es_admin, etiqueta, vinculo, usos_max, expira, creado_por)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now() + ($9 || ' days')::interval, $10) RETURNING id`,
+  const fam = datos.creado_por_familia ?? null;
+  const r = await uno(`INSERT INTO enlaces (token_hash, tipo, escuela_id, alumno_id, es_admin, etiqueta, vinculo, usos_max, expira, creado_por, rol, creado_por_familia)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now() + ($9 || ' days')::interval, $10, $11, $12) RETURNING id`,
     [hashToken(token), datos.tipo, datos.escuela_id, datos.alumno_id ?? null, !!datos.es_admin, datos.etiqueta || "", datos.vinculo || "",
-      datos.usos_max, String(datos.dias), yo.id]);
+      datos.usos_max, String(datos.dias), fam ? null : yo.id, datos.rol || "", fam]);
   const l = await uno(`${SELECT} WHERE l.id = $1`, [r.id]);
-  await auditoria.registrar(req, { evento: "invitacion_creada", actor_tipo: "docente", actor_id: yo.id, escuela_id: l.escuela_id,
+  await auditoria.registrar(req, { evento: "invitacion_creada", actor_tipo: fam ? "familia" : "docente", actor_id: fam ?? yo.id, escuela_id: l.escuela_id,
     objeto_tipo: "enlace", objeto_id: l.id, detalle: { tipo: l.tipo, usos_max: l.usos_max, dias: datos.dias, ...(l.alumno_id ? { alumno_id: Number(l.alumno_id) } : {}), ...(l.es_admin ? { admin: true } : {}) } });
   const url = `${urlPublica(req)}/login.html#invitacion=${token}`;
   return { ...forma(l), url, whatsapp: `https://wa.me/?text=${encodeURIComponent(mensajeWhatsapp(l, url))}`, mensaje: mensajeWhatsapp(l, url) };
@@ -87,8 +97,9 @@ async function crearDocente(req, yo, b) {
   } else {
     const id = b.escuela_id == null || b.escuela_id === "" ? Number(yo.escuela_id) : Number(b.escuela_id);
     if (id !== Number(yo.escuela_id) && !plataforma) throw errorPublico("Solo podés invitar docentes a tu escuela.", 403);
-    escuela = await uno("SELECT id, nombre FROM escuelas WHERE id = $1 AND activa", [id || 0]);
+    escuela = await uno("SELECT id, nombre, tipo FROM escuelas WHERE id = $1 AND activa", [id || 0]);
     if (!escuela) throw errorPublico("No encontramos esa escuela (o está desactivada).", 404);
+    if (escuela.tipo === "equipo") return crearMiembro(req, { tipo: "docente", usuario: yo }, Number(escuela.id), b);
   }
   await piloto.exigirCupo(1);
   return insertar(req, yo, { tipo: "docente", escuela_id: Number(escuela.id), es_admin: !!b.es_admin, etiqueta: txt(b.etiqueta, 80),
@@ -107,6 +118,77 @@ async function crearIndependiente(req, yo, b) {
     RETURNING id`, [espacio, "Profesional sin escuela: " + nombre]);
   return insertar(req, yo, { tipo: "docente", escuela_id: Number(e.id), es_admin: true, etiqueta: nombre,
     usos_max: 1, dias: entero(b.dias, DIAS_DEFECTO, 1, DIAS_MAX) });
+}
+
+// ---------- enfoque equipo ----------
+// Abre el espacio de equipo de un chico (solo plataforma, por ahora; ver docs/enfoques.md).
+// b: { alumno (nombre de pila), espacio?, abre: 'familia' | 'profesional', vinculo?, familia_nombre?, profesional_nombre?, rol?, dias? }
+// Crea el espacio, el alumno con su ficha vacía y el link de la familia (siempre). Si lo abre un/a profesional, también su
+// link (queda pendiente hasta que la familia lo apruebe). Respeta el tope de cupos (1 o 2 cuentas nuevas).
+async function crearEquipo(req, yo, b) {
+  if (!S.esPlataforma(yo)) throw errorPublico("Por ahora los espacios de equipo los abre la plataforma.", 403);
+  const nombre = F.validarNombre(b.alumno);
+  const abre = b.abre === "profesional" ? "profesional" : "familia";
+  const rol = abre === "profesional" ? A.txtRol(b.rol) : "";
+  const profesional = abre === "profesional" ? txt(b.profesional_nombre, 80) : "";
+  if (abre === "profesional" && rol.length < 2) throw errorPublico("Elegí o escribí el rol del/la profesional (fono, TO, psicopedagoga…).");
+  const dias = entero(b.dias, DIAS_DEFECTO, 1, DIAS_MAX);
+  await piloto.exigirCupo(abre === "profesional" ? 2 : 1);
+  const espacio = txt(b.espacio, 100) || `Equipo de ${nombre}`;
+  const e = await uno(`INSERT INTO escuelas (nombre, tipo, abierto_por, notas, actualizado, actualizado_por) VALUES ($1, 'equipo', $2, $3, now(), 'plataforma')
+    RETURNING id`, [espacio, abre, `Espacio de equipo (un chico). Lo abrió: ${abre}.`]);
+  const a = await uno("INSERT INTO alumnos (escuela_id, nombre, creado_por) VALUES ($1, $2, $3) RETURNING id", [e.id, nombre, yo.id]);
+  await q("INSERT INTO fichas (alumno_id, actualizado_por) VALUES ($1, 'plataforma')", [a.id]);
+  await auditoria.registrar(req, { evento: "equipo_creado", actor_tipo: "docente", actor_id: yo.id, escuela_id: e.id, objeto_tipo: "alumno", objeto_id: a.id,
+    detalle: { abre } });
+  const familia = await insertar(req, yo, { tipo: "familia", escuela_id: Number(e.id), alumno_id: Number(a.id), etiqueta: txt(b.familia_nombre, 60),
+    vinculo: txt(b.vinculo, 30), usos_max: 1, dias });
+  const pro = abre === "profesional" ? await insertar(req, yo, { tipo: "docente", escuela_id: Number(e.id), alumno_id: Number(a.id), etiqueta: profesional,
+    rol, usos_max: 1, dias }) : null;
+  return { equipo: { escuela_id: Number(e.id), alumno_id: Number(a.id), espacio, abierto_por: abre }, familia, profesional: pro };
+}
+
+// Link para sumar un/a profesional a un equipo. actor: { tipo: 'docente' | 'familia', usuario }.
+// Pueden: la plataforma, un integrante con acceso (aprobado + confidencialidad) o una familia del chico.
+// b: { nombre? (de la persona), rol, dias? }. Un solo uso. Quien lo use queda pendiente de aprobación de la familia.
+async function crearMiembro(req, actor, escuelaId, b) {
+  const e = await uno("SELECT id, tipo, activa FROM escuelas WHERE id = $1", [Number(escuelaId) || 0]);
+  if (!e || e.tipo !== "equipo" || !e.activa) throw errorPublico("No encontramos ese espacio de equipo (o está desactivado).", 404);
+  const alumno = await A.alumnoDelEspacio(e.id);
+  if (!alumno) throw errorPublico("Ese espacio todavía no tiene al chico cargado.", 409);
+  const yo = actor.usuario;
+  const puede = actor.tipo === "familia"
+    ? !!(await uno("SELECT 1 AS x FROM familia_alumno WHERE familia_id = $1 AND alumno_id = $2", [yo.id, alumno.id]))
+    : S.esPlataforma(yo) || await A.miembroConAcceso(yo.id, e.id);
+  if (!puede) throw errorPublico("Solo la familia o alguien del equipo puede invitar a otro/a profesional.", 403);
+  const rol = A.txtRol(b.rol);
+  if (rol.length < 2) throw errorPublico("Elegí o escribí el rol (fono, TO, psicopedagoga, maestra integradora…).");
+  await piloto.exigirCupo(1);
+  return insertar(req, yo, { tipo: "docente", escuela_id: Number(e.id), alumno_id: Number(alumno.id), etiqueta: txt(b.nombre ?? b.etiqueta, 80), rol,
+    usos_max: 1, dias: entero(b.dias, DIAS_DEFECTO, 1, DIAS_MAX), ...(actor.tipo === "familia" ? { creado_por_familia: yo.id } : {}) });
+}
+
+// Links pendientes para sumar profesionales a un equipo (la familia y los integrantes los ven y pueden anular).
+async function pendientesEquipo(escuelaId) {
+  const filas = await q(`${SELECT} WHERE l.escuela_id = $1 AND l.tipo = 'docente' AND es.tipo = 'equipo' AND l.revocado IS NULL AND l.usos < l.usos_max
+    AND l.expira > now() ORDER BY l.id`, [Number(escuelaId) || 0]);
+  return filas.map(forma);
+}
+// Anula un link pendiente de profesional de un equipo. Quien llama ya verificó que es familia del chico o integrante con acceso.
+async function revocarEnEquipo(req, actor, escuelaId, id) {
+  const l = await uno(`${SELECT} WHERE l.id = $1 AND l.escuela_id = $2 AND es.tipo = 'equipo'`, [Number(id) || 0, Number(escuelaId) || 0]);
+  if (!l) throw errorPublico("No encontramos ese link", 404);
+  if (estadoDe(l) !== "pendiente") throw errorPublico("Ese link ya no está pendiente (se usó, venció o ya estaba anulado).", 409);
+  await q("UPDATE enlaces SET revocado = now(), revocado_por = $2 WHERE id = $1 AND revocado IS NULL", [l.id, actor.usuario.id]);
+  await auditoria.registrar(req, { evento: "invitacion_revocada", actor_tipo: actor.tipo, actor_id: actor.usuario.id, escuela_id: l.escuela_id,
+    objeto_tipo: "enlace", objeto_id: l.id, detalle: { tipo: l.tipo } });
+}
+
+// ¿Esta cuenta de docente ya ocupa un cupo? (escuela activa o equipo vivo; la plataforma nunca).
+async function ocupaCupo(docenteId) {
+  const r = await uno(`SELECT d.email, coalesce(e.activa, false) OR ${A.sqlEnEquipoVivo("d.id")} AS ocupa
+    FROM docentes d LEFT JOIN escuelas e ON e.id = d.escuela_id WHERE d.id = $1 AND d.activo`, [docenteId]);
+  return !!r?.ocupa && !S.esPlataforma(r);
 }
 
 // Link para la familia de un alumno (quien llama ya verificó que la docente ve a ese alumno). Siempre de un solo uso.
@@ -172,6 +254,14 @@ async function limitar(clave, max) {
 
 // ¿Usar este link con este email suma una cuenta (ocupa un cupo)? Corta si el email ya tiene acceso.
 async function sumaCuenta(l, email) {
+  if (l.tipo === "docente" && l.escuela_tipo === "equipo") {
+    const d = await uno("SELECT id, activo FROM docentes WHERE email = $1", [email]);
+    if (!d?.activo) return true;
+    const ya = await uno("SELECT estado FROM equipo_miembros WHERE escuela_id = $1 AND docente_id = $2 AND estado = ANY($3::text[])", [l.escuela_id, d.id, A.ESTADOS_VIVOS]);
+    if (ya) throw errorPublico(ya.estado === "pendiente" ? `Ya estás esperando que la familia de ${l.alumno_nombre} te apruebe: entrá desde «Soy docente».`
+      : `Ya sos parte del equipo de ${l.alumno_nombre}: entrá desde «Soy docente».`, 409);
+    return !(await ocupaCupo(d.id));
+  }
   if (l.tipo === "docente") {
     const d = await uno("SELECT id, activo FROM docentes WHERE email = $1", [email]);
     if (d?.activo) throw errorPublico("Ese email ya tiene cuenta de docente en Puente: entrá desde «Soy docente».", 409);
@@ -186,7 +276,9 @@ async function info(req, token) {
   await limitar("invitacion:info:" + S.ipDe(req), MAX_INFO_IP);
   const l = await usable(token);
   const c = await piloto.cupos();
-  return { ok: true, tipo: l.tipo, escuela: l.escuela_nombre, independiente: l.escuela_tipo === "independiente", alumno: l.tipo === "familia" ? l.alumno_nombre : undefined, es_admin: !!l.es_admin,
+  const equipo = l.escuela_tipo === "equipo";
+  return { ok: true, tipo: l.tipo, escuela: l.escuela_nombre, independiente: l.escuela_tipo === "independiente", equipo, rol: equipo ? l.rol || "" : undefined,
+    alumno: l.tipo === "familia" || equipo ? l.alumno_nombre : undefined, es_admin: !!l.es_admin,
     nombre: l.etiqueta || "", expira: l.expira, completo: c.completo, ...(c.completo ? { mensaje: piloto.textoCompleto(c) } : {}) };
 }
 
@@ -237,9 +329,30 @@ async function verificar(req, res, b) {
     if (suma && cu.completo) throw Object.assign(errorPublico(piloto.textoCompleto(cu), 409), { completo: true });
     throw errorPublico("Este link de invitación ya se usó o venció. Pedile uno nuevo a quien te invitó.", 410);
   }
-  let cuenta, actorId;
+  let cuenta, actorId, miembroId = null;
   try {
-    if (l.tipo === "docente") {
+    if (l.tipo === "docente" && l.escuela_tipo === "equipo") {
+      // Enfoque equipo: la cuenta no cambia de escuela (puede no tener, o ser seño de otra). Queda pendiente de la familia.
+      const existe = await uno("SELECT id, activo FROM docentes WHERE email = $1", [email]);
+      if (existe && !existe.activo) {
+        await q("UPDATE docentes SET activo = true, escuela_id = NULL, es_admin = false, nombre = $2 WHERE id = $1", [existe.id, nombre || "Profesional"]);
+        await q("DELETE FROM alumno_docentes WHERE docente_id = $1", [existe.id]);
+        actorId = existe.id; cuenta = "reactivada";
+      } else if (existe) { actorId = existe.id; cuenta = "existente"; }
+      else {
+        actorId = (await uno("INSERT INTO docentes (escuela_id, email, nombre, es_admin) VALUES (NULL, $1, $2, false) RETURNING id", [email, nombre])).id;
+        cuenta = "nueva";
+      }
+      const invTipo = l.creado_por_familia ? "familia" : "docente", invId = l.creado_por_familia ?? l.creado_por;
+      const m = await uno(`INSERT INTO equipo_miembros (escuela_id, docente_id, rol, estado, enlace_id, invitado_por_tipo, invitado_por)
+        VALUES ($1, $2, $3, 'pendiente', $4, $5, $6)
+        ON CONFLICT (escuela_id, docente_id) DO UPDATE SET estado = 'pendiente', rol = EXCLUDED.rol, enlace_id = EXCLUDED.enlace_id,
+          invitado_por_tipo = EXCLUDED.invitado_por_tipo, invitado_por = EXCLUDED.invitado_por, creado = now(), resuelto = NULL,
+          resuelto_por_tipo = NULL, resuelto_por = NULL, motivo = '', confidencialidad = NULL, confidencialidad_version = NULL
+        WHERE equipo_miembros.estado IN ('rechazado', 'baja') RETURNING id`, [l.escuela_id, actorId, l.rol || "", l.id, invTipo, invId ?? null]);
+      if (!m) throw errorPublico(`Ya estás en el equipo de ${l.alumno_nombre}: entrá desde «Soy docente».`, 409);
+      miembroId = m.id;
+    } else if (l.tipo === "docente") {
       const existe = await uno("SELECT id FROM docentes WHERE email = $1", [email]);
       if (existe) {
         const d = await uno("UPDATE docentes SET activo = true, escuela_id = $2, nombre = $3, es_admin = $4 WHERE id = $1 AND NOT activo RETURNING id",
@@ -274,11 +387,13 @@ async function verificar(req, res, b) {
   await q("UPDATE enlaces SET usado_por_tipo = $2, usado_por = $3 WHERE id = $1", [l.id, l.tipo, actorId]);
   await auditoria.registrar(req, { evento: "invitacion_usada", actor_tipo: l.tipo, actor_id: actorId, email, escuela_id: l.escuela_id,
     objeto_tipo: "enlace", objeto_id: l.id, detalle: { tipo: l.tipo, cuenta, ...(l.alumno_id ? { alumno_id: Number(l.alumno_id) } : {}) } });
+  if (miembroId) await auditoria.registrar(req, { evento: "miembro_alta", actor_tipo: "docente", actor_id: actorId, escuela_id: l.escuela_id,
+    objeto_tipo: "miembro", objeto_id: miembroId, detalle: { docente_id: Number(actorId), invitado_por: l.creado_por_familia ? "familia" : "docente", estado: "pendiente" } });
   const sesion = await entrar(res, l.tipo, email, "invitacion");
   if (!sesion) throw errorPublico("La cuenta quedó creada, pero no pudimos abrir la sesión. Entrá con tu email.", 500);
   await auditoria.registrar(req, { evento: "login_ok", actor_tipo: l.tipo, actor_id: actorId, email,
     escuela_id: l.tipo === "docente" ? l.escuela_id : null, detalle: { metodo: "invitacion" } });
-  return sesion;
+  return miembroId ? { ...sesion, equipo_pendiente: true } : sesion;
 }
 
-module.exports = { crearDocente, crearIndependiente, crearFamilia, listar, pendientesFamilia, revocar, info, pedirCodigo, verificar, estadoDe, hashToken, DIAS_DEFECTO };
+module.exports = { crearDocente, crearIndependiente, crearEquipo, crearMiembro, pendientesEquipo, revocarEnEquipo, ocupaCupo, crearFamilia, listar, pendientesFamilia, revocar, info, pedirCodigo, verificar, estadoDe, hashToken, DIAS_DEFECTO };

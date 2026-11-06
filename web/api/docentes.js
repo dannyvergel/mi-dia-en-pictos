@@ -16,12 +16,23 @@
 //                                 profesional sin escuela (terapeuta, acompañante) y el link que lo deja como admin. Ocupa cupo.
 //  POST accion=invitacion_revocar { id }   (admins de esa escuela, plataforma, o la docente que ve al alumno en links de familia)
 //  "crear" respeta el tope de cupos.
+// Enfoque equipo (docs/enfoques.md):
+//  POST accion=invitacion_crear { equipo_nuevo: true, alumno, abre: 'familia'|'profesional', espacio?, vinculo?, familia_nombre?,
+//                                 profesional_nombre?, rol? }  (solo plataforma) → abre el espacio de un chico: { equipo, enlace (familia),
+//                                 enlace_profesional? }. Respeta cupos.
+//  POST accion=invitacion_crear { equipo: escuela_id, nombre?, rol }  → link para sumar un/a profesional (plataforma o integrante con acceso)
+//  POST accion=invitacion_revocar { id, equipo: escuela_id }   → anula un link pendiente de ese equipo (integrante con acceso)
+//  GET ?equipos=1                → mis equipos { equipos, confidencialidad: { version, texto } }
+//  POST accion=equipo_confidencialidad { escuela_id, acepto: true }   → acepta el compromiso (borrador), con fecha y versión
+//  POST accion=equipo_salir { escuela_id }   → se va del equipo
 const { dbActiva, q, uno } = require("./_lib/db");
 const S = require("./_lib/seguridad");
 const { exigirDocente } = require("./_lib/auth");
 const avisos = require("./_lib/avisos");
 const enlaces = require("./_lib/enlaces");
 const piloto = require("./_lib/piloto");
+const A = require("./_lib/alumnos");
+const legal = require("./_lib/legal");
 const { cuerpo, consulta, exigirJson, manejarError, errorPublico } = require("./_lib/http");
 
 module.exports = async (req, res) => {
@@ -39,6 +50,9 @@ module.exports = async (req, res) => {
       return res.status(200).json({ enlaces: await enlaces.listar(yo), cupos: await piloto.cupos(), escuelas: escuelas.map(e => ({ ...e, id: Number(e.id) })),
         mi_escuela: Number(yo.escuela_id), plataforma: S.esPlataforma(yo) });
     }
+    if (req.method === "GET" && consulta(req, "equipos") === "1")
+      return res.status(200).json({ equipos: await A.misEquipos(yo),
+        confidencialidad: { version: legal.VERSION_CONFIDENCIALIDAD_EQUIPO, texto: legal.TEXTO_CONFIDENCIALIDAD_EQUIPO, borrador: true } });
     if (req.method === "GET") {
       if (yo.escuela_id == null) return res.status(200).json({ docentes: [], yo: yo.id, sin_escuela: true, ...(admin ? { cupos: await piloto.cupos() } : {}) });
       const docentes = await q("SELECT id, nombre, email, rol, es_admin, es_plataforma, activo FROM docentes WHERE escuela_id = $1 ORDER BY nombre", [yo.escuela_id]);
@@ -47,8 +61,21 @@ module.exports = async (req, res) => {
     }
     if (req.method !== "POST") return res.status(405).json({ error: "Método no permitido" });
     const b = cuerpo(req);
+    if (b.accion === "invitacion_crear" && b.equipo_nuevo) {
+      const r = await enlaces.crearEquipo(req, yo, b);
+      return res.status(200).json({ equipo: r.equipo, enlace: r.familia, ...(r.profesional ? { enlace_profesional: r.profesional } : {}), cupos: await piloto.cupos() });
+    }
+    if (b.accion === "invitacion_crear" && b.equipo != null && b.equipo !== "")
+      return res.status(200).json({ enlace: await enlaces.crearMiembro(req, { tipo: "docente", usuario: yo }, Number(b.equipo), b), cupos: await piloto.cupos() });
     if (b.accion === "invitacion_crear") return res.status(200).json({ enlace: await (b.independiente ? enlaces.crearIndependiente : enlaces.crearDocente)(req, yo, b), cupos: await piloto.cupos() });
+    if (b.accion === "invitacion_revocar" && b.equipo != null && b.equipo !== "" && !S.esPlataforma(yo)) {
+      if (!(await A.miembroConAcceso(yo.id, b.equipo))) throw errorPublico("No encontramos ese link", 404);
+      await enlaces.revocarEnEquipo(req, { tipo: "docente", usuario: yo }, Number(b.equipo), b.id);
+      return res.status(200).json({ ok: true });
+    }
     if (b.accion === "invitacion_revocar") return res.status(200).json({ enlace: await enlaces.revocar(req, yo, b.id) });
+    if (b.accion === "equipo_confidencialidad") { await A.aceptarConfidencialidad(req, yo, b.escuela_id, b.acepto); return res.status(200).json({ ok: true, equipos: await A.misEquipos(yo) }); }
+    if (b.accion === "equipo_salir") { await A.salirDelEquipo(req, yo, b.escuela_id); return res.status(200).json({ ok: true, equipos: await A.misEquipos(yo) }); }
     // Promover a otra cuenta como plataforma: bloqueado por ahora para todos (también para ADMIN_EMAIL).
     if (b.accion === "plataforma") throw errorPublico("Por ahora la plataforma es solo la cuenta de ADMIN_EMAIL: no se puede promover a otras cuentas.", 403);
     if (!yo.es_admin || yo.escuela_id == null) throw errorPublico("Solo una docente administradora puede sumar o quitar docentes.", 403);
