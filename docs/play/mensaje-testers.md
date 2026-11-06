@@ -7,16 +7,17 @@ Apuntá a **15 o 16** personas para que nunca baje de 12: docentes de educación
 ## WhatsApp (corto)
 
 ```
-¡Hola! 👋 Estoy por publicar Puente en Google Play: es la app gratuita donde la seño cuenta el día y la familia lo ve en casa, en pictogramas.
+Hola, estoy por subir Puente a Google Play. Es la app gratuita donde la seño cuenta el día y la familia lo ve en casa, en pictogramas.
 
-Google me pide 12 personas que la prueben 14 días seguidos antes de publicarla. ¿Me das una mano? 🙏
+Google pide que 12 personas la prueben 14 días seguidos antes de publicarla. ¿Me das una mano?
 
-1️⃣ Pasame el mail de tu cuenta de Google (el del Play Store de tu Android).
-2️⃣ Cuando te avise, abrí este link con esa cuenta y tocá «Convertirme en tester»: [LINK]
-3️⃣ Instalala desde Play y *dejala instalada 14 días*, sin salirte de la prueba (si te salís, se corta la cuenta).
+1. Pasame el mail de tu cuenta de Google, el que usás en el Play Store.
+2. Cuando te avise, abrí este link con esa cuenta y tocá «Convertirme en tester»: [LINK]
+3. Instalala desde Play y dejala instalada 14 días. Si te salís de la prueba antes, el conteo vuelve a cero.
 
-Te voy a pedir cosas cortitas, de 2 minutos, algunos días. ¡Gracias! 💚
-Solo Android. iPhone no sirve para esto.
+Algunos días te voy a pedir algo corto, de 2 minutos. Solo sirve con Android, no con iPhone.
+
+Gracias.
 ```
 
 ## Mail
@@ -41,7 +42,7 @@ Durante esas dos semanas te voy a mandar algunas consignas cortas (dos minutos) 
 
 Si encontrás algo raro, contame respondiendo este mail, desde «Enviar comentario» en la app o en soporte@puentepictos.app.
 
-¡Muchas gracias!
+Muchas gracias.
 Danny
 Puente · https://puentepictos.app
 ```
@@ -49,6 +50,6 @@ Puente · https://puentepictos.app
 ## Recordatorio (día 1, cuando ya está todo)
 
 ```
-¡Ya estás adentro! 🎉 Si todavía no la instalaste, entrá acá con tu cuenta: [LINK] → «Convertirme en tester» → Instalar.
-Recordá: dejala instalada hasta el [fecha día 14]. Mañana te paso la primera consigna (2 min).
+Ya estás adentro. Si todavía no la instalaste, entrá acá con tu cuenta: [LINK], tocá «Convertirme en tester» y después Instalar.
+Dejala instalada hasta el [fecha día 14]. Mañana te paso la primera consigna, son 2 minutos.
 ```
