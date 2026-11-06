@@ -1,3 +1,10 @@
 .vercel
 .env*
 node_modules
+# Android / Google Play: la clave de firma NUNCA va al repo
+*.keystore
+*.jks
+*.p12
+*.pem
+signing-key-info.txt
+*.idsig

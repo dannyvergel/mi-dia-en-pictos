@@ -38,7 +38,8 @@ test("assetlinks: mismo certificado para app.puentepictos.twa y app.puentepictos
     assert.ok(e, pkg);
     assert.equal(e.target.namespace, "android_app");
     assert.deepEqual(e.relation, ["delegate_permission/common.handle_all_urls"]);
-    assert.deepEqual(e.target.sha256_cert_fingerprints, [HUELLA]);
+    // La clave de sideload siempre; cuando Puente esté en Play se suma la huella de Play App Signing (ver test/play.test.js).
+    assert.ok(e.target.sha256_cert_fingerprints.includes(HUELLA), `${pkg}: falta la huella de la clave de sideload`);
   }
 });
 
