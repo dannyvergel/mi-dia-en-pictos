@@ -53,9 +53,9 @@ test("todo en el cliente: no llama a /api, no usa IA ni analítica, y el pie com
   assert.ok(h.includes("solo en este dispositivo") && h.includes("Borrar ajustes y favoritos de este dispositivo"));
 });
 
-test("el service worker (pictos-v30) cachea la página, el tablero, los textos y sus pictos, y sigue sin cachear /api ni /descargar", () => {
+test("el service worker (pictos-v31) cachea la página, el tablero, los textos y sus pictos, y sigue sin cachear /api ni /descargar", () => {
   const sw = leer("sw.js");
-  assert.ok(sw.includes("const C = 'pictos-v30'"));
+  assert.ok(sw.includes("const C = 'pictos-v31'"));
   assert.ok(sw.includes("'comunicador.html'") && sw.includes("'comunicador-tablero.js'") && sw.includes("'comunicador-textos.js'"));
   assert.ok(sw.includes("importScripts('comunicador-tablero.js')"));
   assert.ok(sw.includes("self.TABLERO.urls(extras)") && sw.includes("e.data.tipo === 'comunicador'") && sw.includes("guardarTablero(e.data.extras)"));
@@ -270,7 +270,7 @@ test("Casa: la página arma las teclas con la frase y aria-label, guarda los aju
 
 // ---------- Comida, Cuerpo y Ropa ----------
 
-test("categorías nuevas: Comida, Cuerpo y Ropa con 10 a 12 pictos cada una, en español y en inglés, con color e ícono propios", () => {
+test("categorías nuevas: Comida, Cuerpo y Ropa con 10 a 13 pictos cada una, en español y en inglés, con color e ícono propios", () => {
   const cat = id => T.CATEGORIAS.find(c => c.id === id);
   const esperado = { comida: ["Comida", "Food"], cuerpo: ["Cuerpo", "Body"], ropa: ["Ropa", "Clothes"] };
   const colores = T.CATEGORIAS.map(c => c.color).concat(T.CASA.color);
@@ -279,12 +279,12 @@ test("categorías nuevas: Comida, Cuerpo y Ropa con 10 a 12 pictos cada una, en 
   for (const [id, [nombre, en]] of Object.entries(esperado)) {
     const c = cat(id);
     assert.equal(c.nombre, nombre); assert.equal(c.en, en);
-    assert.ok(c.pictos.length >= 10 && c.pictos.length <= 12, `${id}: ${c.pictos.length}`);
+    assert.ok(c.pictos.length >= 10 && c.pictos.length <= 13, `${id}: ${c.pictos.length}`);
     for (const p of c.pictos) for (const k of ["t", "k", "en", "ken"]) assert.ok(typeof p[k] === "string" && p[k].trim(), `${id} ${p.id}: falta ${k}`);
     assert.match(h, new RegExp(`\\b${id}: \\d+`), `ícono de ${id} en ICONO`);
   }
   const t = id => cat(id).pictos.map(p => p.t);
-  for (const w of ["milanesa", "empanada", "mate cocido", "fruta", "leche", "galletitas", "vaso de agua"]) assert.ok(t("comida").includes(w), w);
+  for (const w of ["milanesa", "empanada", "té", "mate", "fruta", "leche", "galletitas", "vaso de agua"]) assert.ok(t("comida").includes(w), w);
   for (const w of ["cabeza", "panza", "mano", "pie", "me duele la cabeza", "me duele la panza"]) assert.ok(t("cuerpo").includes(w), w);
   for (const w of ["remera", "pantalón", "buzo", "campera", "zapatillas", "medias", "guardapolvo"]) assert.ok(t("ropa").includes(w), w);
   // «me duele» sigue en Necesidades (se combina con las partes del cuerpo: «me duele» + «pierna»)

@@ -234,7 +234,7 @@ test("páginas: tarjetas de documentos, service worker nuevo sin caché de /api/
   const fs = require("fs"), path = require("path");
   const leer = f => fs.readFileSync(path.join(__dirname, "..", f), "utf8");
   const sw = leer("sw.js");
-  assert.ok(sw.includes("const C = 'pictos-v30'"));
+  assert.ok(sw.includes("const C = 'pictos-v31'"));
   assert.ok(sw.includes("/^\\/(api|descargar)\\//"), "el SW no cachea /api/ (descargas incluidas)");
   const d = leer("docente.html");
   for (const t of ["Informes y documentos", 'id="docMostrar"', 'id="docNotificar"', "Solo equipo", "Visible para la familia", "Familia avisada el", "doc_subir", "doc_cambiar", "doc_borrar"]) assert.ok(d.includes(t), t);
