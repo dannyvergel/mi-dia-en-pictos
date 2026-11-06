@@ -49,7 +49,7 @@ test("páginas legales: marcadas como borrador, con terceros, derechos y contact
 test("portada (index.html): explica Puente, botones Entrar y Soy familia, tira de pictos ARASAAC y meta tags para compartir", () => {
   const h = leer("index.html");
   for (const t of ["La seño dicta cómo fue el día", "pictogramas", "la familia lo ve en casa", "educación especial", "Gratuito y sin fines de lucro", "Piloto con invitación"]) assert.ok(h.includes(t), t);
-  assert.match(h, /<a class="big" id="btnEntrar" href="login\.html">Entrar<\/a>/);
+  assert.match(h, /<a class="[^"]*" id="btnEntrar" href="login\.html">Entrar<\/a>/);
   assert.match(h, /href="login\.html\?familia">Soy familia<\/a>/);
   for (const m of ['property="og:title"', 'property="og:description"', 'property="og:image"', 'property="og:url"', 'name="twitter:card"', 'name="description"']) assert.ok(h.includes(m), m);
   // Pictos reales de ARASAAC (los mismos ids que usa la presentación), sin URLs inventadas.
@@ -97,7 +97,7 @@ test("portada: \"Quiero sumarme al piloto\" es un formulario real (no solo mailt
   assert.match(h, /class="trampa" aria-hidden="true"/);
   assert.match(h, /id="suWeb"[^>]*tabindex="-1"/);
   assert.ok(h.includes('fetch("api/solicitudes"') && h.includes('accion: "crear"') && h.includes("sitio_web"));
-  assert.ok(h.includes("¡Gracias! Te escribimos a tu mail."));
+  assert.ok(h.includes("Gracias. Te escribimos a tu mail."));
   assert.ok(h.includes('href="mailto:soporte@puentepictos.app'));
   assert.match(h, /aria-live="polite"/);
 });

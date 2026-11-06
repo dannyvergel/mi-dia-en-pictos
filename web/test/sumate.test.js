@@ -5,10 +5,11 @@ const fs = require("fs");
 const path = require("path");
 const h = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
-test("«Sumate a Puente»: antes de «Quién hace Puente», mailto de tester, ancla al piloto, donaciones solo desde config y link al código", () => {
+test("«Sumate a Puente»: antes de «Quién hace Puente», con el formulario del piloto, mailto de tester, ancla al piloto, donaciones solo desde config y link al código", () => {
   const s = h.indexOf('id="sumate"');
   assert.ok(s > 0 && s < h.indexOf('id="quien"'), "va antes de «Quién hace Puente»");
-  assert.ok(s > h.indexOf("<!-- /tarjetas -->"), "después de las tarjetas del piloto");
+  const f = h.indexOf('id="sumarse"');
+  assert.ok(f > s && f < h.indexOf("</section>", s), "el formulario del piloto está dentro de «Sumate»");
   assert.match(h, /id="btnTester" href="mailto:soporte@puentepictos\.app\?subject=Tester%20Android&amp;body=[^"]*cuenta%20de%20Google[^"]*">Quiero ser tester<\/a>/);
   assert.match(h, /id="btnIrPiloto" href="#sumarse">Quiero sumarme al piloto<\/a>/);
   assert.ok(h.includes('id="sumarse"'), "el formulario del piloto existe");
