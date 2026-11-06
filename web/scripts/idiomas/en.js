@@ -7,7 +7,7 @@ const TX = require("../../comunicador-textos.js");
 // Textos que son iguales en los dos idiomas (no cuentan como «sin traducir»).
 const IGUALES = ["Puente", "Español", "English", "BETA", "Puente Comunicador", "soporte@puentepictos.app", "puentepictos.app", "ARASAAC", "Vercel", "Neon", "Resend", "Google", "OpenRouter", "https://arasaac.org", "http://www.arasaac.org", "Idioma / Language", "(Puente Comunicador)"];
 
-const CORTESIA = '<p class="cortesia" lang="en"><b>Courtesy translation.</b> This is an unofficial English translation of a Spanish draft, provided for convenience. If there is any difference, the <a href="/{ARCHIVO}" hreflang="es-AR" lang="es-AR">Spanish version</a> prevails. <!-- REVISAR: traducción pendiente de revisión legal junto con el original. --></p>\n';
+const CORTESIA = '<p class="cortesia" lang="en"><b>Courtesy translation.</b> This is an unofficial English translation of the Spanish original, provided for convenience. If there is any difference, the <a href="/{ARCHIVO}" hreflang="es-AR" lang="es-AR">Spanish version</a> prevails. <!-- REVISAR: traducción pendiente de revisión legal junto con el original. --></p>\n';
 
 const legalComun = archivo => [
   ['<main><div class="pagina legal">\n', '<main><div class="pagina legal">\n  ' + CORTESIA.replace("{ARCHIVO}", archivo)],
@@ -159,16 +159,16 @@ module.exports = {
     pares: [
       ['<div class="bajada">Política de privacidad</div>', '<div class="bajada">Privacy policy</div>'],
       ...legalComun("privacidad.html"),
-      ['<b>BORRADOR · TEXTO PROVISORIO.</b> Esta política está pendiente de revisión legal y puede cambiar antes del uso con datos reales.\n    Versión <code>2026-11-01-borrador</code>. Cuando cambie, cambia la versión y se vuelve a pedir el consentimiento.',
-        '<b>DRAFT · PROVISIONAL TEXT.</b> This policy is pending legal review and may change before it is used with real data.\n    Version <code>2026-11-01-borrador</code>. When it changes, the version changes and consent is requested again.'],
+      ['<p>Versión <code>2026-11-01-borrador</code>. Cuando cambie, se vuelve a pedir el consentimiento.</p>',
+        '<p>Version <code>2026-11-01-borrador</code>. When it changes, consent is requested again.</p>'],
       ['<h2>Qué es Puente y para qué usa los datos</h2>', '<h2>What Puente is and what it uses data for</h2>'],
       ['<p>Puente es una herramienta gratuita y sin fines de lucro para escuelas de educación especial. Las docentes registran cómo fue el día de cada alumno y Puente lo muestra a su familia en pictogramas, con un resumen claro. La <b>única finalidad</b> es la comunicación entre la escuela y la familia y el seguimiento pedagógico del alumno (registro diario, objetivos del PPI y apoyos). Los datos no se venden, no se usan para publicidad y no se comparten con nadie fuera de lo que se explica acá.</p>',
         '<p>Puente is a free, non-profit tool for special education schools. Teachers record how each student\'s day went and Puente shows it to the family in pictograms, with a clear summary. Its <b>only purpose</b> is communication between school and family and the student\'s educational follow-up (daily record, individual education plan goals and supports). Data is not sold, not used for advertising and not shared with anyone beyond what is explained here.</p>'],
       ['<p>Los datos de niñas, niños y adolescentes con discapacidad son <b>datos sensibles</b> según la Ley 25.326 de Protección de Datos Personales. Solo se tratan con el consentimiento expreso de la familia o tutor.</p>',
         '<p>Data about children and teenagers with disabilities is <b>sensitive data</b> under Argentina\'s Personal Data Protection Law 25.326. It is only processed with the express consent of the family or guardian.</p>'],
       ['<h3>Responsable</h3>', '<h3>Data controller</h3>'],
-      ['<p>Responsable del tratamiento: [RESPONSABLE: la escuela y/o el proyecto Puente, a definir]. Contacto para consultas, reclamos y para ejercer tus derechos:',
-        '<p>Data controller: [CONTROLLER: the school and/or the Puente project, to be defined]. Contact for questions, complaints and to exercise your rights:'],
+      ['<p>Responsable del tratamiento: Danny Gerardo Vergel (persona física), a cargo del proyecto Puente, hasta que exista una asociación civil que asuma ese rol. Contacto para consultas, reclamos y para ejercer tus derechos:',
+        '<p>Data controller: Danny Gerardo Vergel (as an individual), who runs the Puente project, until a non-profit association is set up to take on that role. Contact for questions, complaints and to exercise your rights:'],
       ['<h3>Qué datos se tratan</h3>', '<h3>What data is processed</h3>'],
       ['<li><b>Del alumno:</b> solo el nombre de pila (o nombre con inicial) y el grado. Sin apellido, sin fotos, sin DNI y sin diagnósticos.</li>',
         '<li><b>About the student:</b> only the first name (or first name and initial) and the class. No surname, no photos, no ID number and no diagnoses.</li>'],
@@ -205,8 +205,8 @@ module.exports = {
       ['<li><b>ARASAAC</b> (Gobierno de Aragón): solo se le piden pictogramas por palabra clave (por ejemplo «recreo»). No recibe datos de personas. Las imágenes de los pictogramas se cargan desde sus servidores. En el <b>Comunicador</b>, si usás el buscador para sumar dibujos, la palabra que escribís va directo desde tu navegador a ARASAAC, sin cookies; Puente no la recibe ni la guarda.</li>',
         '<li><b>ARASAAC</b> (Government of Aragón): it is only asked for pictograms by keyword (for example «recreo», break time). It receives no personal data. The pictogram images load from its servers. In the <b>Communicator</b>, if you use the search to add pictures, the word you type goes straight from your browser to ARASAAC, without cookies; Puente does not receive or store it.</li>'],
       ['<h3>Dónde se guardan</h3>', '<h3>Where it is stored</h3>'],
-      ['<p>Los servidores de estos proveedores están <b>fuera de Argentina</b> (principalmente en [REGIÓN: Estados Unidos u otra, a confirmar]). Al dar el consentimiento aceptás esta transferencia internacional. Se usan conexiones cifradas y acceso solo con código por email (las docentes también pueden entrar con Google).</p>',
-        '<p>These providers\' servers are <b>outside Argentina</b> (mainly in [REGION: United States or other, to be confirmed]). By giving consent you accept this international transfer. Connections are encrypted and access is only by emailed code (teachers can also sign in with Google).</p>'],
+      ['<p>Los servidores de estos proveedores están <b>fuera de Argentina</b>, en Estados Unidos y Brasil. La aplicación, el envío de mails (Resend) y la IA (OpenRouter) funcionan en Estados Unidos; los días publicados y los informes y documentos se guardan en Brasil (São Paulo). Al dar el consentimiento aceptás esta transferencia internacional. Se usan conexiones cifradas y acceso solo con código por email (las docentes también pueden entrar con Google).</p>',
+        '<p>These providers\' servers are <b>outside Argentina</b>, in the United States and Brazil. The application, email delivery (Resend) and the AI (OpenRouter) run in the United States; published days and reports and documents are stored in Brazil (São Paulo). By giving consent you accept this international transfer. Connections are encrypted and access is only by emailed code (teachers can also sign in with Google).</p>'],
       ['<h3>Cuánto tiempo</h3>', '<h3>How long it is kept</h3>'],
       ['<li>Historial del chat de la familia: 30 días.</li>', '<li>Family chat history: 30 days.</li>'],
       ['<li>Días publicados para la familia: 365 días.</li>', '<li>Days published for the family: 365 days.</li>'],
@@ -272,8 +272,7 @@ module.exports = {
     pares: [
       ['<div class="bajada">Términos de uso</div>', '<div class="bajada">Terms of use</div>'],
       ...legalComun("terminos.html"),
-      ['<b>BORRADOR · TEXTO PROVISORIO.</b> Estos términos están pendientes de revisión legal y pueden cambiar.\n    Versión',
-        '<b>DRAFT · PROVISIONAL TEXT.</b> These terms are pending legal review and may change.\n    Version'],
+      ['<p>Versión <code>2026-11-01-borrador</code>.</p>', '<p>Version <code>2026-11-01-borrador</code>.</p>'],
       ['<h2>Términos de uso</h2>', '<h2>Terms of use</h2>'],
       ['<h3>1. El servicio</h3>', '<h3>1. The service</h3>'],
       ['<p>Puente es una herramienta gratuita y sin fines de lucro para la comunicación entre escuelas de educación especial y familias, en etapa de prueba (BETA). Se ofrece «tal cual»: puede tener errores, cambios o interrupciones. No reemplaza la comunicación directa con la escuela ni el cuaderno de comunicaciones oficial.</p>',

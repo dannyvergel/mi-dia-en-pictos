@@ -265,7 +265,6 @@ table.tabla th, table.tabla td { text-align: left; padding: 4px 8px 4px 0; borde
 /* Páginas legales */
 .legal { max-width: 760px; }
 .legal h3 { font-family: var(--mano); font-weight: 400; font-size: 22px; margin: 18px 0 4px; }
-.borrador { background: #fff4d6; border: 1.5px dashed var(--warn); border-radius: 10px; padding: 10px 12px; margin: 8px 0 14px; }
 .pie-puente .enlace { background: none; border: 0; padding: 0; color: var(--tinta); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
 body.modo-familia .pie-don { display: none !important; }
 
