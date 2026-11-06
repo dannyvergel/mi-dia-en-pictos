@@ -3,19 +3,26 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Comunicador con pictogramas · Puente</title>
+<title>Puente Comunicador · Comunicador con pictogramas</title>
 <!-- Comunicador (tablero CAA) libre y sin cuenta. Todo pasa en el navegador: no llama a /api, no usa IA, no tiene analítica.
      Vocabulario en comunicador-tablero.js (lo comparte con sw.js para que ande sin conexión). Ver docs/comunicador.md. -->
-<link rel="manifest" href="comunicador.webmanifest"><!-- manifest propio: se instala como «Comunicador» y abre directo en el tablero -->
+<link rel="manifest" href="comunicador.webmanifest"><!-- manifest propio: se instala como «Puente Comunicador» y abre directo en el tablero -->
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="canonical" href="https://puentepictos.app/comunicador.html">
+<!-- Idiomas: la misma página en español (por defecto) y en inglés (?lang=en). Ver «Idiomas» en docs/comunicador.md. -->
+<link rel="alternate" hreflang="es" href="https://puentepictos.app/comunicador.html">
+<link rel="alternate" hreflang="en" href="https://puentepictos.app/comunicador.html?lang=en">
+<link rel="alternate" hreflang="x-default" href="https://puentepictos.app/comunicador.html">
+<meta name="application-name" content="Puente Comunicador">
+<meta name="apple-mobile-web-app-title" content="Puente Comunicador">
 <link rel="icon" href="icono.svg" type="image/svg+xml">
 <meta name="theme-color" content="#2f4a3e">
 <meta name="description" content="Comunicador con pictogramas de ARASAAC, libre y gratuito, sin cuenta: el chico toca los dibujos, arma una frase y el celular la dice en voz alta. Funciona sin conexión y no guarda nada fuera del dispositivo.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Puente">
 <meta property="og:locale" content="es_AR">
-<meta property="og:title" content="Comunicador con pictogramas · Puente">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:title" content="Puente Comunicador · Comunicador con pictogramas">
 <meta property="og:description" content="Tocá los dibujos, armá la frase y el celular la dice. Libre, sin cuenta y sin conexión.">
 <meta property="og:url" content="https://puentepictos.app/comunicador.html">
 <meta property="og:image" content="https://puentepictos.app/og.png">
@@ -82,6 +89,11 @@
   .modo { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
   .modo .accion { flex-direction: row; gap: 8px; min-height: 72px; padding: 6px 16px; }
   .aviso-voz { margin: 8px 0 0; }
+  /* Selector de idioma (Español / English): visible arriba, fuera del modo tablero */
+  .idioma { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
+  .idioma button { min-height: 48px; min-width: 96px; padding: 6px 14px; border: 2px solid var(--tinta); border-radius: 12px; background: #fff; color: var(--tinta);
+    font: 700 16px/1.1 var(--texto); cursor: pointer; touch-action: manipulation; }
+  .idioma button[aria-pressed="true"] { background: #fdf6e1; box-shadow: inset 0 -4px 0 var(--tinta); }
 
   /* Ajustes y explicación */
   .ajustes { margin-top: 14px; }
@@ -100,7 +112,7 @@
   /* Pantalla completa (o «modo tablero» si el navegador no deja): solo frase, categorías y grilla; nada más se mueve */
   body.completo { overflow: hidden; height: 100%; }
   html:has(body.completo) { overflow: hidden; height: 100%; overscroll-behavior: none; }
-  body.completo header, body.completo .ajustes, body.completo .info, body.completo footer, body.completo .saltar, body.completo .com-solo-normal { display: none !important; }
+  body.completo header, body.completo .ajustes, body.completo .info, body.completo footer, body.completo .saltar, body.completo .idioma, body.completo .com-solo-normal { display: none !important; }
   body.completo main { max-width: none; padding: 0; height: 100dvh; }
   body.completo .app { margin: 0; height: 100dvh; border-radius: 0; border-width: 0; display: flex; flex-direction: column;
     padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); }
@@ -124,32 +136,36 @@
 </style>
 </head>
 <body class="com">
-<a class="saltar" href="#tablero">Saltar al tablero</a>
-<header><h1>Comunicador</h1><div class="bajada">Tocá los dibujos para hablar. Libre y sin cuenta.</div><a class="com-volver" href="/">Puente</a><span class="tiza"></span></header>
+<a class="saltar" href="#tablero" data-i18n="saltar">Saltar al tablero</a>
+<header><h1 data-i18n="titulo">Comunicador</h1><div class="bajada" data-i18n="bajada">Tocá los dibujos para hablar. Libre y sin cuenta.</div><a class="com-volver" href="/">Puente</a><span class="tiza"></span></header>
 <main id="contenido" tabindex="-1">
+  <div class="idioma" id="idioma" role="group" aria-label="Idioma / Language">
+    <button type="button" data-lang="es" lang="es-AR" aria-pressed="true">Español</button>
+    <button type="button" data-lang="en" lang="en" aria-pressed="false">English</button>
+  </div>
   <noscript><div class="card alerta" style="margin-top:12px">El comunicador necesita JavaScript activado en el navegador.</div></noscript>
 
   <div class="app" id="app">
-    <div class="frase" role="region" aria-label="Frase">
-      <button type="button" class="frase-tira" id="frase" aria-label="Frase armada. Tocá para escucharla."><span class="vacia">Tocá un dibujo para empezar</span></button>
+    <div class="frase" role="region" aria-label="Frase" data-i18n-aria="fraseRegion">
+      <button type="button" class="frase-tira" id="frase" aria-label="Frase armada. Tocá para escucharla."><span class="vacia" data-i18n="fraseVacia">Tocá un dibujo para empezar</span></button>
       <div class="frase-botones">
-        <button type="button" class="accion hablar" id="bHablar" aria-label="Decir la frase en voz alta">
-          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 9v6h4l5 4V5L7 9H3z" fill="currentColor"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Hablar</button>
-        <button type="button" class="accion" id="bUltimo" aria-label="Borrar el último dibujo">
-          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 5h11v14H9l-6-7 6-7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 9l5 6M17 9l-5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Borrar</button>
-        <button type="button" class="accion" id="bTodo" aria-label="Borrar toda la frase">
-          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>Todo</button>
-        <button type="button" class="accion salir com-solo-completo" id="bSalir" aria-label="Salir de pantalla completa">
+        <button type="button" class="accion hablar" id="bHablar" aria-label="Decir la frase en voz alta" data-i18n-aria="hablarAria">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 9v6h4l5 4V5L7 9H3z" fill="currentColor"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span data-i18n="hablar">Hablar</span></button>
+        <button type="button" class="accion" id="bUltimo" aria-label="Borrar el último dibujo" data-i18n-aria="borrarAria">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 5h11v14H9l-6-7 6-7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 9l5 6M17 9l-5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span data-i18n="borrar">Borrar</span></button>
+        <button type="button" class="accion" id="bTodo" aria-label="Borrar toda la frase" data-i18n-aria="todoAria">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg><span data-i18n="todo">Todo</span></button>
+        <button type="button" class="accion salir com-solo-completo" id="bSalir" aria-label="Salir de pantalla completa" data-i18n-aria="salirAria">
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Salir</span></button>
       </div>
     </div>
 
-    <div class="cats" id="cats" role="tablist" aria-label="Categorías de pictogramas"></div>
-    <div class="grilla" id="tablero" role="tabpanel" tabindex="-1" aria-label="Pictogramas"></div>
+    <div class="cats" id="cats" role="tablist" aria-label="Categorías de pictogramas" data-i18n-aria="catsAria"></div>
+    <div class="grilla" id="tablero" role="tabpanel" tabindex="-1" aria-label="Pictogramas" data-i18n-aria="tableroAria"></div>
 
     <div class="modo com-solo-normal">
-      <button type="button" class="accion" id="bCompleto" aria-label="Usar en pantalla completa">
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Pantalla completa</button>
+      <button type="button" class="accion" id="bCompleto" aria-label="Usar en pantalla completa" data-i18n-aria="completoAria">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span data-i18n="completo">Pantalla completa</span></button>
       <button type="button" class="accion" id="bFavoritos" aria-pressed="false">
         <span aria-hidden="true" style="font-size:26px;line-height:1;color:#8a5a00">★</span><span id="bFavTxt">Elegir favoritos</span></button>
     </div>
@@ -158,77 +174,101 @@
   </div>
 
   <details class="ajustes card" id="ajustes">
-    <summary>Ajustes</summary>
-    <label class="op"><input type="checkbox" id="oDecir" checked> Decir cada dibujo al tocarlo</label>
-    <label class="op"><input type="checkbox" id="oFrase" checked> Armar la frase con los dibujos que toca</label>
-    <p class="muted" style="margin:0 0 6px">Si sacás «Armar la frase», cada dibujo se dice solo y no se junta arriba.</p>
+    <summary data-i18n="ajustes">Ajustes</summary>
+    <label class="op"><input type="checkbox" id="oDecir" checked> <span data-i18n="oDecir">Decir cada dibujo al tocarlo</span></label>
+    <label class="op"><input type="checkbox" id="oFrase" checked> <span data-i18n="oFrase">Armar la frase con los dibujos que toca</span></label>
+    <p class="muted" style="margin:0 0 6px" data-i18n="oFraseNota">Si sacás «Armar la frase», cada dibujo se dice solo y no se junta arriba.</p>
     <fieldset class="grupo">
-      <legend>Tamaño de los dibujos</legend>
+      <legend data-i18n="tamLeyenda">Tamaño de los dibujos</legend>
       <div class="opciones">
-        <label><input type="radio" name="tam" value="grande"> Grandes</label>
-        <label><input type="radio" name="tam" value="mediano" checked> Medianos</label>
-        <label><input type="radio" name="tam" value="chico"> Chicos</label>
+        <label><input type="radio" name="tam" value="grande"> <span data-i18n="tamGrande">Grandes</span></label>
+        <label><input type="radio" name="tam" value="mediano" checked> <span data-i18n="tamMediano">Medianos</span></label>
+        <label><input type="radio" name="tam" value="chico"> <span data-i18n="tamChico">Chicos</span></label>
       </div>
     </fieldset>
-    <fieldset class="grupo">
-      <legend>Habla como</legend>
+    <fieldset class="grupo" id="grupoGenero"><!-- en inglés no hace falta: se oculta -->
+      <legend data-i18n="generoLeyenda">Habla como</legend>
       <div class="opciones">
-        <label><input type="radio" name="genero" value="nene" checked> Nene (contento, cansado)</label>
-        <label><input type="radio" name="genero" value="nena"> Nena (contenta, cansada)</label>
+        <label><input type="radio" name="genero" value="nene" checked> <span data-i18n="generoNene">Nene (contento, cansado)</span></label>
+        <label><input type="radio" name="genero" value="nena"> <span data-i18n="generoNena">Nena (contenta, cansada)</span></label>
       </div>
     </fieldset>
-    <label for="oVoz">Voz</label>
-    <select id="oVoz"><option value="">Automática (español de Argentina si el equipo la tiene)</option></select>
-    <label class="op"><input type="checkbox" id="oLenta"> Hablar más despacio</label>
-    <p class="muted" style="margin-top:12px">Los ajustes y los favoritos se guardan <b>solo en este dispositivo</b> (en el almacenamiento del navegador) y solo si cambiás algo. No se mandan a ningún lado.</p>
-    <button type="button" class="big alt peligro auto" id="bOlvidar">Borrar ajustes y favoritos de este dispositivo</button>
+    <label for="oVoz" data-i18n="voz">Voz</label>
+    <select id="oVoz"><option value="" data-i18n="vozAuto">Automática (español de Argentina si el equipo la tiene)</option></select>
+    <label class="op"><input type="checkbox" id="oLenta"> <span data-i18n="lenta">Hablar más despacio</span></label>
+    <p class="muted" style="margin-top:12px" data-i18n-html="privAjustes">Los ajustes y los favoritos se guardan <b>solo en este dispositivo</b> (en el almacenamiento del navegador) y solo si cambiás algo. No se mandan a ningún lado.</p>
+    <button type="button" class="big alt peligro auto" id="bOlvidar" data-i18n="olvidar">Borrar ajustes y favoritos de este dispositivo</button>
     <p class="muted" id="olvidarMsg" role="status"></p>
   </details>
 
   <div class="card info">
-    <h2>Un comunicador para todos, sin cuenta</h2>
-    <p>El chico toca los dibujos, arma una frase y el celular, la tablet o la compu la dice en voz alta. Es un tablero de comunicación aumentativa (CAA) con un vocabulario chico para empezar: palabras núcleo, sentimientos, necesidades, personas, lugares, acciones y juegos.</p>
+    <h2 data-i18n="infoTitulo">Un comunicador para todos, sin cuenta</h2>
+    <p data-i18n="infoTexto">El chico toca los dibujos, arma una frase y el celular, la tablet o la compu la dice en voz alta. Es un tablero de comunicación aumentativa (CAA) con un vocabulario chico para empezar: palabras núcleo, sentimientos, necesidades, personas, lugares, acciones y juegos.</p>
     <ul class="lista-puntos" style="margin:6px 0 0;padding-left:20px">
-      <li><b>Privado:</b> todo pasa en este dispositivo. No se manda nada a Puente ni a ninguna IA, no hay analítica y no hace falta cuenta.</li>
-      <li><b>Sin conexión:</b> después de abrirlo una vez con internet, el tablero queda guardado y funciona sin conexión.</li>
-      <li><b>La voz</b> es la del propio equipo. Si no tiene voz en español, la frase igual se ve escrita.</li>
-      <li><b>Consejo:</b> usalo en pantalla completa o agregalo a la pantalla de inicio para que no se cierre por accidente.</li>
+      <li data-i18n-html="infoPrivado"><b>Privado:</b> todo pasa en este dispositivo. No se manda nada a Puente ni a ninguna IA, no hay analítica y no hace falta cuenta.</li>
+      <li data-i18n-html="infoSinConexion"><b>Sin conexión:</b> después de abrirlo una vez con internet, el tablero queda guardado y funciona sin conexión.</li>
+      <li data-i18n-html="infoVoz"><b>La voz</b> es la del propio equipo. Si no tiene voz en español, la frase igual se ve escrita.</li>
+      <li data-i18n-html="infoConsejo"><b>Consejo:</b> usalo en pantalla completa o agregalo a la pantalla de inicio para que no se cierre por accidente.</li>
     </ul>
   </div>
 
   <div class="card info credito" id="credito">
-    <span class="rotulo">Pictogramas de ARASAAC</span>
-    <p style="margin:0">Autor pictogramas: Sergio Palao. Origen: ARASAAC (<a href="https://arasaac.org" rel="noopener">https://arasaac.org</a>). Licencia: CC BY-NC-SA. Propiedad: Gobierno de Aragón (España). Puente los usa sin fines de lucro.</p>
+    <span class="rotulo" data-i18n="creditoRotulo">Pictogramas de ARASAAC</span>
+    <p style="margin:0" data-i18n-html="creditoTexto">Autor pictogramas: Sergio Palao. Origen: ARASAAC (<a href="https://arasaac.org" rel="noopener">https://arasaac.org</a>). Licencia: CC BY-NC-SA. Propiedad: Gobierno de Aragón (España). Puente los usa sin fines de lucro.</p>
   </div>
 </main>
-<footer>Comunicador libre de Puente: no guarda nada fuera de tu dispositivo.<p class="com-apk" id="comApk" hidden><a href="/descargar/comunicador.apk" download>Bajar la app para Android</a> (Puente Comunicador)</p><div id="puente-pie" data-donaciones="no"></div></footer>
+<footer><span data-i18n="pie">Comunicador libre de Puente: no guarda nada fuera de tu dispositivo.</span><p class="com-apk" id="comApk" hidden data-i18n-html="apk"><a href="/descargar/comunicador.apk" download>Bajar la app para Android</a> (Puente Comunicador)</p><div id="puente-pie" data-donaciones="no"></div></footer>
 <script src="comunicador-tablero.js"></script>
+<script src="comunicador-textos.js"></script>
 <script src="pie.js" defer></script>
 <script>
 (() => {
   "use strict";
   const $ = id => document.getElementById(id);
   const T = window.TABLERO;
+  const TX = window.TEXTOS; // textos de la interfaz en español e inglés (comunicador-textos.js)
   const CLAVE = "puente-comunicador"; // único dato que se guarda, y solo en este dispositivo
   const MAX_FRASE = 24;
 
   // ---------- Ajustes (localStorage, solo si el usuario cambia algo) ----------
-  const DEF = { decir: true, frase: true, tam: "mediano", genero: "nene", voz: "", lenta: false, favoritos: [] };
+  const DEF = { decir: true, frase: true, tam: "mediano", genero: "nene", voz: "", lenta: false, favoritos: [], idioma: "" }; // idioma "" = automático
   let aj = { ...DEF };
   try { Object.assign(aj, JSON.parse(localStorage.getItem(CLAVE) || "{}")); } catch { /* sin almacenamiento: queda en memoria */ }
   if (!Array.isArray(aj.favoritos)) aj.favoritos = [];
   const guardar = () => { try { localStorage.setItem(CLAVE, JSON.stringify(aj)); } catch { /* modo privado o lleno */ } };
 
+  // ---------- Idioma (español / inglés en la misma página) ----------
+  // ?lang=en|es manda; si no, la elección guardada; si no, el idioma del navegador (en* → inglés, lo demás → español).
+  let lang = TX.elegirIdioma(location.search, aj.idioma, navigator.language);
+  const tr = (clave, t) => (TX[lang][clave] ?? TX.es[clave] ?? clave).replace("{t}", t ?? "");
+  const LANG_VOZ = { es: "es-AR", en: "en-US" };
+  function aplicarIdioma() {
+    document.documentElement.lang = TX.HTML_LANG[lang];
+    document.title = tr("tituloDoc");
+    document.querySelectorAll("[data-i18n]").forEach(e => e.textContent = tr(e.dataset.i18n));
+    document.querySelectorAll("[data-i18n-html]").forEach(e => e.innerHTML = tr(e.dataset.i18nHtml)); // solo textos fijos de comunicador-textos.js
+    document.querySelectorAll("[data-i18n-aria]").forEach(e => e.setAttribute("aria-label", tr(e.dataset.i18nAria)));
+    document.querySelectorAll("#idioma [data-lang]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === lang)));
+    $("grupoGenero").hidden = lang !== "es"; // en inglés casi no hay palabras con género: el ajuste no aplica
+    const pie = $("puente-pie"); if (pie) { if (lang === "es") pie.removeAttribute("lang"); else pie.lang = "es-AR"; } // el pie común (pie.js) sigue en español
+    const canon = document.querySelector('link[rel="canonical"]');
+    if (canon) canon.href = "https://puentepictos.app/comunicador.html" + (lang === "en" && /[?&]lang=en\b/i.test(location.search) ? "?lang=en" : "");
+  }
+
   const todos = new Map();
   T.CATEGORIAS.forEach(c => c.pictos.forEach(p => todos.set(p.id, { ...p, cat: c })));
-  const texto = p => (aj.genero === "nena" && p.f) ? p.f : p.t;
-  const dicho = p => (aj.genero === "nena" && p.f) ? p.f : (p.dice || p.t);
+  const texto = p => lang === "en" ? (p.en || p.t) : (aj.genero === "nena" && p.f) ? p.f : p.t;
+  const dicho = p => lang === "en" ? (p.dicen || p.en || p.t) : (aj.genero === "nena" && p.f) ? p.f : (p.dice || p.t);
+  const nombreCat = c => lang === "en" ? (c.en || c.nombre) : c.nombre;
 
-  // ---------- Voz (speechSynthesis del equipo; es-AR si hay, si no otra voz en español) ----------
+  // ---------- Voz (speechSynthesis del equipo) ----------
+  // Español: es-AR si hay, si no otra voz latinoamericana, después es-ES y después cualquier es-*.
+  // Inglés: en-US si hay, si no en-GB y si no cualquier en-*. La lista muestra solo voces del idioma activo.
   const puedeHablar = "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
   let voces = [];
   const rango = v => {
     const l = (v.lang || "").toLowerCase().replace("_", "-");
+    if (lang === "en") return l === "en-us" ? 0 : l === "en-gb" ? 1 : 2;
     if (l === "es-ar") return 0;
     if (/^es-(419|uy|cl|py|bo|pe|co|ve|ec|mx|us|cr|pa|do|gt|hn|ni|sv|pr|cu)$/.test(l)) return 1;
     if (l === "es-es" || l === "es") return 2;
@@ -236,13 +276,14 @@
   };
   function cargarVoces() {
     if (!puedeHablar) return;
-    voces = speechSynthesis.getVoices().filter(v => /^es([-_]|$)/i.test(v.lang)).sort((a, b) => rango(a) - rango(b) || a.name.localeCompare(b.name));
+    const delIdioma = lang === "en" ? /^en([-_]|$)/i : /^es([-_]|$)/i;
+    voces = speechSynthesis.getVoices().filter(v => delIdioma.test(v.lang)).sort((a, b) => rango(a) - rango(b) || a.name.localeCompare(b.name));
     const sel = $("oVoz"), actual = aj.voz;
     sel.length = 1;
     voces.forEach(v => sel.add(new Option(`${v.name} (${v.lang})`, v.voiceURI)));
     sel.value = voces.some(v => v.voiceURI === actual) ? actual : "";
     const aviso = $("avisoVoz");
-    if (speechSynthesis.getVoices().length && !voces.length) { aviso.textContent = "Este equipo no tiene una voz en español: la frase se ve escrita y puede sonar con otro acento."; aviso.hidden = false; }
+    if (speechSynthesis.getVoices().length && !voces.length) { aviso.textContent = tr("sinVoz"); aviso.hidden = false; }
     else aviso.hidden = true;
   }
   const vozElegida = () => voces.find(v => v.voiceURI === aj.voz) || voces[0] || null;
@@ -251,12 +292,12 @@
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(txt);
     const v = vozElegida();
-    if (v) { u.voice = v; u.lang = v.lang; } else u.lang = "es-AR";
+    if (v) { u.voice = v; u.lang = v.lang; } else u.lang = LANG_VOZ[lang];
     u.rate = aj.lenta ? 0.75 : 0.95;
     speechSynthesis.speak(u);
   }
-  if (puedeHablar) { cargarVoces(); speechSynthesis.addEventListener?.("voiceschanged", cargarVoces); }
-  else { $("avisoVoz").textContent = "Este navegador no puede hablar: la frase se ve escrita arriba."; $("avisoVoz").hidden = false; }
+  if (puedeHablar) speechSynthesis.addEventListener?.("voiceschanged", cargarVoces);
+  const avisoSinNavegador = () => { if (!puedeHablar) { $("avisoVoz").textContent = tr("noHabla"); $("avisoVoz").hidden = false; } };
 
   // ---------- Frase ----------
   let frase = [];
@@ -264,7 +305,7 @@
   function pintarFrase() {
     const f = $("frase");
     f.replaceChildren();
-    if (!frase.length) f.innerHTML = '<span class="vacia">Tocá un dibujo para empezar</span>';
+    if (!frase.length) { const v = document.createElement("span"); v.className = "vacia"; v.textContent = tr("fraseVacia"); f.append(v); }
     frase.forEach(id => {
       const p = todos.get(id), d = document.createElement("span");
       d.className = "frase-item";
@@ -272,22 +313,22 @@
       d.lastChild.textContent = texto(p);
       f.append(d);
     });
-    f.setAttribute("aria-label", frase.length ? "Frase: " + frase.map(id => texto(todos.get(id))).join(" ") + ". Tocá para escucharla." : "Frase vacía");
+    f.setAttribute("aria-label", frase.length ? tr("frasePrefijo") + frase.map(id => texto(todos.get(id))).join(" ") + tr("fraseSufijo") : tr("fraseAriaVacia"));
     f.scrollLeft = f.scrollWidth;
     $("bUltimo").disabled = $("bTodo").disabled = $("bHablar").disabled = !frase.length;
   }
   const decirFrase = () => decir(frase.map(id => dicho(todos.get(id))).join(" "));
   $("bHablar").onclick = decirFrase;
   $("frase").onclick = decirFrase;
-  $("bUltimo").onclick = () => { frase.pop(); pintarFrase(); anunciar("Borré el último dibujo"); };
-  $("bTodo").onclick = () => { frase = []; pintarFrase(); anunciar("Frase borrada"); };
+  $("bUltimo").onclick = () => { frase.pop(); pintarFrase(); anunciar(tr("borreUltimo")); };
+  $("bTodo").onclick = () => { frase = []; pintarFrase(); anunciar(tr("fraseBorrada")); };
 
   // ---------- Categorías y grilla ----------
   const ICONO = { nucleo: 5441, sentimientos: 35547, necesidades: 6929, personas: 2458, lugares: 6964, acciones: 8142, juegos: 23392 };
   let catActual = "nucleo", editando = false;
   function pintarCats() {
     const c = $("cats");
-    const lista = (aj.favoritos.length ? [{ id: "favoritos", nombre: "Favoritos", color: "#8a5a00" }] : []).concat(T.CATEGORIAS);
+    const lista = (aj.favoritos.length ? [{ id: "favoritos", nombre: tr("favoritos"), color: "#8a5a00" }] : []).concat(T.CATEGORIAS);
     if (!lista.some(x => x.id === catActual)) catActual = "nucleo";
     c.replaceChildren(...lista.map(cat => {
       const b = document.createElement("button");
@@ -296,7 +337,7 @@
       b.tabIndex = cat.id === catActual ? 0 : -1;
       b.style.setProperty("--c", cat.color);
       b.innerHTML = cat.id === "favoritos" ? '<span class="estrella" aria-hidden="true">★</span><span></span>' : `<img src="${T.url(ICONO[cat.id])}" alt="" width="48" height="48" draggable="false"><span></span>`;
-      b.lastChild.textContent = cat.nombre;
+      b.lastChild.textContent = nombreCat(cat);
       b.onclick = () => { catActual = cat.id; pintarCats(); pintarGrilla(); };
       return b;
     }));
@@ -316,7 +357,7 @@
     if (editando) {
       const i = aj.favoritos.indexOf(p.id);
       if (i >= 0) aj.favoritos.splice(i, 1); else aj.favoritos.push(p.id);
-      guardar(); anunciar(i >= 0 ? `Saqué ${texto(p)} de favoritos` : `Agregué ${texto(p)} a favoritos`);
+      guardar(); anunciar(tr(i >= 0 ? "favSaque" : "favAgregue", texto(p)));
       pintarCats(); pintarGrilla(); return;
     }
     // Evita toques repetidos sin querer (mismo dibujo en menos de medio segundo)
@@ -328,7 +369,7 @@
       frase.push(p.id); pintarFrase();
     }
     if (aj.decir || !aj.frase) decir(dicho(p));
-    else anunciar("Agregué " + texto(p));
+    else anunciar(tr("agregue", texto(p)));
   }
   function pintarGrilla() {
     const g = $("tablero");
@@ -339,7 +380,7 @@
       b.type = "button"; b.className = "tecla";
       b.style.setProperty("--c", p.cat.color);
       const fav = aj.favoritos.includes(p.id);
-      b.setAttribute("aria-label", editando ? `${texto(p)}: ${fav ? "en favoritos" : "agregar a favoritos"}` : texto(p));
+      b.setAttribute("aria-label", editando ? tr(fav ? "favEsta" : "favAgregar", texto(p)) : texto(p));
       if (editando) b.setAttribute("aria-pressed", String(fav));
       b.innerHTML = `<img src="${T.url(p.id)}" alt="" width="300" height="300" draggable="false" decoding="async"><span class="t"></span>${fav ? '<span class="fav" aria-hidden="true">★</span>' : ""}`;
       b.querySelector(".t").textContent = texto(p);
@@ -355,8 +396,8 @@
   $("bFavoritos").onclick = () => {
     editando = !editando;
     $("bFavoritos").setAttribute("aria-pressed", String(editando));
-    $("bFavTxt").textContent = editando ? "Listo, terminé de elegir" : "Elegir favoritos";
-    anunciar(editando ? "Tocá los dibujos para agregarlos o sacarlos de favoritos" : "Listo");
+    $("bFavTxt").textContent = tr(editando ? "favListo" : "favElegir");
+    anunciar(tr(editando ? "favEditando" : "listo"));
     pintarGrilla();
   };
 
@@ -374,7 +415,7 @@
     if (enCompleto()) (document.exitFullscreen || document.webkitExitFullscreen).call(document)?.catch?.(() => {});
   }
   let confirmarHasta = 0;
-  const pintarSalir = c => { $("bSalir").classList.toggle("confirmar", c); $("bSalir").lastChild.textContent = c ? "¿Salir? Tocá otra vez" : "Salir"; };
+  const pintarSalir = c => { $("bSalir").classList.toggle("confirmar", c); $("bSalir").lastChild.textContent = tr(c ? "salirConfirmar" : "salir"); };
   // Para que el chico no salga sin querer: hay que tocar «Salir» dos veces en 3 segundos.
   $("bSalir").onclick = () => {
     if (Date.now() < confirmarHasta) { confirmarHasta = 0; pintarSalir(false); salir(); return; }
@@ -393,7 +434,7 @@
   $("oDecir").onchange = e => { aj.decir = e.target.checked; guardar(); };
   $("oFrase").onchange = e => { aj.frase = e.target.checked; guardar(); };
   $("oLenta").onchange = e => { aj.lenta = e.target.checked; guardar(); };
-  $("oVoz").onchange = e => { aj.voz = e.target.value; guardar(); decir("Hola"); };
+  $("oVoz").onchange = e => { aj.voz = e.target.value; guardar(); decir(tr("hola")); };
   document.querySelectorAll('input[name="tam"]').forEach(r => r.onchange = () => { aj.tam = r.value; guardar(); pintarGrilla(); });
   document.querySelectorAll('input[name="genero"]').forEach(r => r.onchange = () => { aj.genero = r.value; guardar(); pintarGrilla(); pintarFrase(); });
   $("bOlvidar").onclick = () => {
@@ -402,9 +443,11 @@
     $("oDecir").checked = true; $("oFrase").checked = true; $("oLenta").checked = false; $("oVoz").value = "";
     document.querySelector('input[name="tam"][value="mediano"]').checked = true;
     document.querySelector('input[name="genero"][value="nene"]').checked = true;
-    editando = false; $("bFavoritos").setAttribute("aria-pressed", "false"); $("bFavTxt").textContent = "Elegir favoritos";
-    pintarCats(); pintarGrilla(); pintarFrase();
-    $("olvidarMsg").textContent = "Listo: este dispositivo ya no tiene ajustes ni favoritos guardados.";
+    editando = false; $("bFavoritos").setAttribute("aria-pressed", "false");
+    // La elección de idioma también se borra: vuelve a ?lang= o al idioma del navegador.
+    lang = TX.elegirIdioma(location.search, "", navigator.language);
+    pintarTodo();
+    $("olvidarMsg").textContent = tr("olvidarListo");
   };
 
   // ---------- App para Android: link discreto solo en Android y fuera de la app instalada (TWA o PWA) ----------
@@ -416,7 +459,22 @@
     navigator.serviceWorker.register("/sw.js").then(() => navigator.serviceWorker.ready).then(r => r.active && r.active.postMessage({ tipo: "comunicador" })).catch(() => {});
   }
 
-  pintarCats(); pintarGrilla(); pintarFrase();
+  // ---------- Selector de idioma (Español / English): se guarda en el mismo localStorage y actualiza ?lang= ----------
+  function pintarTodo() {
+    aplicarIdioma(); avisoSinNavegador(); cargarVoces();
+    $("bFavTxt").textContent = tr(editando ? "favListo" : "favElegir");
+    pintarSalir(Date.now() < confirmarHasta);
+    pintarCats(); pintarGrilla(); pintarFrase();
+  }
+  document.querySelectorAll("#idioma [data-lang]").forEach(b => b.onclick = () => {
+    if (b.dataset.lang === lang) return;
+    lang = aj.idioma = b.dataset.lang; guardar();
+    try { const u = new URL(location.href); if (u.searchParams.has("lang")) { u.searchParams.set("lang", lang); history.replaceState(null, "", u); } } catch { /* sin history: igual queda guardado */ }
+    $("olvidarMsg").textContent = "";
+    pintarTodo();
+  });
+
+  pintarTodo();
 })();
 </script>
 </body>
