@@ -53,3 +53,18 @@ test("APKs en /descargar con su nombre de archivo y sin caché del SW", () => {
   }
   assert.ok(leer("sw.js").includes("/^\\/(api|descargar)\\//"));
 });
+
+test("portada: bloque visible del Comunicador arriba (abrir, inglés y APK) y la APK de Puente para quienes ya están en el piloto", () => {
+  const h = leer("index.html");
+  const bloque = h.indexOf('id="comunicador"');
+  assert.ok(bloque > 0, "hay bloque del Comunicador");
+  assert.ok(bloque < h.indexOf("Cómo funciona</h3>"), "va antes de «Cómo funciona», a la vista");
+  assert.match(h, /<a class="big" id="btnComunicador" href="comunicador\.html">Abrir el Comunicador<\/a>/);
+  assert.match(h, /id="btnComApk" href="\/descargar\/comunicador\.apk" download>Bajar la app para Android<\/a>/);
+  assert.ok(h.includes('href="comunicador.html?lang=en" hreflang="en"'));
+  assert.ok(h.includes("todavía no está en Google Play"));
+  assert.match(h, /href="\/descargar\/puente\.apk" id="linkPuenteApk" download>/);
+  assert.ok(h.includes('href="https://github.com/dannyvergel/mi-dia-en-pictos"'));
+  // Sin analítica nueva: solo el evento del piloto que ya existía.
+  assert.deepEqual([...h.matchAll(/window\.va\("event", \{ name: "(\w+)"/g)].map(m => m[1]), ["sumarse_piloto"]);
+});
