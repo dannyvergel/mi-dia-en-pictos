@@ -18,7 +18,10 @@ async function main() {
     require("../api/_lib/db").usarBaseDePrueba(new PGlite());
     console.log("Base: PGlite en memoria (datos de prueba, se borran al cortar).");
   }
-  if (!process.env.BLOB_READ_WRITE_TOKEN) { require("../api/_lib/almacen").usarAlmacenDePrueba(true); console.log("Blob: en memoria."); }
+  // Blob: con BLOB_READ_WRITE_TOKEN (o BLOB_STORE_ID + VERCEL_OIDC_TOKEN de `vercel env pull`) usa el store real; si no, memoria.
+  const almacen = require("../api/_lib/almacen");
+  if (!almacen.hayBlob()) { almacen.usarAlmacenDePrueba(true); console.log("Blob: en memoria."); }
+  else console.log("Blob: store real (" + almacen.modoBlob() + ").");
   http.createServer(async (req, res) => {
     const url = new URL(req.url, "http://localhost");
     if (url.pathname.startsWith("/api/")) {

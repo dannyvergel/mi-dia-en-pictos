@@ -46,7 +46,7 @@ Después pegalo directo en Vercel.
 | Credencial | Dónde se cambia | Variable en Vercel | Cómo se verifica |
 |---|---|---|---|
 | Clave de la base (Neon) | Neon → Roles → `neondb_owner` → Reset password | `DATABASE_URL` (y las demás que pone la integración) | Salud con `"db":"ok"` |
-| Token de Blob | Vercel → Storage → store `puente-datos` | `BLOB_READ_WRITE_TOKEN` | Abrir un día publicado en el espacio de una familia |
+| Token de Blob | No se rota: store nuevo + `web/scripts/migrar-blob.js` + borrar el viejo | `BLOB_STORE_ID` (OIDC); `BLOB_READ_WRITE_TOKEN` solo para scripts locales | Abrir un día publicado y un documento en el espacio de una familia |
 | Token de API de Vercel | vercel.com → Account Settings → Tokens | Ninguna (no lo usa la app) | La herramienta que lo usa sigue funcionando |
 | Clave de revisión de Play | `web/scripts/revisor-clave.js` | `REVISOR_CLAVE_HASH` | Entrar con «Acceso para revisión» |
 | Secreto del cron | Lo generás vos | `CRON_SECRET` | `api/auditoria?accion=limpieza` da 200 con el secreto nuevo |
@@ -69,14 +69,131 @@ Las contraseñas de los roles son por rama. Resetear la de producción no cambia
 
 ## BLOB_READ_WRITE_TOKEN
 
-Es el token del store privado `puente-datos`, donde están los días publicados y los documentos. Lo usan los dos proyectos (`mi-dia-en-pictos` y `puente-demo`).
+Los días publicados y los documentos están en un store privado de Vercel Blob (hoy `puente-datos`), que usan los dos proyectos (`mi-dia-en-pictos` y `puente-demo`).
 
-1. Vercel → **Storage** → `puente-datos`.
-2. La documentación de Vercel no describe un botón para regenerar solo este token. Lo que sí documenta es reemplazarlo por OIDC: tokens cortos que Vercel rota solo. Para eso, en la pestaña **Projects** del store, menú del proyecto → **Upgrade to OIDC**. Antes hay que confirmar que la versión de `@vercel/blob` del repo lo soporta (hoy el lockfile tiene la 2.8.2) y probarlo fuera de producción. Eso es un cambio aparte, con su propio PR.
-3. Si en el panel del store aparece una opción para regenerar o revocar el token, usala. Si no, desconectar el proyecto del store y volver a conectarlo crea un token nuevo. Esto no está verificado en Puente: hacelo fuera de horario y con la salida de producción a mano.
-4. Actualizá `BLOB_READ_WRITE_TOKEN` en los dos proyectos si no se actualizó sola.
-5. Redeploy de los dos proyectos.
-6. Verificá: abrí el espacio de una familia de prueba y fijate que cargue el último día publicado. En los logs de Vercel no tiene que haber errores de Blob.
+**El `BLOB_READ_WRITE_TOKEN` no se puede rotar.** Es un token estático que pertenece al store: no hay botón para regenerarlo, y desconectar y volver a conectar el proyecto no crea uno nuevo (el token sigue siendo el mismo mientras exista el store). La única forma de dejar sin efecto un token filtrado es pasar los datos a un **store nuevo** y **borrar el store viejo**. Con el store borrado, el token viejo deja de servir para cualquier cosa.
+
+Desde el PR `blob-oidc`, la app en Vercel no usa ese token: usa **OIDC** (`BLOB_STORE_ID` + un `VERCEL_OIDC_TOKEN` corto que Vercel rota solo; `@vercel/blob` 2.4 o más nuevo, el repo tiene la 2.8.2). El token estático queda solo para correr scripts desde tu compu (`revisor.js`, `dev.js`, `migrar-blob.js`). Ver `web/api/_lib/almacen.js`.
+
+### Antes de empezar
+
+- Fuera del horario escolar, salvo que el token se haya filtrado (entonces, ya).
+- El PR `blob-oidc` tiene que estar mergeado y desplegado en los dos proyectos. Hasta que conectes el store nuevo, en los logs vas a ver una vez por instancia el aviso `[puente] Blob sin BLOB_STORE_ID`: es esperable.
+- Anotá la **región** del store viejo: Vercel → **Storage** → `puente-datos` → **Settings**. El nuevo va en la misma (la región no se puede cambiar después y es la que figura en el consentimiento y en la política de privacidad).
+- Tené el repo actualizado en tu compu:
+
+```powershell
+cd C:\dev\mi-dia-en-pictos
+git checkout main
+git pull
+cd web
+npm ci
+```
+
+### 1. Crear el store nuevo
+
+1. Vercel → **Storage** → **Create** → **Blob**.
+2. Acceso **Private**. Nombre: `puente-datos-2`. Región: **la misma** que el viejo.
+3. Si te ofrece conectarlo a proyectos en ese momento, no conectes ninguno todavía (va en el paso 2).
+
+### 2. Conectar el store nuevo a los dos proyectos
+
+1. `puente-datos-2` → pestaña **Projects** → **Connect Project** → `mi-dia-en-pictos`, entornos **Production** y **Preview**.
+2. Si Vercel avisa que `BLOB_READ_WRITE_TOKEN` ya existe (es el del store viejo, que sigue conectado), abrí **Advanced Options** y poné el prefijo `BLOB_NUEVO`. La app no usa ese token en Vercel.
+3. Repetí con `puente-demo`.
+4. En cada proyecto → **Settings** → **Environment Variables**, fijate que exista **`BLOB_STORE_ID`** (sin prefijo) con el id del store **nuevo** (empieza con `store_`; lo ves en la página de `puente-datos-2`). No es un secreto.
+   - Si quedó con prefijo (`BLOB_NUEVO_STORE_ID`), creá a mano `BLOB_STORE_ID` con ese mismo valor, en Production y Preview.
+   - Si ya había un `BLOB_STORE_ID` con el id del store viejo, editalo y poné el del nuevo.
+5. **No hagas redeploy todavía.** El deploy que está andando sigue usando el store viejo hasta el paso 5.
+
+### 3. Migración de prueba (dry-run)
+
+Necesitás el token de lectura y escritura de cada store: en la página del store → **.env.local** (o **Quickstart**) → **Show secret** → copiar `BLOB_READ_WRITE_TOKEN`. Podés copiar la línea entera, el script le saca el nombre y las comillas. Se cargan desde el portapapeles para que no queden en pantalla ni en el historial:
+
+```powershell
+cd C:\dev\mi-dia-en-pictos\web
+# Copiá el token del store VIEJO (puente-datos) y después:
+$env:BLOB_ORIGEN_TOKEN = (Get-Clipboard)
+# Copiá el token del store NUEVO (puente-datos-2) y después:
+$env:BLOB_DESTINO_TOKEN = (Get-Clipboard)
+Set-Clipboard -Value " "
+node scripts\migrar-blob.js --dry-run
+```
+
+Tiene que mostrar `Origen: store <id viejo>` y `Destino: store <id nuevo>` (si están al revés, cargá de nuevo las variables), cuántos blobs y bytes hay en cada uno y el plan: `copiar N`. No escribe nada.
+
+### 4. Migración de verdad
+
+En la misma ventana de PowerShell:
+
+```powershell
+node scripts\migrar-blob.js
+```
+
+Copia cada blob con la misma ruta y el mismo content-type, y al final vuelve a listar los dos stores y compara cantidad, bytes, tamaño y content-type. Tiene que terminar en `Listo: todo lo del origen está en el destino.` Si dice `Hay diferencias`, corrélo de nuevo: es idempotente (no duplica ni pisa lo que ya está igual).
+
+No hace falta tocar la base: guarda rutas (`alumnos.blob_token` → `familias/<token>.json` y `documentos.blob_ruta` → `documentos/<alumno>/<hex>`), no URLs del store. El SDK arma la URL con el id del store que esté conectado.
+
+### 5. Redeploy
+
+Redeploy de `mi-dia-en-pictos` y de `puente-demo` (ver arriba). Desde ahora la app lee y escribe en el store nuevo, por OIDC.
+
+Apenas diga **Ready**, corré una segunda pasada en la misma ventana. Copia lo que la app vieja haya escrito entre el paso 4 y el redeploy, y no pisa lo que la app nueva ya escribió en el destino:
+
+```powershell
+node scripts\migrar-blob.js
+```
+
+### 6. Verificar
+
+1. Salud: `curl.exe -s -i "https://puentepictos.app/api/config?accion=salud"` → 200 y `"ok":true`, con el `version` del commit nuevo.
+2. Entrá al espacio de una familia de prueba (por ejemplo, la cuenta de revisión): tiene que cargar el último día publicado y abrir un documento.
+3. Como docente, publicá un día de prueba. En `puente-datos-2` → **Browser**, ese `familias/....json` tiene que tener la hora de recién. En `puente-datos`, no.
+4. Vercel → **Logs** de los dos proyectos: sin errores de Blob y sin el aviso `[puente] Blob sin BLOB_STORE_ID`.
+
+### 7. Desconectar el store viejo
+
+1. `puente-datos` → **Projects** → menú (⋯) de cada proyecto → **Disconnect**.
+2. En cada proyecto → **Settings** → **Environment Variables**: no tiene que quedar ningún `BLOB_READ_WRITE_TOKEN` del store viejo. Si quedó, borralo. Si se creó `BLOB_NUEVO_READ_WRITE_TOKEN`, borralo también: la app no lo usa y es un secreto estático menos dando vueltas (los scripts locales lo sacan del panel del store).
+3. Redeploy de los dos proyectos y repetí el paso 6.
+
+### 8. Borrar el store viejo
+
+Esto es lo que deja sin efecto el token filtrado. No tiene vuelta atrás: hacelo solo con el paso 6 bien.
+
+1. `puente-datos` → **Settings** → **Delete Store** → confirmar.
+2. Comprobá que el token viejo ya no sirve (en la misma ventana; `BLOB_ORIGEN_TOKEN` todavía es el viejo):
+
+```powershell
+node scripts\migrar-blob.js --dry-run
+```
+
+   Tiene que fallar con `This store does not exist` (o un 403).
+3. Limpiá la ventana:
+
+```powershell
+Remove-Item Env:BLOB_ORIGEN_TOKEN
+Remove-Item Env:BLOB_DESTINO_TOKEN
+```
+
+4. Anotá qué pasó y cuándo (ver *Si se filtra una credencial*). En los docs, el store pasa a llamarse `puente-datos-2`.
+
+### Rollback
+
+- **Hasta el paso 7 inclusive** (el store viejo todavía existe): en cada proyecto borrá `BLOB_STORE_ID` y, si lo desconectaste, volvé a conectar `puente-datos` (o cargá su `BLOB_READ_WRITE_TOKEN` a mano, Sensitive). Redeploy. Sin `BLOB_STORE_ID`, la app vuelve al token del store viejo. En una emergencia, antes del paso 7, también sirve **Instant Rollback** al deploy anterior al paso 5 (todavía tiene las variables del store viejo).
+  Después copiá de vuelta lo que la app escribió en el store nuevo, con los tokens al revés (solo pisa lo que es más nuevo en el origen):
+
+```powershell
+# Copiá el token del store NUEVO (puente-datos-2) y después:
+$env:BLOB_ORIGEN_TOKEN = (Get-Clipboard)
+# Copiá el token del store VIEJO (puente-datos) y después:
+$env:BLOB_DESTINO_TOKEN = (Get-Clipboard)
+Set-Clipboard -Value " "
+node scripts\migrar-blob.js --dry-run
+node scripts\migrar-blob.js
+```
+
+- **Después del paso 8** no hay vuelta al store viejo: el token filtrado ya no existe. Si algo falla, se arregla sobre el store nuevo (y si hiciera falta otro store, se repite este procedimiento con el nuevo como origen).
 
 ## Token de API de Vercel
 

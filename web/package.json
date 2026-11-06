@@ -4,7 +4,7 @@
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",
     "@vercel/analytics": "^2.0.1",
-    "@vercel/blob": "latest"
+    "@vercel/blob": "^2.8.2"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.3.16"

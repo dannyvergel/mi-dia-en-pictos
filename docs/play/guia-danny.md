@@ -161,7 +161,7 @@ Remove-Variable clave, b
    - `REVISOR_CLAVE_HASH` = el hash del paso 1, entorno **Production**, marcada como **Sensitive**.
    - Las variables nuevas valen recién en el próximo deploy: Deployments → el último de Production → **Redeploy**.
 
-**3. Crear la escuela, la cuenta y los datos en la base de producción** (idempotente: si lo corrés de nuevo, actualiza y no duplica). Copiá `DATABASE_URL` y `BLOB_READ_WRITE_TOKEN` de Vercel (Settings → Environment Variables, entorno Production) y pegalos entre comillas simples:
+**3. Crear la escuela, la cuenta y los datos en la base de producción** (idempotente: si lo corrés de nuevo, actualiza y no duplica). Copiá `DATABASE_URL` de Vercel (Settings → Environment Variables, entorno Production) y `BLOB_READ_WRITE_TOKEN` de la página del store de Blob (**.env.local** → **Show secret**; con OIDC ya no está en las variables del proyecto, ver [rotar-credenciales.md](../operacion/rotar-credenciales.md#blob_read_write_token)) y pegalos entre comillas simples:
 ```powershell
 cd C:\dev\mi-dia-en-pictos\web
 $env:DATABASE_URL = 'pegá-acá-DATABASE_URL'
