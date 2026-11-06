@@ -33,3 +33,6 @@ Sin base de datos (el demo) se ven todas.
 ## Antes de prender algo
 - `texto` y `chat` vuelven a exponer a la familia lo que escribe la seño, y en el caso del chat también pasa por la IA. Revisar con el aval de la escuela y el consentimiento.
 - Si se prende `chat`, la política de privacidad ya lo describe (OpenRouter, 30 días de historial).
+
+## Informes y documentos: no dependen de esta variable
+Los informes y documentos que suben las seños y terapeutas **no** se prenden ni se apagan con `FAMILIA_FUNCIONES`. Rigen aunque la variable esté en el mínimo: la seño decide **documento por documento** con la casilla «Mostrar a la familia», y la familia ve solo esos. Ver `docs/documentos.md`.

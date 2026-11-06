@@ -56,6 +56,10 @@
   .barra { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
   .barra a { color: var(--tinta); font-weight: 700; }
   .error { color: var(--bad); font-weight: 700; }
+  .doc { display: flex; justify-content: space-between; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--renglon); font-size: 15px; flex-wrap: wrap; }
+  .doc:last-child { border-bottom: 0; }
+  .doc-acc { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .doc-acc .enlace:disabled { color: var(--gris); text-decoration: none; cursor: default; }
   .aviso { background: #fdf6e1; border-left: 5px solid var(--lapiz); padding: 8px 12px; border-radius: 8px; font-size: 14px; margin: 8px 0; }
   @media (max-width: 520px) { .grid2 { grid-template-columns: 1fr; } }
 </style>
@@ -135,6 +139,25 @@
       <button class="big" id="guardar">Guardar ficha</button>
       <div class="fila"><a class="big alt chico" id="verFamilia" target="_blank">Ver como familia</a><button class="big alt chico peligro" id="borrar" hidden>Borrar alumno</button></div>
       <p id="msgEd" class="muted"></p>
+    </div>
+
+    <div class="card" id="docsCard" hidden>
+      <span class="rotulo">Informes y documentos</span>
+      <p class="muted">Informes, actas o fotos de cuadernos de <span id="docsNom"></span> (PDF, JPG, PNG o DOCX, hasta 3 MB). Los ve el equipo que tiene al alumno; la familia, solo los que marques para mostrarle. No pasan por la IA.</p>
+      <form id="fDocAl">
+        <div class="grid2">
+          <div><label for="docTipo">Tipo</label><select id="docTipo"><option value="informe">Informe</option><option value="documento">Documento</option></select></div>
+          <div><label for="docTitulo">Título</label><input id="docTitulo" maxlength="120" required placeholder="Ej: Informe del primer trimestre"></div>
+        </div>
+        <label for="docArchivo">Archivo</label>
+        <input type="file" id="docArchivo" required accept=".pdf,.jpg,.jpeg,.png,.docx,application/pdf,image/jpeg,image/png,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+        <label class="check" style="margin-top:8px"><input type="checkbox" id="docMostrar"> Mostrar a la familia</label>
+        <label class="check"><input type="checkbox" id="docNotificar" disabled> Informar a la familia por mail</label>
+        <p class="muted">El mail solo dice que la escuela compartió un informe o documento y que entren a Puente para verlo: no lleva el archivo ni el título.</p>
+        <button class="big" id="docSubir">Subir</button>
+      </form>
+      <p class="muted" id="msgDocs"></p>
+      <div id="docsLista"></div>
     </div>
   </section>
 
@@ -407,6 +430,7 @@ function abrir(id) {
   $("borrar").hidden = !(YO.es_admin || YO.es_plataforma);
   $("lfNuevo").innerHTML = ""; pintarLinksFamilia();
   pintarAsignadas();
+  cargarDocumentos();
   $("editor").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 // ---------- links de invitación (piloto cerrado) ----------
@@ -482,7 +506,7 @@ async function cambiarAsignacion(docenteId, sumar) {
   if (!sumar && docenteId === YO_ID && !YO.es_admin && !confirm(`Si te quitás, vas a dejar de ver a ${actual.nombre}. ¿Seguro?`)) return;
   try {
     const r = await api("api/fichas", { method: "POST", body: { accion: sumar ? "asignar" : "desasignar", id: actual.id, docente_id: docenteId } });
-    if (!r.alumno) { actual = null; $("editor").hidden = true; return cargarAlumnos(); }
+    if (!r.alumno) { actual = null; $("editor").hidden = true; $("docsCard").hidden = true; return cargarAlumnos(); }
     Object.assign(ALUMNOS.find(a => a.id === actual.id), r.alumno); pintarLista(); pintarAsignadas(); msg("msgEd", "Docentes a cargo actualizadas ✓");
   } catch (e) { msg("msgEd", e.message, true); }
 }
@@ -509,16 +533,85 @@ $("guardar").onclick = async () => {
   } catch (e) { msg("msgEd", e.message, true); }
 };
 $("borrar").onclick = async () => {
-  if (!actual || !confirm(`¿Dar de baja a ${actual.nombre}? Se borra TODO: su ficha, docentes asignadas, invitaciones, historial del chat, los días publicados para su familia y las cuentas de familia que no tengan otro alumno. No se puede deshacer.`)) return;
-  try { const r = await api("api/fichas", { method: "POST", body: { accion: "borrar", id: actual.id } }); actual = null; $("editor").hidden = true; await cargarAlumnos();
+  if (!actual || !confirm(`¿Dar de baja a ${actual.nombre}? Se borra TODO: su ficha, docentes asignadas, invitaciones, historial del chat, los días publicados para su familia, sus informes y documentos, y las cuentas de familia que no tengan otro alumno. No se puede deshacer.`)) return;
+  try { const r = await api("api/fichas", { method: "POST", body: { accion: "borrar", id: actual.id } }); actual = null; $("editor").hidden = true; $("docsCard").hidden = true; await cargarAlumnos();
     msg("msgLista", r.aviso || "Alumno dado de baja: se borraron todos sus datos ✓", !!r.aviso); }
   catch (e) { msg("msgEd", e.message, true); }
+};
+
+// ---------- informes y documentos del alumno ----------
+const DOC_MAX = 3 * 1024 * 1024;
+const DOC_TIPO = { informe: "Informe", documento: "Documento" };
+const estadoDoc = d => !d.visible_familia ? '<span class="sello">Solo equipo</span>'
+  : d.notificado ? `<span class="sello avanzando">Familia avisada el ${esc(fecha(d.notificado))}</span>` : '<span class="sello avanzando">Visible para la familia</span>';
+async function cargarDocumentos() {
+  if (!actual) return;
+  const id = actual.id;
+  $("docsCard").hidden = false; $("docsNom").textContent = actual.nombre; msg("msgDocs", "");
+  try {
+    const r = await api("api/fichas?documentos=" + id);
+    if (actual?.id === id) pintarDocumentos(r.documentos);
+  } catch (e) { $("docsLista").innerHTML = `<p class="error">${esc(e.message)}</p>`; }
+}
+function pintarDocumentos(lista) {
+  $("docsLista").innerHTML = lista.length ? lista.map(d => `<div class="doc" data-id="${d.id}">
+      <span><b>${esc(d.titulo)}</b> <span class="muted">· ${esc(DOC_TIPO[d.tipo] || d.tipo)} · ${esc(fecha(d.creado))}${d.subido_por ? " · subió " + esc(d.subido_por.nombre) : ""}</span><br>${estadoDoc(d)}</span>
+      <span class="doc-acc">
+        <button type="button" class="enlace" data-a="bajar">Descargar</button>
+        <button type="button" class="enlace" data-a="${d.visible_familia ? "ocultar" : "mostrar"}">${d.visible_familia ? "Ocultar" : "Mostrar"}</button>
+        <button type="button" class="enlace" data-a="informar" ${d.visible_familia ? "" : 'disabled title="Primero mostralo a la familia"'}>Informar</button>
+        ${d.puede_borrar ? '<button type="button" class="quitar txt" data-a="borrar">Borrar</button>' : ""}
+      </span></div>`).join("") : '<p class="vacio">Todavía no hay informes ni documentos.</p>';
+  $("docsLista").querySelectorAll(".doc").forEach(el => {
+    const d = lista.find(x => x.id === Number(el.dataset.id));
+    el.querySelectorAll("button[data-a]").forEach(b => b.onclick = () => accionDoc(d, b.dataset.a, b));
+  });
+}
+async function accionDoc(d, accion, btn) {
+  msg("msgDocs", "");
+  try {
+    if (accion === "bajar") return await Puente.bajarArchivo("api/fichas?documento=" + d.id, d.nombre_archivo);
+    if (accion === "borrar") {
+      if (!confirm(`¿Borrar «${d.titulo}»? Se borra el archivo y nadie lo va a poder ver más. No se puede deshacer.`)) return;
+      await api("api/fichas", { method: "POST", body: { accion: "doc_borrar", doc_id: d.id } });
+      msg("msgDocs", "Documento borrado ✓");
+      return cargarDocumentos();
+    }
+    if (accion === "informar" && !confirm(`¿Avisarle por mail a la familia de ${actual.nombre} que hay un ${d.tipo} nuevo? El mail no lleva el archivo ni el título.`)) return;
+    btn.disabled = true;
+    const body = { accion: "doc_cambiar", doc_id: d.id, ...(accion === "informar" ? { notificar: true } : { mostrar_familia: accion === "mostrar" }) };
+    const r = await api("api/fichas", { method: "POST", body });
+    const af = r.aviso_familia;
+    msg("msgDocs", af ? (af.aviso || "Le avisamos a la familia por mail ✓") : accion === "mostrar" ? "Ahora la familia lo ve ✓" : "La familia ya no lo ve ✓", !!af?.aviso);
+    await cargarDocumentos();
+  } catch (e) { msg("msgDocs", e.message, true); if (btn) btn.disabled = false; }
+}
+$("docMostrar").onchange = () => { $("docNotificar").disabled = !$("docMostrar").checked; if (!$("docMostrar").checked) $("docNotificar").checked = false; };
+const leerBase64 = f => new Promise((ok, mal) => { const r = new FileReader(); r.onload = () => ok(String(r.result).replace(/^data:[^,]*,/, "")); r.onerror = () => mal(new Error("No pudimos leer el archivo.")); r.readAsDataURL(f); });
+$("fDocAl").onsubmit = async ev => {
+  ev.preventDefault();
+  if (!actual) return;
+  const f = $("docArchivo").files[0];
+  if (!f) return msg("msgDocs", "Elegí un archivo.", true);
+  if (!/\.(pdf|jpe?g|png|docx)$/i.test(f.name)) return msg("msgDocs", "Solo se pueden subir archivos PDF, JPG, PNG o DOCX.", true);
+  if (f.size > DOC_MAX) return msg("msgDocs", "El archivo pesa más de 3 MB. Achicalo o escanealo con menos resolución.", true);
+  $("docSubir").disabled = true; msg("msgDocs", "Subiendo…");
+  try {
+    const r = await api("api/fichas", { method: "POST", body: { accion: "doc_subir", id: actual.id, tipo: $("docTipo").value, titulo: $("docTitulo").value,
+      nombre: f.name, mime: f.type, datos: await leerBase64(f), mostrar_familia: $("docMostrar").checked, notificar: $("docNotificar").checked } });
+    ev.target.reset(); $("docNotificar").disabled = true;
+    const af = r.aviso_familia;
+    msg("msgDocs", "Subido ✓" + (af ? " " + (af.aviso || "Le avisamos a la familia por mail.") : ""), !!af?.aviso);
+    await cargarDocumentos();
+  } catch (e) { msg("msgDocs", e.message, true); }
+  finally { $("docSubir").disabled = false; }
 };
 
 // ---------- registro de accesos (admins y plataforma) ----------
 const EVENTO_TXT = { login_ok: "Ingreso", login_google: "Ingreso con Google", login_fallido: "Ingreso fallido", ficha_ver: "Vio fichas", fichas_listar: "Listó alumnos", ficha_editar: "Editó ficha",
   exportacion: "Exportación", baja_alumno: "Baja de alumno", baja_familia: "Baja de familia", feedback: "Comentario", alerta_fallos: "Alerta enviada",
-  invitacion_creada: "Link de invitación creado", invitacion_usada: "Link de invitación usado", invitacion_revocada: "Link de invitación anulado" };
+  invitacion_creada: "Link de invitación creado", invitacion_usada: "Link de invitación usado", invitacion_revocada: "Link de invitación anulado",
+  doc_subir: "Subió un documento", doc_ver: "Bajó un documento", doc_cambiar: "Cambió un documento", doc_borrar: "Borró un documento" };
 async function cargarRegistro() {
   try {
     const r = await api("api/auditoria" + ($("regEvento").value ? "?evento=" + encodeURIComponent($("regEvento").value) : ""));

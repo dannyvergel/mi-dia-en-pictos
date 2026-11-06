@@ -218,7 +218,26 @@ const SCHEMA = [
   // ---------- Profesionales sin escuela ----------
   // Un/a profesional independiente (terapeuta, acompañante) tiene su propio "espacio": una fila de escuelas con tipo
   // 'independiente', sin CUE, donde es admin. Ocupa un cupo del piloto como cualquier docente.
-  `ALTER TABLE escuelas ADD COLUMN IF NOT EXISTS tipo TEXT NOT NULL DEFAULT 'escuela'`
+  `ALTER TABLE escuelas ADD COLUMN IF NOT EXISTS tipo TEXT NOT NULL DEFAULT 'escuela'`,
+  // ---------- Informes y documentos ----------
+  // Archivos que suben las seños y terapeutas (PDF, JPG, PNG, DOCX; hasta 3 MB). El archivo va al Vercel Blob privado
+  // (blob_ruta); acá solo los metadatos. La familia los ve solo si visible_familia. Nunca pasan por la IA. Ver docs/documentos.md.
+  `CREATE TABLE IF NOT EXISTS documentos (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    alumno_id BIGINT NOT NULL REFERENCES alumnos(id) ON DELETE CASCADE,
+    escuela_id BIGINT NOT NULL REFERENCES escuelas(id),
+    subido_por BIGINT REFERENCES docentes(id) ON DELETE SET NULL,
+    tipo TEXT NOT NULL CHECK (tipo IN ('informe', 'documento')),
+    titulo TEXT NOT NULL,
+    nombre_archivo TEXT NOT NULL,
+    mime TEXT NOT NULL,
+    bytes INT NOT NULL,
+    blob_ruta TEXT NOT NULL UNIQUE,
+    visible_familia BOOLEAN NOT NULL DEFAULT false,
+    notificado TIMESTAMPTZ,
+    creado TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS documentos_alumno ON documentos (alumno_id, creado DESC)`
 ];
 
 module.exports = { SCHEMA };

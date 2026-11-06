@@ -30,6 +30,7 @@
     <li><b>Del alumno:</b> solo el nombre de pila (o nombre con inicial) y el grado. Sin apellido, sin fotos, sin DNI y sin diagnósticos.</li>
     <li><b>Ficha de apoyos:</b> cómo se comunica, qué le molesta (sensorial), qué lo calma, alimentación, qué le gusta, otros apoyos y los objetivos del PPI. La carga la escuela.</li>
     <li><b>Registro del día:</b> actividades, ánimo, logros y alertas que escribe o dicta la docente.</li>
+    <li><b>Informes y documentos:</b> archivos que sube la escuela sobre el alumno (por ejemplo, informes de las docentes o terapeutas), en PDF, JPG, PNG o DOCX. Los ve el equipo que tiene asignado al alumno; la familia los ve solo si la escuela decide compartirlos, uno por uno. Se guardan en Vercel Blob (almacenamiento privado) y nunca se mandan a la IA. El aviso por mail a la familia no lleva el archivo ni su título.</li>
     <li><b>De la familia:</b> nombre, vínculo, email y teléfono de los contactos que carga la escuela; el consentimiento (quién, cuándo y qué versión de esta política aceptó); las preguntas que hacés en el chat «Preguntale a Puente».</li>
     <li><b>De las docentes:</b> nombre, email, escuela y rol.</li>
     <li><b>Registro de accesos (seguridad):</b> ingresos, intentos fallidos, fichas vistas, exportaciones y bajas, con el email cifrado (no legible) y la dirección de red recortada.</li>
@@ -44,7 +45,7 @@
 
   <h3>Terceros que intervienen (encargados del tratamiento)</h3>
   <ul>
-    <li><b>Vercel</b> (aloja la aplicación, guarda los días publicados en Vercel Blob y mide visitas de forma anónima con Web Analytics).</li>
+    <li><b>Vercel</b> (aloja la aplicación, guarda los días publicados y los informes y documentos que sube la escuela en Vercel Blob, y mide visitas de forma anónima con Web Analytics).</li>
     <li><b>Neon</b> (base de datos Postgres con cuentas, fichas, consentimientos y registros).</li>
     <li><b>Resend</b> (envía los mails con el código para entrar, invitaciones y avisos).</li>
     <li><b>Google</b> (solo si una docente o directivo elige «Entrar con Google»): Puente recibe únicamente el email verificado de esa cuenta, para reconocer una cuenta que ya existe en Puente. No recibe contactos, archivos ni otros datos de Google, y no crea cuentas nuevas. Las familias no usan Google.</li>
@@ -60,6 +61,7 @@
     <li>Historial del chat de la familia: 30 días.</li>
     <li>Días publicados para la familia: 365 días.</li>
     <li>Registro de accesos y comentarios: 365 días.</li>
+    <li>Informes y documentos: mientras el alumno participe en Puente. Se borran (el archivo y sus datos) con la baja del alumno, o antes si la escuela los borra.</li>
     <li>Fichas: mientras el alumno participe en Puente. Cuando la escuela da de baja al alumno, o la familia pide la baja, se borran sus datos.</li>
   </ul>
 

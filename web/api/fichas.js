@@ -15,6 +15,12 @@
 //   POST accion=link_familia { id, nombre?, vinculo?, dias? }  → link de invitación (un solo uso, 7 días) ligado a este alumno,
 //                                        para mandar por WhatsApp. Devuelve la URL una sola vez. Respeta el tope de cupos.
 //   POST accion=link_revocar { id, link_id }   → anula un link pendiente de la familia de este alumno
+//   Informes y documentos (ver _lib/documentos.js y docs/documentos.md). Docente con acceso al alumno:
+//   POST accion=doc_subir   { id, tipo, titulo, nombre, mime, datos (base64), mostrar_familia?, notificar? }
+//   GET ?documentos=<alumno_id>           → lista (sin la ruta del Blob)
+//   GET ?documento=<doc_id>               → el archivo (attachment, no-store)
+//   POST accion=doc_cambiar { doc_id, mostrar_familia?, notificar? }
+//   POST accion=doc_borrar  { doc_id }    (quien lo subió o la admin de la escuela)
 //   Piloto: sumar emails nuevos de familia (crear/guardar) respeta el tope de cupos (409 "El piloto está completo").
 //   POST accion=importar_previa | importar_confirmar | importar_enviar   (solo admins de escuela / plataforma)
 //                                        Importación masiva de docentes y alumnos con familias: ver _lib/importacion.js
@@ -23,7 +29,10 @@
 //   POST accion=consentir   { id, dado }
 //   POST accion=mi_contacto { id, nombre, telefono }   (solo su propio contacto)
 //   POST accion=baja                   La familia pide la baja: se borran sus datos y se cierra la sesión
-//   GET ?exportar=1                    Exportar mis datos (derecho de acceso). Queda en la auditoría.
+//   GET ?exportar=1                    Exportar mis datos (derecho de acceso). Queda en la auditoría. Incluye los metadatos
+//                                        de los documentos que la escuela le muestra.
+//   GET ?documentos=<alumno_id> | ?documento=<doc_id>   Solo los documentos con visible_familia (rige aunque
+//                                        FAMILIA_FUNCIONES esté en el mínimo: lo decide la seño documento por documento).
 const { dbActiva, q, uno } = require("./_lib/db");
 const { exigirSesion } = require("./_lib/auth");
 const F = require("./_lib/fichas");
@@ -36,6 +45,7 @@ const inv = require("./_lib/invitaciones");
 const importacion = require("./_lib/importacion");
 const enlaces = require("./_lib/enlaces");
 const piloto = require("./_lib/piloto");
+const docs = require("./_lib/documentos");
 const { cuerpo, consulta, exigirJson, manejarError, errorPublico, hoyLocal } = require("./_lib/http");
 
 const SELECT = `SELECT a.id, a.nombre, a.grado, a.blob_token IS NOT NULL AS publicado, f.contactos, f.apoyos, f.objetivos, f.consentimiento, f.actualizado
@@ -76,6 +86,8 @@ async function sincronizarFamilias(alumnoId, contactos) {
 async function docente(req, res, yo) {
   const ses = { tipo: "docente", usuario: yo };
   if (req.method === "GET") {
+    if (consulta(req, "documento")) return docs.descargar(req, res, ses, consulta(req, "documento"));
+    if (consulta(req, "documentos")) return res.status(200).json({ documentos: await docs.listarDocente(yo, consulta(req, "documentos")) });
     const id = consulta(req, "id");
     if (id) {
       const alumno = await unoCompleto(yo, id);
@@ -93,6 +105,9 @@ async function docente(req, res, yo) {
   }
   const b = cuerpo(req);
   if (String(b.accion || "").startsWith("importar_")) return importacion.manejar(req, res, yo, b);
+  if (b.accion === "doc_subir") return res.status(200).json(await docs.subir(req, yo, b));
+  if (b.accion === "doc_cambiar") return res.status(200).json(await docs.cambiar(req, yo, b));
+  if (b.accion === "doc_borrar") return res.status(200).json(await docs.borrar(req, yo, b));
   if (b.accion === "crear") {
     if (yo.escuela_id == null) throw errorPublico("Tu cuenta no tiene escuela: los alumnos los cargan las docentes de cada escuela.", 403);
     const nombre = F.validarNombre(b.nombre);
@@ -175,7 +190,7 @@ async function docente(req, res, yo) {
     if (!yo.es_admin && !plataforma) throw errorPublico("Solo la dirección de la escuela puede borrar un alumno.", 403);
     const resumen = await bajas.bajaAlumno(req, yo, a.id);
     return res.status(200).json({ ok: true, resumen,
-      ...(resumen.blob_borrado ? {} : { aviso: "Se borró todo de la base, pero los días publicados no se pudieron borrar todavía. Avisale a la plataforma." }) });
+      ...(resumen.blob_borrado ? {} : { aviso: "Se borró todo de la base, pero algunos archivos (días publicados o documentos) no se pudieron borrar todavía. Avisale a la plataforma." }) });
   }
   if (b.accion === "baja_familia") {
     const plataforma = S.esPlataforma(yo);
@@ -196,13 +211,17 @@ async function docente(req, res, yo) {
 async function familia(req, res, fam) {
   const ses = { tipo: "familia", usuario: fam };
   if (req.method === "GET") {
+    // Informes y documentos: solo los que la escuela marcó visibles (docs/documentos.md).
+    if (consulta(req, "documento")) return docs.descargar(req, res, ses, consulta(req, "documento"));
+    if (consulta(req, "documentos")) return res.status(200).json({ documentos: await docs.listarFamilia(fam, consulta(req, "documentos")) });
     const filas = await q(`${SELECT} JOIN familia_alumno fa ON fa.alumno_id = a.id JOIN escuelas e ON e.id = a.escuela_id
       WHERE fa.familia_id = $1 AND e.activa ORDER BY a.nombre`, [fam.id]);
     if (consulta(req, "exportar") === "1") { // derecho de acceso: todo lo que Puente guarda de esta familia
       const chat = await q("SELECT alumno_id, rol, texto, creado FROM chat_turnos WHERE usuario_tipo = 'familia' AND usuario_id = $1 ORDER BY id", [fam.id]);
       await auditoria.registrar(req, { evento: "exportacion", ...auditoria.actor(ses), detalle: { alumnos: filas.length } });
       return res.status(200).json({ exportado: new Date().toISOString(), email: fam.email, alumnos: filas.map(forma),
-        chat: chat.map(t => ({ ...t, alumno_id: Number(t.alumno_id) })) });
+        chat: chat.map(t => ({ ...t, alumno_id: Number(t.alumno_id) })),
+        documentos: await docs.exportarFamilia(fam) }); // metadatos (sin los archivos: cada uno se baja desde Puente)
     }
     await auditoria.registrar(req, { evento: "ficha_ver", ...auditoria.actor(ses), detalle: { alumnos: filas.length } });
     // Fuera de la exportación, la familia ve solo lo prendido en FAMILIA_FUNCIONES (ver _lib/funciones.js).
@@ -244,6 +263,7 @@ module.exports = async (req, res) => {
   try {
     if (!dbActiva()) return res.status(400).json({ error: "Las fichas necesitan la base de datos (modo demo activo).", modo: "demo" });
     if (req.method !== "GET" && req.method !== "POST") return res.status(405).json({ error: "Método no permitido" });
+    // exigirJson solo frena escrituras sin JSON; los GET (incluida la descarga de un documento) pasan.
     if (!exigirJson(req, res)) return;
     const s = await exigirSesion(req, res);
     if (!s) return;

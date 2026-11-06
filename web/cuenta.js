@@ -17,5 +17,13 @@ window.Puente = (() => {
   });
   const perfilDe = (a = {}) => ({ comunicacion: a.comunicacion || "", sensibilidades: a.sensoriales || "", lo_calma: a.regulacion || "", le_gusta: a.intereses || "",
     observaciones: [a.alimentacion && "Alimentación: " + a.alimentacion, a.otros].filter(Boolean).join(". ") });
-  return { api, estado, salir, esc, ppiDe, perfilDe };
+  // Baja un archivo de la API (informes y documentos). La sesión va por cookie: fetch + blob, sin abrir la URL directa.
+  async function bajarArchivo(url, nombre) {
+    const r = await fetch(url, { credentials: "same-origin" });
+    if (!r.ok) { let j = {}; try { j = await r.json(); } catch {} throw Object.assign(new Error(j.error || "No pudimos bajar el archivo."), { status: r.status }); }
+    const href = URL.createObjectURL(await r.blob());
+    const a = Object.assign(document.createElement("a"), { href, download: nombre || "archivo" });
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(href), 5000);
+  }
+  return { api, estado, salir, esc, ppiDe, perfilDe, bajarArchivo };
 })();

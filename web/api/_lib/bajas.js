@@ -1,11 +1,12 @@
 // Baja y borrado de datos (Ley 25.326: derecho de supresión).
 //  · Baja de un alumno (admin de su escuela o plataforma): ficha, asignaciones, invitaciones, historial de chat,
-//    vínculos con familias, las familias que no tengan otro alumno (con sus sesiones y códigos) y los días en Blob.
+//    vínculos con familias, las familias que no tengan otro alumno (con sus sesiones y códigos), los días en Blob
+//    y sus informes y documentos (las filas y los archivos en Blob).
 //  · Baja de una familia (la propia familia, o una admin para los alumnos de su escuela): su contacto en las fichas,
 //    su historial de chat, sus vínculos, sesiones, códigos e invitaciones; la cuenta se borra si no le queda otro alumno.
 // Cada baja queda en la auditoría: quién (tipo + id), cuándo y cuánto se borró. Nunca nombres ni emails.
 const { q, uno, transaccion } = require("./db");
-const { borrarFamilia: borrarBlob } = require("./almacen");
+const { borrarFamilia: borrarBlob, borrarArchivo } = require("./almacen");
 const auditoria = require("./auditoria");
 const { hoyLocal } = require("./http");
 
@@ -37,6 +38,8 @@ async function bajaAlumno(req, yo, alumnoId) {
   if (!a) return null;
   const familias = (await q("SELECT familia_id FROM familia_alumno WHERE alumno_id = $1", [a.id])).map(f => Number(f.familia_id));
   const turnos = await uno("SELECT count(*)::int AS n FROM chat_turnos WHERE alumno_id = $1", [a.id]);
+  // Informes y documentos: se leen las rutas antes de borrar las filas, para después borrar los archivos del Blob.
+  const rutas = (await q("SELECT blob_ruta FROM documentos WHERE alumno_id = $1", [a.id])).map(r => r.blob_ruta);
   // Todo lo que cuelga del alumno en la base, en una transacción (además de los ON DELETE CASCADE, explícito por las dudas).
   await transaccion([
     ["DELETE FROM chat_turnos WHERE alumno_id = $1", [a.id]],
@@ -44,15 +47,22 @@ async function bajaAlumno(req, yo, alumnoId) {
     ["DELETE FROM alumno_docentes WHERE alumno_id = $1", [a.id]],
     ["DELETE FROM familia_alumno WHERE alumno_id = $1", [a.id]],
     ["DELETE FROM enlaces WHERE alumno_id = $1", [a.id]], // links de invitación de su familia
+    ["DELETE FROM documentos WHERE alumno_id = $1", [a.id]], // informes y documentos (los archivos, abajo)
     ["DELETE FROM fichas WHERE alumno_id = $1", [a.id]],
     ["DELETE FROM alumnos WHERE id = $1", [a.id]]
   ]);
   const familias_borradas = await borrarFamiliasHuerfanas(familias);
-  const blob_borrado = await borrarBlob(a.blob_token); // también sus días publicados
-  const resumen = { familias_desvinculadas: familias.length, familias_borradas, turnos_chat: turnos?.n || 0, dias_publicados: !!a.blob_token, blob_borrado };
+  const dias_borrados = await borrarBlob(a.blob_token); // también sus días publicados
+  let documentos_borrados = true;
+  for (const r of rutas) if (!(await borrarArchivo(r))) documentos_borrados = false;
+  // blob_borrado: true solo si se borró todo lo que había en Blob (días y documentos).
+  const blob_borrado = dias_borrados && documentos_borrados;
+  const resumen = { familias_desvinculadas: familias.length, familias_borradas, turnos_chat: turnos?.n || 0, dias_publicados: !!a.blob_token,
+    documentos: rutas.length, blob_borrado };
   await auditoria.registrar(req, { evento: "baja_alumno", actor_tipo: "docente", actor_id: yo.id, escuela_id: a.escuela_id,
     objeto_tipo: "alumno", objeto_id: a.id, detalle: resumen });
-  if (!blob_borrado) console.error(`[puente] baja alumno #${a.id}: los días en Blob no se pudieron borrar; reintentar a mano`);
+  if (!dias_borrados) console.error(`[puente] baja alumno #${a.id}: los días en Blob no se pudieron borrar; reintentar a mano`);
+  if (!documentos_borrados) console.error(`[puente] baja alumno #${a.id}: algunos documentos no se pudieron borrar del Blob (documentos/${a.id}/); reintentar a mano`);
   return resumen;
 }
 
