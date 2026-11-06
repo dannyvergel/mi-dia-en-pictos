@@ -24,6 +24,7 @@
   .google { display: flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; text-align: center; margin-bottom: 6px; }
   .google svg { width: 20px; height: 20px; flex: none; background: #fff; border-radius: 50%; padding: 2px; }
   .separador { text-align: center; color: var(--gris); margin: 10px 0 0; }
+  .discreto { font-size: 14px; margin-top: 4px; } .discreto .enlace { font-weight: 400; color: var(--gris); }
   .check { display: flex; gap: 8px; align-items: center; font-weight: 700; margin-top: 10px; } .check input { width: auto; }
 </style>
 <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
@@ -86,6 +87,20 @@
       </form>
       <p class="muted" id="dMsg" role="status" aria-live="polite"></p>
       <p class="muted" id="dPie">¿Todavía no tenés cuenta? <button type="button" class="enlace" id="abrirSolicitud">Solicitar acceso</button></p>
+      <!-- Cuenta de revisión de Google Play: solo si /api/config dice revisor: true (REVISOR_EMAIL y REVISOR_CLAVE_HASH en Vercel). -->
+      <p class="discreto" id="rPie" hidden><button type="button" class="enlace" id="abrirRevisor">Acceso para revisión</button></p>
+    </div>
+
+    <div class="card cinta" id="revisor" hidden>
+      <span class="rotulo">Acceso para revisión</span>
+      <form id="fRevisor">
+        <p class="muted">Solo para la cuenta de prueba de la revisión de la tienda. Las docentes y las familias entran con el código por mail.</p>
+        <label for="rEmail">Email</label><input id="rEmail" type="email" autocomplete="username" required>
+        <label for="rClave">Contraseña</label><input id="rClave" type="password" autocomplete="current-password" required maxlength="200">
+        <button class="big">Entrar</button>
+        <button type="button" class="big alt chico" id="cerrarRevisor">Volver</button>
+      </form>
+      <p class="muted" id="rMsg" role="status" aria-live="polite"></p>
     </div>
 
     <div class="card cinta" id="solicitud" hidden>
@@ -224,6 +239,7 @@ async function googleDocente() {
       if (qs.get("volver") === "cuaderno") $("dGoogleBtn").href = "/api/auth?accion=google&volver=cuaderno";
       $("dGoogle").hidden = false;
     }
+    if (c && c.revisor === true) $("rPie").hidden = false;
   } catch {}
 }
 
@@ -299,6 +315,16 @@ $("fSetup").onsubmit = async ev => {
     $("dEmail").value = r.email;
     try { await pedirDocente(r.email); } catch (e) { msg("dMsg", e.message); }
   } catch (e) { msg("sMsg", e.message); }
+  finally { ocupado(ev.target, false); }
+};
+
+// Cuenta de revisión de Google Play (email y contraseña). Solo existe si el servidor la tiene prendida.
+$("abrirRevisor").onclick = () => { $("loginDocente").hidden = true; $("revisor").hidden = false; msg("rMsg", "", false); $("rEmail").focus(); };
+$("cerrarRevisor").onclick = () => { $("revisor").hidden = true; $("loginDocente").hidden = false; };
+$("fRevisor").onsubmit = async ev => {
+  ev.preventDefault(); ocupado(ev.target, true); msg("rMsg", "", false);
+  try { const r = await api("api/auth", { method: "POST", body: { accion: "login_revisor", email: $("rEmail").value, clave: $("rClave").value } }); ir(r.sesion); }
+  catch (e) { msg("rMsg", e.message); $("rClave").value = ""; }
   finally { ocupado(ev.target, false); }
 };
 

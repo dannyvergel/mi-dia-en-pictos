@@ -96,10 +96,24 @@ Todas salen de páginas públicas (puentepictos.app y la demo abierta puente-pic
 
 ## Acceso a la app (App access) — IMPORTANTE
 
-La app abre en la pantalla de ingreso, y se entra con un código que llega por mail. El revisor de Google no puede recibir ese código, y Google rechaza apps con login sin instrucciones de acceso. Opciones, de mejor a peor:
+La app abre en la pantalla de ingreso, y se entra con un código que llega por mail. El revisor de Google no puede recibir ese código, y Google rechaza apps con login sin credenciales que funcionen. Para eso está la **cuenta de revisión**: un email y una contraseña que solo sirven para una docente de la «Escuela de prueba (revisión)», con tres alumnos ficticios (Juan, Sofi y Tomi) y dos días cargados por alumno. Viene **apagada**: se prende con dos variables en Vercel (ver `guia-danny.md` → «Cuenta de revisión»).
 
-1. **Cuenta de revisión** (recomendada antes de pedir producción): una escuela de prueba con alumnos ficticios y una forma de entrar sin el mail (por ejemplo, un código fijo que solo vale para un email de revisión y se apaga después). Requiere un cambio chico de código que NO está en este PR.
-2. **Mientras tanto** (prueba interna y cerrada no se revisan igual que producción), en «Acceso a la app» marcá «Toda o parte de la funcionalidad está restringida» y pegá:
+Con la cuenta prendida, en Play Console → **Contenido de la app → Acceso a la app** marcá «Toda o parte de la funcionalidad está restringida» → **Agregar instrucciones**:
+
+- Nombre: `Cuenta de revisión`
+- Usuario: `revision@puentepictos.app` (o el REVISOR_EMAIL que hayas cargado)
+- Contraseña: la que generaste (nunca va al repo; guardala en tu gestor de contraseñas)
+- ¿Hace falta otra información?: sí, pegá:
+
+```
+Puente is used by special-education schools. Teachers and families normally sign in with a one-time code sent by email.
+For review there is a dedicated test account with a password. On the sign-in screen, under "Soy docente", tap "Acceso para revisión" (small link below the form), then enter the email and password above and tap "Entrar".
+The account is a teacher at a fictitious school ("Escuela de prueba (revisión)") with three fictitious students (Juan, Sofi, Tomi) and two school days already loaded for each one. It cannot see any other school and contains no real data.
+After signing in you land on "Fichas" (student records). To see what a family sees, open a student and tap "Ver como familia". To record a new day, open "Cuaderno del día".
+The free pictogram communicator needs no account: https://puentepictos.app/comunicador.html
+```
+
+Si la cuenta de revisión todavía no está prendida (prueba interna o cerrada), usá este texto en su lugar:
 
 ```
 Puente is used by special-education schools. Accounts are created by the school and sign-in uses a one-time code sent by email, so there is no password to share.

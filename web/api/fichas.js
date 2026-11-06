@@ -154,6 +154,9 @@ async function docente(req, res, yo) {
     const invitaciones = await inv.invitarNuevos(req, { alumno: { id: actual.id, nombre }, antes: actual.contactos || [], despues: contactos, docente: yo });
     return res.status(200).json({ alumno: await unoCompleto(yo, actual.id), invitaciones });
   }
+  // Cuenta de revisión de Google Play: no manda invitaciones ni crea links reales para familias (no ocupa cupo ni escribe a terceros).
+  if ((b.accion === "invitar" || b.accion === "link_familia") && require("./_lib/revisor").esRevisor(yo))
+    throw errorPublico("En la cuenta de revisión no se invitan familias. Es una escuela de prueba con datos ficticios.", 403);
   if (b.accion === "invitar") {
     const a = await alumnoDeDocente(yo, b.id);
     const email = String(b.email || "").trim().toLowerCase();

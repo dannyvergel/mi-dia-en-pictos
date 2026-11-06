@@ -22,7 +22,7 @@ Calendario realista: verificación de identidad (de 1 a varios días) → ficha 
    - Alternativa: «Usar mi propia clave» (subir la actual con PEPK). Ventaja: la app de Play tendría la misma firma que la APK de `/descargar` y quien la instaló por fuera podría actualizar desde Play. Desventaja: Google pasa a custodiar tu única clave. Recomiendo la opción por defecto. Quien tenga la APK instalada por fuera la desinstala una vez e instala la de Play.
 3. Completá **Contenido de la app** (Panel → «Configurar tu app»):
    - Política de privacidad: `https://puentepictos.app/privacidad.html`
-   - Acceso a la app: el texto de `ficha.md` → «Acceso a la app».
+   - Acceso a la app: el texto de `ficha.md` → «Acceso a la app». Para producción, con la cuenta de revisión prendida (paso 8).
    - Anuncios: **No**.
    - Clasificación del contenido: `clasificacion-contenido.md` §1.
    - Público objetivo: `clasificacion-contenido.md` §2 (**18+**).
@@ -127,9 +127,64 @@ Panel → **Solicitar acceso a producción**. Son tres partes. Ajustá los núme
 - *Cómo decidieron que estaba lista:*
   > La app pasó 14 días de uso real sin errores que bloquearan las funciones principales. Todos los tests automáticos pasan en cada cambio. Corregimos todo lo que reportaron los testers y verificamos la vinculación TWA (Digital Asset Links) con la clave de Play. La ficha, la política de privacidad, la página de borrado de cuenta y la declaración de seguridad de los datos reflejan lo que hace la app.
 
+## 8. Cuenta de revisión (usuario y contraseña para Play)
+
+Google pide un usuario y una contraseña que funcionen. Puente tiene una sola cuenta con contraseña, la de revisión: una docente (sin permisos de admin) de la «Escuela de prueba (revisión)», con tres alumnos ficticios (Juan, Sofi y Tomi) y dos días cargados por alumno. No ve ninguna otra escuela y no ocupa cupo del piloto. Viene **apagada**: sin las dos variables, el acceso responde 404 y el link «Acceso para revisión» no aparece.
+
+Variables (solo estas dos, nunca la contraseña):
+
+| Variable | Valor |
+|---|---|
+| `REVISOR_EMAIL` | `revision@puentepictos.app` (sugerido; no hace falta que reciba mails) |
+| `REVISOR_CLAVE_HASH` | el hash que genera el paso 1 (empieza con `scrypt$`) |
+
+**1. Generar la contraseña y su hash** (la contraseña queda solo en tu gestor de contraseñas):
+```powershell
+cd C:\dev\mi-dia-en-pictos
+git checkout main
+git pull
+cd web
+npm install
+$b = New-Object byte[] 18
+[System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b)
+$clave = [Convert]::ToBase64String($b).Replace("+", "-").Replace("/", "_")
+$clave
+$clave | node scripts\revisor-clave.js
+Remove-Variable clave, b
+```
+   - La línea `$clave` muestra la contraseña (24 caracteres): copiala a tu gestor de contraseñas.
+   - La última línea que imprime node es el hash (`scrypt$16384$8$1$...`): ese es el valor de `REVISOR_CLAVE_HASH`.
+   - Si preferís inventar la contraseña, usá al menos 16 caracteres, solo letras sin tilde, números y guiones: el pipe de PowerShell 5.1 no respeta tildes ni eñes.
+
+**2. Cargar las variables en Vercel:** proyecto → Settings → Environment Variables → **Add**:
+   - `REVISOR_EMAIL` = `revision@puentepictos.app`, entorno **Production**.
+   - `REVISOR_CLAVE_HASH` = el hash del paso 1, entorno **Production**, marcada como **Sensitive**.
+   - Las variables nuevas valen recién en el próximo deploy: Deployments → el último de Production → **Redeploy**.
+
+**3. Crear la escuela, la cuenta y los datos en la base de producción** (idempotente: si lo corrés de nuevo, actualiza y no duplica). Copiá `DATABASE_URL` y `BLOB_READ_WRITE_TOKEN` de Vercel (Settings → Environment Variables, entorno Production) y pegalos entre comillas simples:
+```powershell
+cd C:\dev\mi-dia-en-pictos\web
+$env:DATABASE_URL = 'pegá-acá-DATABASE_URL'
+$env:BLOB_READ_WRITE_TOKEN = 'pegá-acá-BLOB_READ_WRITE_TOKEN'
+$env:REVISOR_EMAIL = 'revision@puentepictos.app'
+node scripts\revisor.js
+Remove-Item Env:DATABASE_URL
+Remove-Item Env:BLOB_READ_WRITE_TOKEN
+Remove-Item Env:REVISOR_EMAIL
+```
+   Tiene que terminar con «Listo». Sin `BLOB_READ_WRITE_TOKEN` crea todo menos los días cargados (avisa). Si `REVISOR_EMAIL` ya es una cuenta real de Puente, el script no hace nada y lo dice.
+
+**4. Probar:** abrí https://puentepictos.app/login.html (el link puede tardar hasta 5 minutos en aparecer después del redeploy) → «Soy docente» → **Acceso para revisión** → email y contraseña → tenés que ver Juan, Sofi y Tomi en Fichas, y «Ver como familia» con dos días cada uno. En el panel de la plataforma, Registro de accesos, aparece como «Ingreso de la cuenta de revisión (Google Play)».
+
+**5. Pegar en Play Console:** Contenido de la app → **Acceso a la app** → «Toda o parte de la funcionalidad está restringida» → Agregar instrucciones: usuario `revision@puentepictos.app`, la contraseña del paso 1 y el texto en inglés de `ficha.md` → «Acceso a la app».
+
+**Cambiar la contraseña:** repetí el paso 1, reemplazá `REVISOR_CLAVE_HASH` en Vercel, Redeploy, y actualizá la contraseña en Play Console.
+
+**Apagarla:** borrá las dos variables en Vercel y hacé Redeploy. El acceso vuelve a responder 404 y el link desaparece. La escuela de prueba queda en la base sin ocupar cupo; si querés, desactivala desde el panel de la plataforma.
+
 ## Antes de pedir producción (que no te rechacen)
 
-- [ ] **Credenciales de revisión.** Google pide credenciales que funcionen si la app tiene login. Con el código por mail no alcanza: hace falta una cuenta de revisión (ver `ficha.md` → «Acceso a la app»).
+- [ ] **Credenciales de revisión.** Google pide credenciales que funcionen si la app tiene login. Con el código por mail no alcanza: prendé la cuenta de revisión (paso 8) y cargá usuario y contraseña en «Acceso a la app».
 - [ ] `borrar-cuenta.html` y la versión de `pie.js` sin donaciones dentro de la app, ya en producción (este PR).
 - [ ] Huella de Play en `assetlinks.json` (paso 4).
 - [ ] Política de privacidad sin huecos ([RESPONSABLE], [REGIÓN]) y, si se puede, sin «BORRADOR».
