@@ -12,7 +12,8 @@ test("«Sumate a Puente»: antes de «Quién hace Puente», mailto de tester, an
   assert.match(h, /id="btnTester" href="mailto:soporte@puentepictos\.app\?subject=Tester%20Android&amp;body=[^"]*cuenta%20de%20Google[^"]*">Quiero ser tester<\/a>/);
   assert.match(h, /id="btnIrPiloto" href="#sumarse">Quiero sumarme al piloto<\/a>/);
   assert.ok(h.includes('id="sumarse"'), "el formulario del piloto existe");
-  for (const t of ["12 personas", "14 días", "15 cupos", "Santa Fe", "A las familias nunca se les cobra."]) assert.ok(h.includes(t), t);
+  for (const t of ["12 personas", "14 días", "15 cupos", "A las familias nunca se les cobra."]) assert.ok(h.includes(t), t);
+  assert.ok(!h.includes("cupos en Santa Fe"), "los cupos no se limitan a Santa Fe");
   // Donaciones: una sola vía (la sección), sin URL escrita, oculta hasta que /api/config trae un link https.
   assert.match(h, /<div class="card" id="sumateDonar" hidden>/);
   assert.match(h, /<div id="puente-pie" data-donaciones="no"><\/div>/);

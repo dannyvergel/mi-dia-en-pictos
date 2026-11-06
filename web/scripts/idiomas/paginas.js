@@ -67,7 +67,7 @@ function jsonLd(p, idioma, url) {
   const gratis = { "@type": "Offer", price: "0", priceCurrency: "ARS" };
   const puente = { "@type": "WebApplication", "@id": "https://puentepictos.app/#puente", name: "Puente", url: url("index.html", idioma),
     applicationCategory: "EducationalApplication", operatingSystem: "Web, Android", inLanguage: "es-AR", isAccessibleForFree: true, offers: gratis,
-    description: en ? "The teacher dictates how the day went and Puente turns it into a strip of ARASAAC pictograms the student can use to tell the family. For special education schools (autism, intellectual disability, communication needs). Currently in Spanish, in a pilot in Santa Fe, Argentina."
+    description: en ? "The teacher dictates how the day went and Puente turns it into a strip of ARASAAC pictograms the student can use to tell the family. For special education schools (autism, intellectual disability, communication needs). Currently in Spanish, in an invitation-only pilot."
       : "La docente dicta cómo fue el día y Puente lo convierte en una tira de pictogramas de ARASAAC para que el alumno se lo cuente a su familia. Para escuelas de educación especial (TEA, discapacidad intelectual, necesidades de comunicación).",
     audience: { "@type": "EducationalAudience", educationalRole: en ? "teacher, parent" : "docente, familia" },
     publisher: { "@id": org["@id"] } };
