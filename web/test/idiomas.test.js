@@ -17,7 +17,7 @@ test("lo generado está al día (correr npm run idiomas) y no queda texto visibl
 
 test("las páginas públicas tienen versión en español y en inglés", () => {
   const archivos = PAGINAS.map(p => p.archivo).sort();
-  assert.deepEqual(archivos, ["comunicador.html", "index.html", "presentacion.html", "privacidad.html", "terminos.html"]);
+  assert.deepEqual(archivos, ["borrar-cuenta.html", "comunicador.html", "index.html", "presentacion.html", "privacidad.html", "terminos.html"]);
   for (const a of archivos) assert.ok(fs.existsSync(path.join(RAIZ, "en", a)), "falta en/" + a);
 });
 

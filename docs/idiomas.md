@@ -11,6 +11,7 @@ Cada página pública tiene **dos URLs indexables**, servidas ya traducidas (sin
 | Presentación | `/presentacion.html` | `/en/presentacion.html` |
 | Privacidad (borrador) | `/privacidad.html` | `/en/privacidad.html` |
 | Términos (borrador) | `/terminos.html` | `/en/terminos.html` |
+| Borrar la cuenta (Data safety de Play) | `/borrar-cuenta.html` | `/en/borrar-cuenta.html` |
 
 `404.html` es una sola (Vercel usa una para todo el sitio) y tiene los dos idiomas.
 

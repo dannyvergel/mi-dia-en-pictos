@@ -223,6 +223,42 @@ module.exports = {
     ],
   },
 
+  // ---------------- Borrar la cuenta (URL de Data safety de Google Play) ----------------
+  "borrar-cuenta.html": {
+    iguales: ["«Pedir la baja y borrar mis datos»", "«Descargar mis datos»"], // nombres reales de los botones (el espacio de la familia está en español)
+    pares: [
+      ['<div class="bajada">Borrar tu cuenta y tus datos</div>', '<div class="bajada">Delete your account and data</div>'],
+      ['<h2>Cómo borrar tu cuenta de Puente</h2>', '<h2>How to delete your Puente account</h2>'],
+      ['<p>Puente (app «Puente», de la escuela a casa en pictogramas) es una herramienta gratuita para escuelas de educación especial. Podés pedir en cualquier momento que borremos tu cuenta y tus datos. Es gratis y no hace falta dar explicaciones.</p>',
+        '<p>Puente (the «Puente» app, from school to home in pictograms) is a free tool for special education schools. You can ask us at any time to delete your account and your data. It is free and you do not need to give a reason.</p>'],
+      ['<h3>Si sos familia</h3>', '<h3>If you are a family member</h3>'],
+      ['<li>Entrá a Puente con tu email (te llega un código).</li>', '<li>Sign in to Puente with your email (you will get a code).</li>'],
+      ['<li>En tu espacio de familia, tocá <b>«Pedir la baja y borrar mis datos»</b> y confirmá.</li>',
+        '<li>In your family space, tap <b>«Pedir la baja y borrar mis datos»</b> (Leave and delete my data) and confirm. The family space is in Spanish for now.</li>'],
+      ['<p>Antes, si querés, tocá <b>«Descargar mis datos»</b> para quedarte con una copia.</p>', '<p>If you want a copy first, tap <b>«Descargar mis datos»</b> (Download my data).</p>'],
+      ['<h3>Si sos docente o directivo</h3>', '<h3>If you are a teacher or school leader</h3>'],
+      ['<p>Escribinos a <a href="mailto:soporte@puentepictos.app?subject=Baja%20de%20mi%20cuenta%20de%20Puente">soporte@puentepictos.app</a> desde el mismo email con el que entrás y borramos tu cuenta. La dirección de tu escuela también puede desactivar tu cuenta desde Puente (dejás de poder entrar en el momento); para que además se borren tus datos, mandanos el mail.</p>',
+        '<p>Email <a href="mailto:soporte@puentepictos.app?subject=Baja%20de%20mi%20cuenta%20de%20Puente">soporte@puentepictos.app</a> from the same address you sign in with and we will delete your account. Your school\'s leadership can also deactivate your account in Puente (you lose access right away); to have your data deleted as well, send us the email.</p>'],
+      ['<h3>Si no podés entrar</h3>', '<h3>If you cannot sign in</h3>'],
+      ['<p>Escribinos a <a href="mailto:soporte@puentepictos.app?subject=Baja%20de%20mi%20cuenta%20de%20Puente">soporte@puentepictos.app</a> desde el email de tu cuenta, con el asunto «Baja de mi cuenta de Puente». Respondemos dentro de los plazos de la Ley 25.326 (5 días hábiles para la supresión).</p>',
+        '<p>Email <a href="mailto:soporte@puentepictos.app?subject=Baja%20de%20mi%20cuenta%20de%20Puente">soporte@puentepictos.app</a> from your account\'s address, with the subject «Baja de mi cuenta de Puente» (delete my Puente account). We reply within the deadlines of Argentina\'s Law 25.326 (5 business days for deletion).</p>'],
+      ['<h3>Qué se borra</h3>', '<h3>What is deleted</h3>'],
+      ['<li><b>Familia:</b> tu contacto en las fichas, tu historial de preguntas al chat, tus vínculos, sesiones, códigos e invitaciones. Si no tenés otro alumno en Puente, también tu cuenta.</li>',
+        '<li><b>Family:</b> your contact details in the student profiles, your chat question history, your links to students, sessions, codes and invitations. If you have no other student in Puente, your account too.</li>'],
+      ['<li><b>Docente:</b> tu cuenta (nombre, email, escuela y rol) y tus sesiones. Los registros que cargaste sobre tus alumnos son de la escuela y siguen ahí para el resto del equipo.</li>',
+        '<li><b>Teacher:</b> your account (name, email, school and role) and your sessions. The records you entered about your students belong to the school and stay there for the rest of the team.</li>'],
+      ['<li><b>Alumno:</b> cuando la escuela da de baja a un alumno, se borran su ficha, sus días publicados, sus informes y documentos y su historial.</li>',
+        '<li><b>Student:</b> when the school removes a student, their profile, published days, reports, documents and history are deleted.</li>'],
+      ['<h3>Qué se conserva y por cuánto</h3>', '<h3>What is kept, and for how long</h3>'],
+      ['<li>El <b>registro de accesos</b> (seguridad) guarda que hubo una baja, sin nombres ni emails legibles (el email queda cifrado de forma no reversible y la dirección de red recortada), hasta 365 días.</li>',
+        '<li>The <b>access log</b> (security) records that an account was deleted, with no readable names or emails (the email is irreversibly encrypted and the network address truncated), for up to 365 days.</li>'],
+      ['<li>Los registros pedagógicos que son de la escuela sobre un alumno los maneja la escuela; si la familia pide la baja del alumno, se borran.</li>',
+        '<li>Educational records about a student belong to the school and are managed by it; if the family asks for the student to leave, they are deleted.</li>'],
+      ['<p>Más detalle en la <a href="privacidad.html">política de privacidad</a>. · <a href="index.html">Volver a Puente</a></p>',
+        '<p>More detail in the <a href="privacidad.html">privacy policy</a>. · <a href="index.html">Back to Puente</a></p>'],
+    ],
+  },
+
   // ---------------- Términos de uso ----------------
   "terminos.html": {
     iguales: ["2026-11-01-borrador"],
