@@ -43,9 +43,9 @@ test("todo en el cliente: no llama a /api, no usa IA ni analítica, y el pie com
   assert.ok(h.includes("solo en este dispositivo") && h.includes("Borrar ajustes y favoritos de este dispositivo"));
 });
 
-test("el service worker (pictos-v28) cachea la página, el tablero, los textos y sus pictos, y sigue sin cachear /api ni /descargar", () => {
+test("el service worker (pictos-v29) cachea la página, el tablero, los textos y sus pictos, y sigue sin cachear /api ni /descargar", () => {
   const sw = leer("sw.js");
-  assert.ok(sw.includes("const C = 'pictos-v28'"));
+  assert.ok(sw.includes("const C = 'pictos-v29'"));
   assert.ok(sw.includes("'comunicador.html'") && sw.includes("'comunicador-tablero.js'") && sw.includes("'comunicador-textos.js'"));
   assert.ok(sw.includes("importScripts('comunicador-tablero.js')"));
   assert.ok(sw.includes("self.TABLERO.urls()") && sw.includes("e.data.tipo === 'comunicador'"));
@@ -70,7 +70,10 @@ test("vocabulario acotado (60 a 80 pictos) en las categorías pedidas, con ids �
     }
   }
   assert.equal(T.url(6632), "https://static.arasaac.org/pictograms/6632/6632_300.png");
-  assert.equal(T.urls().length, ids.length);
+  // urls() (lo que guarda el SW) = pictos de las categorías + tablero Casa, sin repetir
+  const conCasa = new Set(ids.concat(T.CASA.icono, T.CASA.ordenes.map(o => o.id)));
+  assert.equal(T.urls().length, conCasa.size);
+  for (const o of T.CASA.ordenes) assert.ok(T.urls().includes(T.url(o.id)), `Casa ${o.t} sin guardar para sin conexión`);
 });
 
 test("voz en el navegador (es-AR / en-US si hay, si no otra del idioma activo), frase con hablar, borrar último y borrar todo", () => {
@@ -163,7 +166,7 @@ test("idiomas: selector Español / English (links a cada URL), <html lang> diná
   assert.ok(h.includes("EN_APP ? TX.elegirIdioma(location.search, guardado, navigator.language) : TX.elegirIdioma(location.search, PAGINA, \"\")"));
   assert.ok(h.includes("let lang = idiomaInicial(aj.idioma);"));
   assert.ok(h.includes("document.documentElement.lang = TX.HTML_LANG[lang]"));
-  assert.ok(h.includes('idioma: "" }'), "idioma en los mismos ajustes (DEF)");
+  assert.match(h, /const DEF = \{[^}]*idioma: ""[,}]/, "idioma en los mismos ajustes (DEF)");
   assert.ok(h.includes("aj.idioma = b.dataset.lang; guardar();"));
   assert.ok(h.includes("location.href = u.href"), "en la web, el selector navega a la otra URL");
   const olvidar = h.slice(h.indexOf('$("bOlvidar").onclick'), h.indexOf("// ---------- App para Android"));
@@ -183,4 +186,73 @@ test("idiomas: selector Español / English (links a cada URL), <html lang> diná
   assert.match(h, /<title>Puente Comunicador · /);
   assert.ok(h.includes('<meta name="application-name" content="Puente Comunicador">'));
   assert.equal(/se instala como «Comunicador»/.test(h), false);
+});
+
+// ---------- Tablero Casa: órdenes para asistentes de voz, sin integración ----------
+
+test("Casa: 8 a 12 órdenes con picto de ARASAAC, palabra clave y frase en español y en inglés", () => {
+  const C = T.CASA;
+  assert.equal(C.id, "casa");
+  assert.ok(C.ordenes.length >= 8 && C.ordenes.length <= 12, `hay ${C.ordenes.length}`);
+  assert.equal(new Set(C.ordenes.map(o => o.id)).size, C.ordenes.length, "ids repetidos en Casa");
+  for (const o of C.ordenes) {
+    assert.ok(Number.isInteger(o.id) && o.id > 0, o.t);
+    for (const k of ["t", "k", "orden", "en", "ken", "ordenen"]) assert.ok(typeof o[k] === "string" && o[k].trim(), `${o.id}: falta ${k}`);
+    assert.equal(/[¡!¿?]|\p{Extended_Pictographic}/u.test(o.orden + o.ordenen), false, `${o.id}: la orden va sin signos ni emojis`);
+  }
+  const ordenes = C.ordenes.map(o => o.orden);
+  for (const w of ["prende la luz", "apaga la luz", "pon música", "sube el volumen", "baja el volumen", "qué hora es", "cuéntame un cuento"]) assert.ok(ordenes.includes(w), w);
+  const en = C.ordenes.map(o => o.ordenen);
+  for (const w of ["turn on the lights", "turn off the lights", "play music", "what time is it", "tell me a story"]) assert.ok(en.includes(w), w);
+});
+
+test("Casa: la frase lleva la palabra de activación configurada (Alexa por defecto, Ok Google, Siri u otra) y la pausa", () => {
+  const luz = T.CASA.ordenes.find(o => o.id === 8103);
+  // Por defecto: Alexa, con pausa de 1 segundo, en dos partes
+  let f = T.fraseCasa(luz, {}, "es");
+  assert.deepEqual(f.partes, ["Alexa", "prende la luz"]);
+  assert.equal(f.texto, "Alexa, prende la luz");
+  assert.equal(f.pausa, true); assert.equal(f.espera, 1000);
+  // Sin pausa: una sola frase
+  f = T.fraseCasa(luz, { casaPalabra: "google", casaPausa: false }, "es");
+  assert.deepEqual(f.partes, ["Ok Google, prende la luz"]); assert.equal(f.espera, 0);
+  // Siri: «Oye Siri» en español y «Hey Siri» en inglés
+  assert.equal(T.fraseCasa(luz, { casaPalabra: "siri" }, "es").texto, "Oye Siri, prende la luz");
+  assert.deepEqual(T.fraseCasa(luz, { casaPalabra: "siri", casaEspera: 2000 }, "en"), { palabra: "Hey Siri", orden: "turn on the lights", pausa: true, espera: 2000, partes: ["Hey Siri", "turn on the lights"], texto: "Hey Siri, turn on the lights" });
+  // Texto libre, limpio; una espera que no está en la lista vuelve a 1 s
+  f = T.fraseCasa(luz, { casaPalabra: "otra", casaOtra: "  Echo   Dot ", casaEspera: 99999 }, "es");
+  assert.equal(f.texto, "Echo Dot, prende la luz"); assert.equal(f.espera, 1000);
+  // «Otra» vacía: solo la orden (y la página avisa que el parlante no se va a despertar)
+  assert.deepEqual(T.fraseCasa(luz, { casaPalabra: "otra", casaOtra: " " }, "es").partes, ["prende la luz"]);
+  assert.deepEqual(T.ESPERAS, [500, 1000, 1500, 2000, 3000]);
+});
+
+test("Casa: la página arma las teclas con la frase y aria-label, guarda los ajustes en puente-comunicador y avisa del parlante", () => {
+  const h = leer("comunicador.html"), en = leer("en/comunicador.html");
+  // Pestaña Casa en las categorías (role=tab) y entrada directa con #casa
+  assert.ok(h.includes(".concat(T.CATEGORIAS, T.CASA)"));
+  assert.ok(h.includes('location.hash === "#casa" ? "casa"'));
+  // Cada tecla: botón con aria-label que incluye la frase con la palabra de activación configurada
+  assert.ok(h.includes('b.setAttribute("aria-label", etiqueta + ". " + tr("casaAria", f.texto))'));
+  assert.ok(h.includes("const f = T.fraseCasa(o, aj, lang)"));
+  assert.ok(h.includes('b.type = "button"; b.className = "tecla casa-tecla"'), "las teclas de Casa son botones de 92 px (.tecla)");
+  // Pausa: primero la palabra, al terminar espera f.espera y recién ahí la orden
+  assert.ok(h.includes('u.addEventListener("end", seguir)') && h.includes("decir(f.partes[1], true); }, f.espera)"));
+  // Ajustes en el mismo localStorage que el resto, con valores por defecto
+  assert.ok(h.includes('casaPalabra: "alexa", casaOtra: "", casaPausa: true, casaEspera: 1000'));
+  for (const v of ["alexa", "google", "siri", "otra"]) assert.ok(h.includes(`name="casaPalabra" value="${v}"`), v);
+  assert.match(h, /<label for="oCasaOtra"[^>]*>Otra palabra de activación<\/label>/);
+  assert.match(h, /<label for="oCasaEspera"[^>]*>Cuánto esperar<\/label>/);
+  assert.match(h, /aria-label="Cambiar la palabra de activación y la pausa"/);
+  // Aviso corto: parlante cerca y con volumen; el audio va a la empresa del asistente, no a Puente
+  assert.ok(TX.es.casaNota.includes("cerca y con volumen") && TX.es.casaNota.includes("no a Puente"));
+  assert.ok(TX.en.casaNota.includes("close by") && TX.en.casaNota.includes("not to Puente"));
+  assert.ok(h.includes(`data-i18n="casaNota">${TX.es.casaNota}<`) && en.includes(`data-i18n="casaNota">${TX.en.casaNota}<`));
+  // Inglés servido ya traducido
+  assert.match(en, /<span data-i18n="casaSiri">Hey Siri<\/span>/);
+  assert.ok(en.includes('aria-label="Change the wake word and the pause"'));
+  // Sin «¡», emojis ni rayas en los textos nuevos
+  for (const l of TX.IDIOMAS) for (const [k, v] of Object.entries(TX[l])) if (/^(casa|espera|infoCasa)/.test(k)) {
+    assert.equal(/[¡—]|\p{Extended_Pictographic}/u.test(v), false, `${l}.${k}`);
+  }
 });

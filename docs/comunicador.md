@@ -15,6 +15,7 @@ Página pública **`/comunicador.html`** (`web/comunicador.html`): un tablero de
   - Voz (solo voces del idioma activo) y «Hablar más despacio».
   - «Borrar ajustes y favoritos de este dispositivo».
 - **Favoritos:** el botón «Elegir favoritos» activa un modo en el que tocar un picto lo agrega o lo saca. Con favoritos aparece la pestaña ★ Favoritos.
+- **Tablero Casa** (pestaña «Casa», al final de las categorías): órdenes para Alexa, Google o Siri dichas en voz alta. Ver «Tablero Casa» más abajo.
 - **Pantalla completa** (Fullscreen API). Si el navegador no la permite, como en el iPhone, queda un «modo tablero» que oculta todo lo demás. En ese modo solo se ven la frase, las categorías y la grilla. Para salir hay que tocar «Salir» dos veces en 3 segundos, así el chico no sale sin querer.
 
 ## Privacidad: todo en el cliente
@@ -28,12 +29,12 @@ Lo controla `test/comunicador.test.js` (sin `fetch(`, sin `/api/`, sin analític
 
 ## Sin conexión
 
-- `sw.js` (CACHE **`pictos-v23`**) suma `comunicador.html`, `comunicador-tablero.js` y `comunicador-textos.js` al precache. Además carga el vocabulario con `importScripts('comunicador-tablero.js')`.
+- `sw.js` (CACHE **`pictos-v29`**) suma `comunicador.html`, `comunicador-tablero.js` y `comunicador-textos.js` al precache. Además carga el vocabulario con `importScripts('comunicador-tablero.js')`.
 - Al abrir el comunicador, la página le manda al service worker `postMessage({ tipo: "comunicador" })` y el SW guarda **todos** los pictos del tablero. Si alguno falla, sigue con el resto y lo reintenta la próxima vez. Los pictos se bajan solo cuando alguien abre el comunicador: unas 70 imágenes chicas. Así no se le gastan datos a quien solo entra a la portada.
 - Las imágenes de `static.arasaac.org` pasan a **caché primero** para todo el sitio, porque no cambian y así el tablero responde al instante. El resto sigue con red primero.
 - Igual que antes, **nunca** se cachean `/api/` ni `/descargar/`.
 
-> **Versiones del SW:** main pasó por `pictos-v22` (comunicador) y ahora está en `pictos-v23` (comunicador en inglés). El PR #23 (rama `equipos`) usa `pictos-v21`: si entra después, tiene que pasar a **`pictos-v24`** y actualizar las aserciones de `test/documentos.test.js` y `test/comunicador.test.js`.
+> **Versiones del SW:** producción estaba en `pictos-v28`; el tablero Casa (rama `comunicador-casa`) lo pasa a **`pictos-v29`**. El PR #23 (rama `equipos`) tiene que pasar a **`pictos-v30`** cuando entre, y actualizar las aserciones de `test/documentos.test.js`, `test/comunicador.test.js` y `test/revisor.test.js`.
 
 ## Vocabulario
 
@@ -75,6 +76,22 @@ Para sumar o cambiar palabras:
 2. Poné también `en` y `ken`, y corré el verificador en los dos idiomas (`node scripts/verificar-comunicador.js` y `node scripts/verificar-comunicador.js --en`).
 3. Corré `npm test`, que exige entre 60 y 80 pictos y sin ids repetidos.
 4. Subí la versión del CACHE en `sw.js`.
+
+## Tablero Casa (asistentes de voz, sin integración)
+
+Para que un chico que no habla maneje Alexa, Google Home o Siri. **No hay integración** con Amazon, Google ni Apple: cada picto hace que el equipo diga en voz alta (con el mismo `speechSynthesis`) la palabra de activación y una orden, y el parlante la escucha como si hablara una persona.
+
+- **Dónde se entra:** pestaña **Casa** al final de las categorías del Comunicador, o directo con **`/comunicador.html#casa`** (en inglés, `/en/comunicador.html#casa`, pestaña «Home»).
+- **Órdenes** (10): prender / apagar la luz, poner / parar la música, subir / bajar el volumen, qué hora es, prender / apagar la tele, contame un cuento. Están en `CASA.ordenes` de `comunicador-tablero.js`, con los mismos campos que el resto (`id`, `t`, `k`, `en`, `ken`) más `orden` (lo que se le dice al asistente en español) y `ordenen` (en inglés).
+- **Formas de las órdenes:** en la pantalla se ve el voseo o el infinitivo («prender la luz», «contame un cuento»), pero al asistente se le dice la forma de su documentación («prende la luz», «pon música», «cuéntame un cuento»), porque Alexa y Google no tienen español de Argentina. En inglés: «turn on the lights», «play music», «what time is it», «tell me a story».
+- **Palabra de activación** (Ajustes → «Tablero Casa: palabra de activación»): Alexa (por defecto), Ok Google, Siri u «Otra» (texto libre, hasta 40 letras). Siri se dice «Oye Siri» en español y «Hey Siri» en inglés. Si «Otra» queda vacía, se dice solo la orden y la barra avisa que el parlante no se va a despertar.
+- **Pausa:** «Esperar después de la palabra» (prendido de entrada). Se dice la palabra, se espera a que la voz termine (evento `end`; si el navegador no lo avisa, a los 4 s sigue igual) y recién después de la espera elegida (medio segundo, 1 s por defecto, 1,5, 2 o 3 s) se dice la orden. Sin pausa sale una sola frase: «Alexa, prende la luz». Tocar otra orden durante la espera corta la anterior. «Probar: preguntar la hora» dice la orden «qué hora es».
+- **Se guarda** en el mismo `localStorage` `puente-comunicador` (`casaPalabra`, `casaOtra`, `casaPausa`, `casaEspera`) y se borra con «Borrar ajustes y favoritos». La lógica de la frase es `TABLERO.fraseCasa(orden, ajustes, idioma)`, con tests.
+- **Aviso en pantalla:** el parlante tiene que estar cerca y con volumen; lo que escucha el asistente le llega a su empresa (Amazon, Google o Apple), no a Puente. En pantalla completa se ocultan el aviso y el botón «Cambiar» y queda solo la línea «Dice: …».
+- **Accesibilidad:** las órdenes son teclas iguales a las demás (botones de 92 px), con `aria-label` «prender la luz. Dice «Alexa, prende la luz»», se usan con teclado y no se suman a la frase ni a favoritos.
+- **Sumar una orden:** una línea en `CASA.ordenes` (picto de ARASAAC con `k` / `ken` verificadas con `node scripts/verificar-comunicador.js` y `--en`, que ahora también revisan Casa: 78/78 el 06/11/2026), `npm test` (pide entre 8 y 12 órdenes) y subir el CACHE de `sw.js`. Los pictos de Casa (y el ícono 37438, «altavoz inalámbrico») se guardan para usar sin conexión.
+- **Pictos elegidos** (clave de ARASAAC): 8103 encender la luz, 8027 apagar la luz, 2746 escuchar música, 38213 botón de pausa, 38216 / 38215 botón de subir / bajar volumen, 2549 reloj, 9802 encender la televisión, 20093 apagar la televisión, 2364 cuento.
+- **Límites:** depende de que el parlante entienda la voz del equipo (volumen, distancia, acento de la voz sintética). Con Siri, el equipo que habla no puede ser el mismo iPhone o iPad que escucha. Las órdenes de luz y tele solo andan si esos aparatos ya están configurados en la app del asistente.
 
 ## Idiomas
 

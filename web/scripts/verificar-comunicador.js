@@ -3,7 +3,7 @@
 // Con --en pide /api/pictograms/en/<id> y controla la clave en inglés «ken» (mismo id de picto).
 // Uso (necesita red): node scripts/verificar-comunicador.js [--en]   → sale con código 1 si algún id no coincide.
 // No corre en npm test porque los tests no usan la red.
-const { CATEGORIAS } = require("../comunicador-tablero.js");
+const { CATEGORIAS, CASA } = require("../comunicador-tablero.js");
 
 const EN = process.argv.includes("--en");
 const IDIOMA = EN ? "en" : "es", CAMPO = EN ? "ken" : "k", TEXTO = EN ? "en" : "t";
@@ -20,7 +20,7 @@ async function verificar(p) {
 }
 
 (async () => {
-  const todos = CATEGORIAS.flatMap(c => c.pictos.map(p => ({ ...p, cat: c.id })));
+  const todos = CATEGORIAS.flatMap(c => c.pictos.map(p => ({ ...p, cat: c.id }))).concat(CASA.ordenes.map(o => ({ ...o, cat: "casa" })));
   const res = [];
   for (let i = 0; i < todos.length; i += 8) res.push(...await Promise.all(todos.slice(i, i + 8).map(verificar)));
   const malos = res.filter(r => !r.ok);

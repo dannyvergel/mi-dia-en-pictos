@@ -98,6 +98,21 @@
   .tecla.sin-img img { display: none; }
   .tecla.sin-img .t { margin: auto 0; font-size: 22px; }
 
+  /* Tablero Casa: aviso del parlante y lo último que se le dijo al asistente */
+  .casa-barra { margin: 2px 0 8px; padding: 10px 12px; border: 2px solid var(--tinta); border-left: 8px solid #2f4a3e; border-radius: 12px; background: #fff; }
+  .casa-barra[hidden] { display: none; }
+  .casa-barra p { margin: 0; font-size: 16px; line-height: 1.35; }
+  .casa-fila { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 8px; }
+  .casa-fila b { font-size: 17px; }
+  .casa-fila .accion { min-height: 48px; min-width: 96px; flex-direction: row; font-size: 16px; }
+  .casa-dice { margin-top: 8px !important; font-weight: 700; font-size: 18px !important; min-height: 1.35em; }
+  .casa-dice:empty { display: none; }
+  .ajustes .casa-otra { display: block; width: 100%; max-width: 420px; min-height: 56px; font: inherit; font-size: 18px; padding: 8px 12px; border: 2px solid var(--tinta); border-radius: 12px; margin: 4px 0 8px; }
+  .ajustes .casa-probar { min-height: 56px; }
+  .casa-ajustes { margin: 10px 0 4px; padding-top: 6px; border-top: 2px solid var(--borde); }
+  .casa-ajustes > label[for] { display: block; font-weight: 700; margin-top: 8px; }
+  body.completo .casa-barra .casa-nota, body.completo .casa-barra .casa-fila { display: none; }
+  body.completo .casa-barra:has(.casa-dice:empty) { display: none; }
   .modo { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
   .modo .accion { flex-direction: row; gap: 8px; min-height: 72px; padding: 6px 16px; }
   .aviso-voz { margin: 8px 0 0; }
@@ -173,6 +188,12 @@
     </div>
 
     <div class="cats" id="cats" role="tablist" aria-label="Picture categories" data-i18n-aria="catsAria"></div>
+    <div class="casa-barra" id="casaBarra" hidden>
+      <p class="casa-nota" data-i18n="casaNota">The speaker has to be close by and the volume up. What the assistant hears goes to its company (Amazon, Google or Apple), not to Puente.</p>
+      <div class="casa-fila"><b id="casaUsa"></b>
+        <button type="button" class="accion" id="bCasaCambiar" aria-label="Change the wake word and the pause" data-i18n-aria="casaCambiarAria"><span data-i18n="casaCambiar">Change</span></button></div>
+      <p class="casa-dice" id="casaDice"></p>
+    </div>
     <div class="grilla" id="tablero" role="tabpanel" tabindex="-1" aria-label="Pictograms" data-i18n-aria="tableroAria"></div>
 
     <div class="modo com-solo-normal">
@@ -208,6 +229,30 @@
     <label for="oVoz" data-i18n="voz">Voice</label>
     <select id="oVoz"><option value="" data-i18n="vozAuto">Automatic (US English if this device has it)</option></select>
     <label class="op"><input type="checkbox" id="oLenta"> <span data-i18n="lenta">Speak more slowly</span></label>
+    <div class="casa-ajustes" id="grupoCasa">
+    <fieldset class="grupo">
+      <legend data-i18n="casaLeyenda">Home board: wake word</legend>
+      <div class="opciones">
+        <label><input type="radio" name="casaPalabra" value="alexa" checked> <span>Alexa</span></label>
+        <label><input type="radio" name="casaPalabra" value="google"> <span>Ok Google</span></label>
+        <label><input type="radio" name="casaPalabra" value="siri"> <span data-i18n="casaSiri">Hey Siri</span></label>
+        <label><input type="radio" name="casaPalabra" value="otra"> <span data-i18n="casaOtra">Other</span></label>
+      </div>
+    </fieldset>
+      <label for="oCasaOtra" data-i18n="casaOtraLabel">Other wake word</label>
+      <input type="text" class="casa-otra" id="oCasaOtra" maxlength="40" autocomplete="off" autocapitalize="words" spellcheck="false" aria-describedby="casaAjusteNota">
+      <label class="op"><input type="checkbox" id="oCasaPausa" checked> <span data-i18n="casaPausa">Wait after the wake word so the speaker can wake up</span></label>
+      <label for="oCasaEspera" data-i18n="casaEspera">How long to wait</label>
+      <select id="oCasaEspera">
+        <option value="500" data-i18n="espera500">Half a second</option>
+        <option value="1000" selected data-i18n="espera1000">1 second</option>
+        <option value="1500" data-i18n="espera1500">1.5 seconds</option>
+        <option value="2000" data-i18n="espera2000">2 seconds</option>
+        <option value="3000" data-i18n="espera3000">3 seconds</option>
+      </select>
+      <p class="muted" id="casaAjusteNota" data-i18n="casaAjusteNota">Used in the Home tab. If the speaker does not answer, turn up this device's volume or wait a little longer.</p>
+      <button type="button" class="big alt auto casa-probar" id="bCasaProbar" data-i18n="casaProbar">Test: ask the time</button>
+    </div>
     <p class="muted" style="margin-top:12px" data-i18n-html="privAjustes">Settings and favorites are saved <b>only on this device</b> (in the browser's storage) and only if you change something. They are never sent anywhere.</p>
     <button type="button" class="big alt peligro auto" id="bOlvidar" data-i18n="olvidar">Delete settings and favorites from this device</button>
     <p class="muted" id="olvidarMsg" role="status"></p>
@@ -220,6 +265,7 @@
       <li data-i18n-html="infoPrivado"><b>Private:</b> everything happens on this device. Nothing is sent to Puente or to any AI, there is no tracking and no account is needed.</li>
       <li data-i18n-html="infoSinConexion"><b>Works offline:</b> after you open it once with internet, the board is saved and works without a connection.</li>
       <li data-i18n-html="infoVoz"><b>The voice</b> is the device's own. If it has no English voice, the sentence is still shown in writing.</li>
+      <li data-i18n-html="infoCasa"><b>Home board:</b> in the Home tab, each picture says a command out loud for Alexa, Google or Siri. That way the child can use the smart speaker without speaking.</li>
       <li data-i18n-html="infoConsejo"><b>Tip:</b> use it in full screen or add it to the home screen so it does not close by accident.</li>
     </ul>
   </div>
@@ -243,7 +289,8 @@
   const MAX_FRASE = 24;
 
   // ---------- Ajustes (localStorage, solo si el usuario cambia algo) ----------
-  const DEF = { decir: true, frase: true, tam: "mediano", genero: "nene", voz: "", lenta: false, favoritos: [], idioma: "" }; // idioma "" = automático
+  const DEF = { decir: true, frase: true, tam: "mediano", genero: "nene", voz: "", lenta: false, favoritos: [], idioma: "", // idioma "" = automático
+    casaPalabra: "alexa", casaOtra: "", casaPausa: true, casaEspera: 1000 }; // tablero Casa: palabra de activación y pausa
   let aj = { ...DEF };
   try { Object.assign(aj, JSON.parse(localStorage.getItem(CLAVE) || "{}")); } catch { /* sin almacenamiento: queda en memoria */ }
   if (!Array.isArray(aj.favoritos)) aj.favoritos = [];
@@ -304,14 +351,33 @@
     else aviso.hidden = true;
   }
   const vozElegida = () => voces.find(v => v.voiceURI === aj.voz) || voces[0] || null;
-  function decir(txt) {
-    if (!puedeHablar || !txt) return;
-    speechSynthesis.cancel();
+  let casaTurno = 0, casaTimer = 0; // tablero Casa: la orden que espera después de la palabra de activación
+  function decir(txt, seguido) {
+    if (!puedeHablar || !txt) return null;
+    if (!seguido) { speechSynthesis.cancel(); casaTurno++; clearTimeout(casaTimer); } // lo nuevo corta lo que estaba por decirse
     const u = new SpeechSynthesisUtterance(txt);
     const v = vozElegida();
     if (v) { u.voice = v; u.lang = v.lang; } else u.lang = LANG_VOZ[lang];
     u.rate = aj.lenta ? 0.75 : 0.95;
     speechSynthesis.speak(u);
+    return u;
+  }
+  // Tablero Casa: dice la palabra de activación y, con pausa, espera (aj.casaEspera) a que termine y recién ahí dice la orden.
+  // Sin integración: el parlante escucha la voz del equipo como si hablara una persona.
+  function decirOrden(o) {
+    const f = T.fraseCasa(o, aj, lang);
+    $("casaDice").textContent = tr("casaDice", f.texto);
+    const u = decir(f.partes[0]);
+    if (!u || f.partes.length < 2) return;
+    const turno = casaTurno;
+    let listo = false;
+    const seguir = () => {
+      if (listo || turno !== casaTurno) return;
+      listo = true;
+      casaTimer = setTimeout(() => { if (turno === casaTurno) decir(f.partes[1], true); }, f.espera);
+    };
+    u.addEventListener("end", seguir);
+    setTimeout(seguir, 4000); // algunos navegadores no avisan cuándo terminó: a los 4 s sigue igual
   }
   if (puedeHablar) speechSynthesis.addEventListener?.("voiceschanged", cargarVoces);
   const avisoSinNavegador = () => { if (!puedeHablar) { $("avisoVoz").textContent = tr("noHabla"); $("avisoVoz").hidden = false; } };
@@ -341,11 +407,11 @@
   $("bTodo").onclick = () => { frase = []; pintarFrase(); anunciar(tr("fraseBorrada")); };
 
   // ---------- Categorías y grilla ----------
-  const ICONO = { nucleo: 5441, sentimientos: 35547, necesidades: 6929, personas: 2458, lugares: 6964, acciones: 8142, juegos: 23392 };
-  let catActual = "nucleo", editando = false;
+  const ICONO = { nucleo: 5441, sentimientos: 35547, necesidades: 6929, personas: 2458, lugares: 6964, acciones: 8142, juegos: 23392, casa: T.CASA.icono };
+  let catActual = location.hash === "#casa" ? "casa" : "nucleo", editando = false; // comunicador.html#casa abre directo el tablero Casa
   function pintarCats() {
     const c = $("cats");
-    const lista = (aj.favoritos.length ? [{ id: "favoritos", nombre: tr("favoritos"), color: "#8a5a00" }] : []).concat(T.CATEGORIAS);
+    const lista = (aj.favoritos.length ? [{ id: "favoritos", nombre: tr("favoritos"), color: "#8a5a00" }] : []).concat(T.CATEGORIAS, T.CASA);
     if (!lista.some(x => x.id === catActual)) catActual = "nucleo";
     c.replaceChildren(...lista.map(cat => {
       const b = document.createElement("button");
@@ -370,6 +436,8 @@
   });
 
   let ultimo = { id: null, t: 0 };
+  // Evita toques repetidos sin querer (mismo dibujo en menos de medio segundo)
+  const repetido = id => { const ahora = Date.now(), r = ultimo.id === id && ahora - ultimo.t < 500; if (!r) ultimo = { id, t: ahora }; return r; };
   function tocar(p) {
     if (editando) {
       const i = aj.favoritos.indexOf(p.id);
@@ -377,10 +445,7 @@
       guardar(); anunciar(tr(i >= 0 ? "favSaque" : "favAgregue", texto(p)));
       pintarCats(); pintarGrilla(); return;
     }
-    // Evita toques repetidos sin querer (mismo dibujo en menos de medio segundo)
-    const ahora = Date.now();
-    if (ultimo.id === p.id && ahora - ultimo.t < 500) return;
-    ultimo = { id: p.id, t: ahora };
+    if (repetido(p.id)) return;
     if (aj.frase) {
       if (frase.length >= MAX_FRASE) frase.shift();
       frase.push(p.id); pintarFrase();
@@ -388,8 +453,31 @@
     if (aj.decir || !aj.frase) decir(dicho(p));
     else anunciar(tr("agregue", texto(p)));
   }
+  // Tablero Casa: cada tecla dice una orden para el asistente (no se suma a la frase ni a favoritos).
+  function pintarCasa() {
+    const g = $("tablero");
+    g.className = "grilla t-" + aj.tam;
+    g.replaceChildren(...T.CASA.ordenes.map(o => {
+      const b = document.createElement("button"), f = T.fraseCasa(o, aj, lang), etiqueta = lang === "en" ? o.en : o.t;
+      b.type = "button"; b.className = "tecla casa-tecla";
+      b.style.setProperty("--c", T.CASA.color);
+      b.dataset.orden = f.texto;
+      b.setAttribute("aria-label", etiqueta + ". " + tr("casaAria", f.texto));
+      b.innerHTML = `<img src="${T.url(o.id)}" alt="" width="300" height="300" draggable="false" decoding="async"><span class="t"></span>`;
+      b.querySelector(".t").textContent = etiqueta;
+      b.querySelector("img").onerror = () => b.classList.add("sin-img");
+      b.onclick = () => { if (!repetido("casa-" + o.id)) decirOrden(o); };
+      return b;
+    }));
+  }
+  function pintarCasaUsa() {
+    const p = T.palabraActivacion(aj, lang);
+    $("casaUsa").textContent = p ? tr("casaUsa", p) : tr("casaSinPalabra");
+  }
   function pintarGrilla() {
     const g = $("tablero");
+    $("casaBarra").hidden = catActual !== "casa";
+    if (catActual === "casa") { pintarCasaUsa(); pintarCasa(); return; }
     g.className = "grilla t-" + aj.tam + (editando ? " editando" : "");
     const pictos = catActual === "favoritos" ? aj.favoritos.map(id => todos.get(id)).filter(Boolean) : T.CATEGORIAS.find(c => c.id === catActual).pictos.map(p => todos.get(p.id));
     g.replaceChildren(...pictos.map(p => {
@@ -448,6 +536,21 @@
   $("oDecir").checked = aj.decir; $("oFrase").checked = aj.frase; $("oLenta").checked = aj.lenta;
   document.querySelector(`input[name="tam"][value="${aj.tam}"]`)?.click();
   document.querySelector(`input[name="genero"][value="${aj.genero}"]`)?.click();
+  // Tablero Casa
+  document.querySelector(`input[name="casaPalabra"][value="${aj.casaPalabra}"]`)?.click();
+  $("oCasaOtra").value = aj.casaOtra || ""; $("oCasaPausa").checked = aj.casaPausa !== false;
+  $("oCasaEspera").value = String(T.ESPERAS.includes(Number(aj.casaEspera)) ? aj.casaEspera : 1000); $("oCasaEspera").disabled = !$("oCasaPausa").checked;
+  const casaCambio = () => { guardar(); pintarGrilla(); };
+  document.querySelectorAll('input[name="casaPalabra"]').forEach(r => r.onchange = () => { aj.casaPalabra = r.value; casaCambio(); if (r.value === "otra") $("oCasaOtra").focus(); });
+  $("oCasaOtra").oninput = e => {
+    aj.casaOtra = e.target.value;
+    if (aj.casaPalabra !== "otra") { aj.casaPalabra = "otra"; document.querySelector('input[name="casaPalabra"][value="otra"]').checked = true; }
+    casaCambio();
+  };
+  $("oCasaPausa").onchange = e => { aj.casaPausa = e.target.checked; $("oCasaEspera").disabled = !aj.casaPausa; casaCambio(); };
+  $("oCasaEspera").onchange = e => { aj.casaEspera = Number(e.target.value); casaCambio(); };
+  $("bCasaProbar").onclick = () => decirOrden(T.CASA.ordenes.find(o => o.id === 2549)); // «qué hora es»
+  $("bCasaCambiar").onclick = () => { $("ajustes").open = true; $("grupoCasa").scrollIntoView({ block: "start" }); document.querySelector('input[name="casaPalabra"]:checked').focus({ preventScroll: true }); };
   $("oDecir").onchange = e => { aj.decir = e.target.checked; guardar(); };
   $("oFrase").onchange = e => { aj.frase = e.target.checked; guardar(); };
   $("oLenta").onchange = e => { aj.lenta = e.target.checked; guardar(); };
@@ -460,6 +563,8 @@
     $("oDecir").checked = true; $("oFrase").checked = true; $("oLenta").checked = false; $("oVoz").value = "";
     document.querySelector('input[name="tam"][value="mediano"]').checked = true;
     document.querySelector('input[name="genero"][value="nene"]').checked = true;
+    document.querySelector('input[name="casaPalabra"][value="alexa"]').checked = true;
+    $("oCasaOtra").value = ""; $("oCasaPausa").checked = true; $("oCasaEspera").value = "1000"; $("oCasaEspera").disabled = false; $("casaDice").textContent = "";
     editando = false; $("bFavoritos").setAttribute("aria-pressed", "false");
     // La elección de idioma también se borra: vuelve a ?lang= o al idioma del navegador.
     lang = idiomaInicial("");
@@ -480,6 +585,7 @@
     aplicarIdioma(); avisoSinNavegador(); cargarVoces();
     $("bFavTxt").textContent = tr(editando ? "favListo" : "favElegir");
     pintarSalir(Date.now() < confirmarHasta);
+    $("casaDice").textContent = "";
     pintarCats(); pintarGrilla(); pintarFrase();
   }
   document.querySelectorAll("#idioma [data-lang]").forEach(b => b.onclick = ev => {
