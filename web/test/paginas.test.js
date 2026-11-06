@@ -12,15 +12,19 @@ test("todas las páginas cargan el pie común", () => {
   for (const p of PAGINAS) {
     const h = leer(p);
     assert.ok(h.includes('id="puente-pie"'), `${p} sin pie`);
-    assert.ok(h.includes('src="pie.js"'), `${p} sin pie.js`);
+    assert.match(h, /src="\/?pie\.js"/, `${p} sin pie.js`); // 404.html usa /pie.js (se sirve en cualquier ruta)
   }
 });
 
 test("el pie lleva BETA, links legales y el crédito ARASAAC completo", () => {
   const js = leer("pie.js");
   assert.ok(js.includes("BETA"));
-  assert.ok(js.includes('href="privacidad.html"') && js.includes('href="terminos.html"'));
+  // Links legales al idioma de la página: /privacidad.html o /en/privacidad.html
+  assert.ok(js.includes('base = EN ? "/en/" : "/"'));
+  assert.ok(js.includes('href="${base}privacidad.html"') && js.includes('href="${base}terminos.html"'));
   assert.ok(js.includes("Autor pictogramas: Sergio Palao. Origen: ARASAAC (") && js.includes("Licencia: CC BY-NC-SA. Propiedad: Gobierno de Aragón (España)"));
+  // Crédito ARASAAC también en inglés
+  assert.ok(js.includes("Pictograms by Sergio Palao. Source: ARASAAC (") && js.includes("License: CC BY-NC-SA. Owner: Government of Aragón (Spain)."));
 });
 
 test("donaciones: nunca en el espacio de la familia ni hardcodeadas; dos botones con sus textos", () => {
@@ -30,7 +34,7 @@ test("donaciones: nunca en el espacio de la familia ni hardcodeadas; dos botones
   assert.ok(js.includes("Doná desde Argentina") && js.includes("Donate from abroad"));
   assert.ok(js.includes("Puente es gratuito y sin fines de lucro. Las donaciones cubren servidores e IA."));
   assert.ok(js.includes("Puente is free and non-profit."));
-  assert.ok(js.includes('fetch("api/config"'));
+  assert.ok(js.includes('fetch("/api/config"'));
   assert.equal(/https:\/\/[^"'`\s]*(sponsor|don)/i.test(js), false);
 });
 

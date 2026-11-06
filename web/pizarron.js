@@ -97,49 +97,148 @@
     docente: "seno senos senorita maestra maestras maestro docentes profe profesora profesor",
     instalar: "instalo instalacion bajar",
   };
-  const MAPA = {};
-  for (const [canon, lista] of Object.entries(SINONIMOS)) for (const w of lista.split(" ")) if (!MAPA[w]) MAPA[w] = canon;
   // «santa fe» y «buenos aires» son dos palabras: se juntan antes.
-  const canonizar = texto => normalizar(texto).replace(/\bsanta fe\b/g, "lugar").replace(/\bbuenos aires\b/g, "lugar")
-    .split(" ").filter(Boolean).map(w => MAPA[w] || w);
-
+  const JUNTAR_ES = t => t.replace(/\bsanta fe\b/g, "lugar").replace(/\bbuenos aires\b/g, "lugar");
   const SALUDO = /^(hola+|holis|buen(os|as)? (dia|dias|tardes|noches)|buenas|hey|que tal|como andas|como estas)( pizarron| puente)?$/;
   const GRACIAS = /^(muchas )?gracias( pizarron| puente)?$|^(genial|perfecto|ok|okey|dale|buenisimo)( gracias)?$/;
   const QUIEN = /\b(quien sos|que sos|sos una? (ia|robot|persona|bot)|sos real|con quien hablo|sos humano)\b/;
 
-  // Claves precalculadas: { tokens, peso }
-  const CLAVES = FAQ.map(f => f.claves.map(c => {
-    const [txt, p] = c.split(":");
-    const tokens = canonizar(txt);
-    return { tokens, peso: Number(p) || (tokens.length > 1 ? 3 : 2) };
-  }));
-
-  // Devuelve la entrada del FAQ (o una especial) que mejor responde el texto. { id, respuesta, pregunta?, acciones?, puntaje }
-  function responder(texto) {
-    const n = normalizar(texto);
-    if (!n) return { ...ESPECIALES.nose, puntaje: 0 };
-    if (SALUDO.test(n)) return { ...ESPECIALES.saludo, puntaje: 1 };
-    if (GRACIAS.test(n)) return { ...ESPECIALES.gracias, puntaje: 1 };
-    if (QUIEN.test(n)) return { ...ESPECIALES.quien, puntaje: 1 };
-    const toks = canonizar(texto);
-    const set = new Set(toks);
-    const frase = " " + toks.join(" ") + " ";
-    let mejor = null, max = 0;
-    FAQ.forEach((f, i) => {
-      let p = 0;
-      for (const c of CLAVES[i]) {
-        if (c.tokens.length > 1) { if (frase.includes(" " + c.tokens.join(" ") + " ")) p += c.peso; }
-        else if (set.has(c.tokens[0])) p += c.peso;
-        else if (c.tokens[0].length >= 6 && toks.some(t => t.length >= 5 && (t.startsWith(c.tokens[0].slice(0, 5)) ))) p += Math.max(1, c.peso - 1); // plurales y conjugaciones
-      }
-      if (p > max) { max = p; mejor = f; }
-    });
-    // Un saludo con pregunta («hola, ¿es gratis?») responde la pregunta.
-    if (!mejor || max < 2) return { ...ESPECIALES.nose, puntaje: max };
-    return { ...mejor, puntaje: max };
+  // El motor (sin IA): normaliza, pasa a sinónimos canónicos y suma el peso de las claves que aparecen. Uno por idioma.
+  function crearMotor({ FAQ, ESPECIALES, SINONIMOS, juntar, SALUDO, GRACIAS, QUIEN }) {
+    const MAPA = {};
+    for (const [canon, lista] of Object.entries(SINONIMOS)) for (const w of lista.split(" ")) if (!MAPA[w]) MAPA[w] = canon;
+    const canonizar = texto => juntar(normalizar(texto)).split(" ").filter(Boolean).map(w => MAPA[w] || w);
+    // Claves precalculadas: { tokens, peso }
+    const CLAVES = FAQ.map(f => f.claves.map(c => {
+      const [txt, p] = c.split(":");
+      const tokens = canonizar(txt);
+      return { tokens, peso: Number(p) || (tokens.length > 1 ? 3 : 2) };
+    }));
+    // Devuelve la entrada del FAQ (o una especial) que mejor responde el texto. { id, respuesta, pregunta?, acciones?, puntaje }
+    function responder(texto) {
+      const n = normalizar(texto);
+      if (!n) return { ...ESPECIALES.nose, puntaje: 0 };
+      if (SALUDO.test(n)) return { ...ESPECIALES.saludo, puntaje: 1 };
+      if (GRACIAS.test(n)) return { ...ESPECIALES.gracias, puntaje: 1 };
+      if (QUIEN.test(n)) return { ...ESPECIALES.quien, puntaje: 1 };
+      const toks = canonizar(texto);
+      const set = new Set(toks);
+      const frase = " " + toks.join(" ") + " ";
+      let mejor = null, max = 0;
+      FAQ.forEach((f, i) => {
+        let p = 0;
+        for (const c of CLAVES[i]) {
+          if (c.tokens.length > 1) { if (frase.includes(" " + c.tokens.join(" ") + " ")) p += c.peso; }
+          else if (set.has(c.tokens[0])) p += c.peso;
+          else if (c.tokens[0].length >= 6 && toks.some(t => t.length >= 5 && (t.startsWith(c.tokens[0].slice(0, 5)) ))) p += Math.max(1, c.peso - 1); // plurales y conjugaciones
+        }
+        if (p > max) { max = p; mejor = f; }
+      });
+      // Un saludo con pregunta («hola, ¿es gratis?») responde la pregunta.
+      if (!mejor || max < 2) return { ...ESPECIALES.nose, puntaje: max };
+      return { ...mejor, puntaje: max };
+    }
+    return { canonizar, responder };
   }
+  const { canonizar, responder } = crearMotor({ FAQ, ESPECIALES, SINONIMOS, juntar: JUNTAR_ES, SALUDO, GRACIAS, QUIEN });
 
-  const api = { FAQ, ESPECIALES, SUGERIDAS, normalizar, canonizar, responder, SOPORTE };
+  // ---------- English (en/index.html) ----------
+  // Same facts as the Spanish FAQ, written for English readers. The list in en/index.html (#pzTodas) is generated from FAQ_EN
+  // by scripts/idiomas.js, so they always match. Keywords are English words after normalizar().
+  const FAQ_EN = [
+    { id: "que-es", pregunta: "What is Puente?",
+      respuesta: "Puente is a tool for special education schools. The teacher says how the school day went, Puente lays it out in pictograms and the family sees it at home. The child can use the pictures to tell their day, and the family knows what happened.",
+      claves: ["what is:3", "what s puente:4", "about:2", "what for:3", "explain:3", "puente:1", "app:1"] },
+    { id: "para-quien", pregunta: "Who is it for?",
+      respuesta: "Special education schools: children with autism, intellectual disability or communication needs. Teachers and school leaders use it to record the day in seconds, and families see it in pictograms.",
+      claves: ["who is it for:5", "who for:4", "who uses:4", "autism:3", "autistic:3", "asd:3", "disability:3", "special:2", "nonverbal:3", "children:1", "students:1"] },
+    { id: "como-funciona", pregunta: "How does it work?",
+      respuesta: "First, the teacher dictates or types how the day went. Then Puente turns it into a strip of ARASAAC pictograms, one activity after another. Finally, the family sees it in their private space: the day, what went well and what is coming up.",
+      claves: ["how does it work:5", "work:2", "how do i use:5", "use:2", "dictate:3", "steps:2", "visual schedule:3"] },
+    { id: "gratis", pregunta: "How much does it cost?",
+      respuesta: "Nothing. Puente is free and non-profit: schools and families never pay. Data is never sold or used for advertising.",
+      claves: ["free:4", "ads:3", "advertising:3", "profit:3", "sell:2"] },
+    { id: "sumarse", pregunta: "How can I join the pilot?",
+      respuesta: "Puente is in a closed pilot with 15 places in total for teachers, school leaders and families, in schools in Santa Fe, Argentina. You can only get in with an invitation link: the school invites its teachers, and teachers invite families. If you want to take part, fill in the “Join the pilot” form and we will email you.",
+      claves: ["join:4", "pilot:3", "invitation:3", "invite:3", "places:3", "spots:3", "my school:3", "sign up:4", "register:3", "new account:3", "create an account:3"],
+      acciones: [{ texto: "Join the pilot", accion: "sumarse" }, { texto: "Email us", href: MAILTO + "?subject=Joining%20the%20Puente%20pilot" }] },
+    { id: "datos", pregunta: "What data does it keep?",
+      respuesta: "As little as possible. For each student, only the first name and the class: no surname, no photos, no ID number and no diagnoses. The school enters the support profile and the daily record, always with the family's consent. Data is never sold or used for advertising.",
+      claves: ["data:3", "photos:3", "photo:3", "diagnosis:3", "diagnoses:3", "surname:3", "consent:3", "safe:2", "security:2", "children s data:3", "gdpr:2", "law:2"],
+      acciones: [{ texto: "Read the privacy policy", href: "privacidad.html" }] },
+    { id: "ia", pregunta: "What does the AI do with the data?",
+      respuesta: "AI helps put the teacher's account of the day in order, draft the progress report and answer the family's questions. Puente only uses providers that do not store or train on the data, and sends them the minimum: the first name, never emails, phone numbers or health information. The teacher reviews everything and decides.",
+      claves: ["ai:4", "train:4", "training:4", "retention:4", "openrouter:4", "algorithm:3"] },
+    { id: "baja", pregunta: "How do I delete my data?",
+      respuesta: "Families can download their data, withdraw consent and ask to leave from their own space. The school can also remove a student. When that happens, the student's data is deleted. For any request, email " + SOPORTE + ".",
+      claves: ["delete:4", "remove:3", "stop using:4", "download my data:5", "withdraw:3", "leave:2", "unsubscribe:4"],
+      acciones: [{ texto: "Email us", href: MAILTO + "?subject=My%20data%20in%20Puente" }] },
+    { id: "pictos", pregunta: "Where do the pictograms come from?",
+      respuesta: "From ARASAAC. Pictograms by Sergio Palao. Owner: Government of Aragón (Spain). License: CC BY-NC-SA. That is also why Puente uses them on a non-profit basis.",
+      claves: ["pictograms:4", "where from:3", "author:3", "license:3", "aragon:3", "sergio palao:4", "palao:4"],
+      acciones: [{ texto: "Visit ARASAAC", href: "https://arasaac.org" }] },
+    { id: "lugar", pregunta: "Where is it available?",
+      respuesta: "For now, only in schools in the province of Santa Fe, Argentina: schools are picked from the official register of schools. If you are somewhere else and interested, email us.",
+      claves: ["where:4", "available:4", "my country:5", "country:3", "countries:3", "outside argentina:5", "only in:3"],
+      acciones: [{ texto: "Email us", href: MAILTO }] },
+    { id: "donar", pregunta: "How can I help or donate?",
+      respuesta: "Puente is free and non-profit, and donations help pay for servers and AI. If you want to help, use the donation buttons at the bottom of this page. Families are never asked to donate.",
+      claves: ["donate:5", "how can i help:4", "help out:4", "support puente:4", "sponsor:3", "contribute:3"],
+      acciones: [{ texto: "Donate", accion: "donar" }] },
+    { id: "entrar", pregunta: "How do I sign in?",
+      respuesta: "Teachers and school leaders sign in with their Google account or with a 6-digit code sent by email, no password. Families sign in with the invitation link from the school and a code sent by email. The signed-in areas are in Spanish for now.",
+      claves: ["sign in:5", "log in:5", "login:4", "password:4", "code:3", "google:4", "can t sign in:5", "link:2"],
+      acciones: [{ texto: "Sign in", href: "login.html" }, { texto: "I'm a family member", href: "login.html?familia" }] },
+    { id: "familia-ve", pregunta: "What does the family see?",
+      respuesta: "In their private space, the family sees the last few days in pictograms they can tap and listen to, a schedule of what is coming up, the goals being worked on and what went well. They can also ask about the day, and the answers come only from what the school recorded.",
+      claves: ["what does the family see:5", "family see:5", "space:3", "at home:3", "family:2", "parents:2", "schedule:3"] },
+    { id: "instalar", pregunta: "Do I need to install anything?",
+      respuesta: "No. Puente works in the browser, on a phone or a computer, at puentepictos.app. On Android there are also apps you can download (not on Google Play yet): the Puente app, for people in the pilot, and the Communicator app, free for anyone.",
+      claves: ["install:5", "download the app:5", "play store:5", "phone:3", "android:3", "iphone:3", "browser:3", "computer:2", "apk:5"],
+      acciones: [{ texto: "Open the Communicator", href: "comunicador.html" }] },
+    { id: "ingles", pregunta: "Is Puente available in English?",
+      respuesta: "This site and the Communicator are in English. The teacher and family areas of Puente are in Spanish for now, because the pilot runs in schools in Argentina.",
+      claves: ["english:5", "language:4", "languages:4", "spanish:4", "translate:3"],
+      acciones: [{ texto: "Open the Communicator", href: "comunicador.html" }] },
+    { id: "contacto", pregunta: "How do I contact you?",
+      respuesta: "Email us at " + SOPORTE + ". If you already have an account, you can also use “Send feedback” at the bottom of the page.",
+      claves: ["contact:4", "phone number:3", "talk to someone:5", "problem:2", "error:2", "question:1", "complaint:3"],
+      acciones: [{ texto: "Email us", href: MAILTO }] },
+  ];
+  const ESPECIALES_EN = {
+    saludo: { id: "saludo", respuesta: "Hi! I'm Puente's chalkboard. Ask me anything about Puente, or tap one of the questions below." },
+    gracias: { id: "gracias", respuesta: "You're welcome! If you have another question, I'm here." },
+    quien: { id: "quien", respuesta: "I'm Puente's chalkboard. I don't use AI: my answers are written down, and what you type never leaves your browser." },
+    nose: { id: "nose", respuesta: "Sorry, I don't know that one. I only have the frequently asked questions about Puente: try one below. If you want to join, fill in the pilot form, or email " + SOPORTE + ".",
+      acciones: [{ texto: "Join the pilot", accion: "sumarse" }, { texto: "Email us", href: MAILTO }] },
+  };
+  const SINONIMOS_EN = {
+    free: "cost costs price prices pay paid charge charges fee fees subscription cheap",
+    join: "joining participate participation enroll enrol apply access",
+    data: "information info privacy private store stores storing stored keep keeps",
+    ai: "artificial intelligence chatgpt gpt robot robots models",
+    "delete": "erase erased deleting deletion",
+    pictograms: "pictogram picture pictures pictos images symbols drawings arasaac",
+    donate: "donation donations contribute contribution support",
+    contact: "email mail reach support help",
+    "sign": "signin",
+    where: "province city cities rosario argentina region spain mexico chile uruguay usa uk canada australia abroad",
+    family: "families parent parents mom mum dad guardian guardians",
+    teacher: "teachers educator educators staff",
+    install: "installing installation download",
+  };
+  const SALUDO_EN = /^(hi+|hello|hey|good (morning|afternoon|evening)|howdy|how are you)( chalkboard| puente)?$/;
+  const GRACIAS_EN = /^(thanks|thank you|thx|cheers|great|ok|okay|cool|perfect)( (so much|a lot))?( chalkboard| puente)?$/;
+  const QUIEN_EN = /\b(who are you|what are you|are you (an? )?(ai|robot|bot|person|human|real))\b/;
+  const MOTOR_EN = crearMotor({ FAQ: FAQ_EN, ESPECIALES: ESPECIALES_EN, SINONIMOS: SINONIMOS_EN, juntar: t => t.replace(/\bsanta fe\b/g, "where"),
+    SALUDO: SALUDO_EN, GRACIAS: GRACIAS_EN, QUIEN: QUIEN_EN });
+  const SUGERIDAS_EN = ["que-es", "como-funciona", "gratis", "ingles", "datos", "sumarse", "ia", "para-quien"];
+
+  // Textos de la interfaz del pizarrón (lo demás está en el HTML de cada idioma).
+  const UI = { es: { escuchar: "Escuchar", parar: "Parar" }, en: { escuchar: "Listen", parar: "Stop" } };
+
+  const api = { FAQ, ESPECIALES, SUGERIDAS, normalizar, canonizar, responder, SOPORTE,
+    en: { FAQ: FAQ_EN, ESPECIALES: ESPECIALES_EN, SUGERIDAS: SUGERIDAS_EN, canonizar: MOTOR_EN.canonizar, responder: MOTOR_EN.responder } };
   if (typeof module !== "undefined" && module.exports) { module.exports = api; return; }
   root.PuentePizarron = api;
 
@@ -151,6 +250,10 @@
     const tiza = $("pzTiza"), q = $("pzQ"), acc = $("pzAcciones"), vivo = $("pzVivo"), chips = $("pzChips"),
       form = $("pzForm"), input = $("pzPregunta"), escuchar = $("pzEscuchar"), cara = $("pzCara"), todas = $("pzTodas");
     const menosMovimiento = () => window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // La página dice su idioma (<html lang>): en/index.html usa el FAQ en inglés.
+    const EN = /^en\b/i.test(document.documentElement.lang || "");
+    const L = EN ? api.en : api, T = UI[EN ? "en" : "es"];
+    const FAQ = L.FAQ, ESPECIALES = L.ESPECIALES, SUGERIDAS = L.SUGERIDAS, responder = L.responder;
     sec.classList.add("pz-js");
     form.hidden = false; chips.hidden = false; todas.open = false;
     let actual = ESPECIALES.saludo, timer = null, cfg = null;
@@ -167,7 +270,7 @@
       for (const a of r.acciones || []) {
         if (a.accion === "donar") {
           config().then(c => {
-            const u = c && c.donaciones && c.donaciones.ar;
+            const d = c && c.donaciones || {}, u = EN && /^https:\/\//.test(d.intl || "") ? d.intl : d.ar;
             if (typeof u !== "string" || !/^https:\/\//.test(u) || actual !== r) return;
             const l = Object.assign(document.createElement("a"), { className: "pz-accion", href: u, target: "_blank", rel: "noopener", textContent: a.texto });
             acc.append(l);
@@ -190,7 +293,7 @@
       clearTimeout(timer); actual = r;
       if ("speechSynthesis" in window) speechSynthesis.cancel();
       q.textContent = pregunta ? "— " + pregunta : ""; q.hidden = !pregunta;
-      acc.innerHTML = ""; escuchar.textContent = "Escuchar";
+      acc.innerHTML = ""; escuchar.textContent = T.escuchar;
       // Lector de pantalla: la respuesta entera de una vez (el efecto de tiza es solo visual).
       vivo.textContent = ""; setTimeout(() => { vivo.textContent = r.respuesta; }, 60);
       const txt = r.respuesta;
@@ -236,13 +339,14 @@
     if ("speechSynthesis" in window && "SpeechSynthesisUtterance" in window) {
       escuchar.hidden = false;
       escuchar.onclick = () => {
-        if (speechSynthesis.speaking) { speechSynthesis.cancel(); hablar(false); escuchar.textContent = "Escuchar"; return; }
+        if (speechSynthesis.speaking) { speechSynthesis.cancel(); hablar(false); escuchar.textContent = T.escuchar; return; }
         const u = new SpeechSynthesisUtterance(actual.respuesta);
         const voces = speechSynthesis.getVoices();
-        const voz = voces.find(v => /^es[-_]AR/i.test(v.lang)) || voces.find(v => /^es[-_](419|US|MX)/i.test(v.lang)) || voces.find(v => /^es\b/i.test(v.lang));
-        u.lang = voz ? voz.lang : "es-AR"; if (voz) u.voice = voz; u.rate = 0.95;
-        u.onstart = () => { hablar(!menosMovimiento()); escuchar.textContent = "Parar"; };
-        u.onend = u.onerror = () => { hablar(false); escuchar.textContent = "Escuchar"; };
+        const voz = EN ? (voces.find(v => /^en[-_]US/i.test(v.lang)) || voces.find(v => /^en[-_]GB/i.test(v.lang)) || voces.find(v => /^en\b/i.test(v.lang)))
+          : (voces.find(v => /^es[-_]AR/i.test(v.lang)) || voces.find(v => /^es[-_](419|US|MX)/i.test(v.lang)) || voces.find(v => /^es\b/i.test(v.lang)));
+        u.lang = voz ? voz.lang : (EN ? "en-US" : "es-AR"); if (voz) u.voice = voz; u.rate = 0.95;
+        u.onstart = () => { hablar(!menosMovimiento()); escuchar.textContent = T.parar; };
+        u.onend = u.onerror = () => { hablar(false); escuchar.textContent = T.escuchar; };
         speechSynthesis.speak(u);
       };
     }

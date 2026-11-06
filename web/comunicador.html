@@ -3,29 +3,41 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Puente Comunicador · Comunicador con pictogramas</title>
-<!-- Comunicador (tablero CAA) libre y sin cuenta. Todo pasa en el navegador: no llama a /api, no usa IA, no tiene analítica.
-     Vocabulario en comunicador-tablero.js (lo comparte con sw.js para que ande sin conexión). Ver docs/comunicador.md. -->
-<link rel="manifest" href="comunicador.webmanifest"><!-- manifest propio: se instala como «Puente Comunicador» y abre directo en el tablero -->
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<!-- SEO e idiomas: lo genera scripts/idiomas.js (npm run idiomas). No editar a mano: cambiar scripts/idiomas/paginas.js. -->
+<title>Puente Comunicador · Comunicador con pictogramas gratis (CAA)</title>
+<meta name="description" content="Tablero de comunicación aumentativa (CAA) con pictogramas de ARASAAC, gratis y sin cuenta: el chico toca los dibujos, arma la frase y el celular la dice. Funciona sin conexión.">
 <link rel="canonical" href="https://puentepictos.app/comunicador.html">
-<!-- Idiomas: la misma página en español (por defecto) y en inglés (?lang=en). Ver «Idiomas» en docs/comunicador.md. -->
-<link rel="alternate" hreflang="es" href="https://puentepictos.app/comunicador.html">
-<link rel="alternate" hreflang="en" href="https://puentepictos.app/comunicador.html?lang=en">
+<link rel="alternate" hreflang="es-AR" href="https://puentepictos.app/comunicador.html">
+<link rel="alternate" hreflang="en" href="https://puentepictos.app/en/comunicador.html">
 <link rel="alternate" hreflang="x-default" href="https://puentepictos.app/comunicador.html">
-<meta name="application-name" content="Puente Comunicador">
-<meta name="apple-mobile-web-app-title" content="Puente Comunicador">
-<link rel="icon" href="icono.svg" type="image/svg+xml">
-<meta name="theme-color" content="#2f4a3e">
-<meta name="description" content="Comunicador con pictogramas de ARASAAC, libre y gratuito, sin cuenta: el chico toca los dibujos, arma una frase y el celular la dice en voz alta. Funciona sin conexión y no guarda nada fuera del dispositivo.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Puente">
 <meta property="og:locale" content="es_AR">
 <meta property="og:locale:alternate" content="en_US">
-<meta property="og:title" content="Puente Comunicador · Comunicador con pictogramas">
-<meta property="og:description" content="Tocá los dibujos, armá la frase y el celular la dice. Libre, sin cuenta y sin conexión.">
+<meta property="og:title" content="Puente Comunicador · Comunicador con pictogramas gratis (CAA)">
+<meta property="og:description" content="Tocá los dibujos, armá la frase y el celular la dice. Gratis, sin cuenta y sin conexión.">
 <meta property="og:url" content="https://puentepictos.app/comunicador.html">
 <meta property="og:image" content="https://puentepictos.app/og.png">
+<meta property="og:image:secure_url" content="https://puentepictos.app/og.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Pizarrón con el nombre Puente, la frase «de la escuela a casa, en pictogramas» y una tira de pictogramas de ARASAAC">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Puente Comunicador · Comunicador con pictogramas gratis (CAA)">
+<meta name="twitter:description" content="Tocá los dibujos, armá la frase y el celular la dice. Gratis, sin cuenta y sin conexión.">
+<meta name="twitter:image" content="https://puentepictos.app/og.png">
+<meta name="twitter:image:alt" content="Pizarrón con el nombre Puente, la frase «de la escuela a casa, en pictogramas» y una tira de pictogramas de ARASAAC">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://puentepictos.app/#organizacion","name":"Puente","url":"https://puentepictos.app/","logo":"https://puentepictos.app/icono-512.png","email":"soporte@puentepictos.app","description":"Proyecto gratuito y sin fines de lucro que lleva el día de la escuela a casa en pictogramas, para escuelas de educación especial y familias.","areaServed":"AR","sameAs":["https://github.com/dannyvergel/mi-dia-en-pictos"]},{"@type":"WebSite","@id":"https://puentepictos.app/#sitio","name":"Puente","url":"https://puentepictos.app/","inLanguage":["es-AR","en"],"publisher":{"@id":"https://puentepictos.app/#organizacion"}},{"@type":"WebPage","@id":"https://puentepictos.app/comunicador.html#pagina","url":"https://puentepictos.app/comunicador.html","name":"Puente Comunicador · Comunicador con pictogramas gratis (CAA)","inLanguage":"es-AR","isPartOf":{"@id":"https://puentepictos.app/#sitio"},"about":{"@id":"https://puentepictos.app/#comunicador"}},{"@type":"WebApplication","@id":"https://puentepictos.app/#comunicador","name":"Puente Comunicador","url":"https://puentepictos.app/comunicador.html","applicationCategory":"EducationalApplication","operatingSystem":"Web, Android","inLanguage":["es-AR","en"],"isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"ARS"},"description":"Tablero de comunicación aumentativa y alternativa (CAA) con pictogramas de ARASAAC, gratis. Sin cuenta, funciona sin conexión y no guarda nada fuera del dispositivo.","publisher":{"@id":"https://puentepictos.app/#organizacion"}}]}</script>
+<!-- /SEO -->
+<!-- Comunicador (tablero CAA) libre y sin cuenta. Todo pasa en el navegador: no llama a /api, no usa IA, no tiene analítica.
+     Vocabulario en comunicador-tablero.js (lo comparte con sw.js para que ande sin conexión). Ver docs/comunicador.md. -->
+<link rel="manifest" href="comunicador.webmanifest"><!-- manifest propio: se instala como «Puente Comunicador» y abre directo en el tablero -->
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="application-name" content="Puente Comunicador">
+<meta name="apple-mobile-web-app-title" content="Puente Comunicador">
+<link rel="icon" href="icono.svg" type="image/svg+xml">
+<meta name="theme-color" content="#2f4a3e">
 <link rel="preload" href="/fuentes/atkinson-hyperlegible-700-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="estilo.css">
 <style>
@@ -91,9 +103,9 @@
   .aviso-voz { margin: 8px 0 0; }
   /* Selector de idioma (Español / English): visible arriba, fuera del modo tablero */
   .idioma { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
-  .idioma button { min-height: 48px; min-width: 96px; padding: 6px 14px; border: 2px solid var(--tinta); border-radius: 12px; background: #fff; color: var(--tinta);
+  .idioma button, .idioma a { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; min-height: 48px; min-width: 96px; padding: 6px 14px; border: 2px solid var(--tinta); border-radius: 12px; background: #fff; color: var(--tinta);
     font: 700 16px/1.1 var(--texto); cursor: pointer; touch-action: manipulation; }
-  .idioma button[aria-pressed="true"] { background: #fdf6e1; box-shadow: inset 0 -4px 0 var(--tinta); }
+  .idioma [aria-current="page"] { background: #fdf6e1; box-shadow: inset 0 -4px 0 var(--tinta); }
 
   /* Ajustes y explicación */
   .ajustes { margin-top: 14px; }
@@ -140,8 +152,8 @@
 <header><h1 data-i18n="titulo">Comunicador</h1><div class="bajada" data-i18n="bajada">Tocá los dibujos para hablar. Libre y sin cuenta.</div><a class="com-volver" href="/">Puente</a><span class="tiza"></span></header>
 <main id="contenido" tabindex="-1">
   <div class="idioma" id="idioma" role="group" aria-label="Idioma / Language">
-    <button type="button" data-lang="es" lang="es-AR" aria-pressed="true">Español</button>
-    <button type="button" data-lang="en" lang="en" aria-pressed="false">English</button>
+    <a href="/comunicador.html" data-lang="es" data-idioma="es" hreflang="es-AR" lang="es-AR" aria-current="page">Español</a>
+    <a href="/en/comunicador.html" data-lang="en" data-idioma="en" hreflang="en" lang="en">English</a>
   </div>
   <noscript><div class="card alerta" style="margin-top:12px">El comunicador necesita JavaScript activado en el navegador.</div></noscript>
 
@@ -237,9 +249,14 @@
   if (!Array.isArray(aj.favoritos)) aj.favoritos = [];
   const guardar = () => { try { localStorage.setItem(CLAVE, JSON.stringify(aj)); } catch { /* modo privado o lleno */ } };
 
-  // ---------- Idioma (español / inglés en la misma página) ----------
-  // ?lang=en|es manda; si no, la elección guardada; si no, el idioma del navegador (en* → inglés, lo demás → español).
-  let lang = TX.elegirIdioma(location.search, aj.idioma, navigator.language);
+  // ---------- Idioma ----------
+  // En la web cada idioma tiene su URL (/comunicador.html y /en/comunicador.html, servidas ya traducidas): manda la URL.
+  // ?lang=en|es sigue andando (links viejos). Dentro de la app instalada (Android / PWA, que abre /comunicador.html?app y no
+  // puede salir de /comunicador) el idioma cambia en la misma página: ?lang=, si no la elección guardada, si no el navegador.
+  const EN_APP = /[?&]app\b/.test(location.search) || document.referrer.startsWith("android-app://") || matchMedia("(display-mode: standalone)").matches || matchMedia("(display-mode: fullscreen)").matches;
+  const PAGINA = /^en\b/i.test(document.documentElement.lang) ? "en" : "es"; // idioma en que se sirvió esta URL
+  const idiomaInicial = guardado => EN_APP ? TX.elegirIdioma(location.search, guardado, navigator.language) : TX.elegirIdioma(location.search, PAGINA, "");
+  let lang = idiomaInicial(aj.idioma);
   const tr = (clave, t) => (TX[lang][clave] ?? TX.es[clave] ?? clave).replace("{t}", t ?? "");
   const LANG_VOZ = { es: "es-AR", en: "en-US" };
   function aplicarIdioma() {
@@ -248,11 +265,11 @@
     document.querySelectorAll("[data-i18n]").forEach(e => e.textContent = tr(e.dataset.i18n));
     document.querySelectorAll("[data-i18n-html]").forEach(e => e.innerHTML = tr(e.dataset.i18nHtml)); // solo textos fijos de comunicador-textos.js
     document.querySelectorAll("[data-i18n-aria]").forEach(e => e.setAttribute("aria-label", tr(e.dataset.i18nAria)));
-    document.querySelectorAll("#idioma [data-lang]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === lang)));
+    document.querySelectorAll("#idioma [data-lang]").forEach(b => b.dataset.lang === lang ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"));
     $("grupoGenero").hidden = lang !== "es"; // en inglés casi no hay palabras con género: el ajuste no aplica
-    const pie = $("puente-pie"); if (pie) { if (lang === "es") pie.removeAttribute("lang"); else pie.lang = "es-AR"; } // el pie común (pie.js) sigue en español
+    // El canonical apunta a la URL del idioma que se ve (también con ?lang=en en la URL vieja).
     const canon = document.querySelector('link[rel="canonical"]');
-    if (canon) canon.href = "https://puentepictos.app/comunicador.html" + (lang === "en" && /[?&]lang=en\b/i.test(location.search) ? "?lang=en" : "");
+    if (canon) canon.href = "https://puentepictos.app" + (lang === "en" ? "/en/comunicador.html" : "/comunicador.html");
   }
 
   const todos = new Map();
@@ -445,30 +462,35 @@
     document.querySelector('input[name="genero"][value="nene"]').checked = true;
     editando = false; $("bFavoritos").setAttribute("aria-pressed", "false");
     // La elección de idioma también se borra: vuelve a ?lang= o al idioma del navegador.
-    lang = TX.elegirIdioma(location.search, "", navigator.language);
+    lang = idiomaInicial("");
     pintarTodo();
     $("olvidarMsg").textContent = tr("olvidarListo");
   };
 
   // ---------- App para Android: link discreto solo en Android y fuera de la app instalada (TWA o PWA) ----------
-  const enApp = /[?&]app\b/.test(location.search) || document.referrer.startsWith("android-app://") || matchMedia("(display-mode: standalone)").matches || matchMedia("(display-mode: fullscreen)").matches;
-  if (/Android/i.test(navigator.userAgent) && !enApp) $("comApk").hidden = false;
+  if (/Android/i.test(navigator.userAgent) && !EN_APP) $("comApk").hidden = false;
 
   // ---------- Sin conexión: el service worker guarda la página y todos los pictos del tablero ----------
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("/sw.js").then(() => navigator.serviceWorker.ready).then(r => r.active && r.active.postMessage({ tipo: "comunicador" })).catch(() => {});
   }
 
-  // ---------- Selector de idioma (Español / English): se guarda en el mismo localStorage y actualiza ?lang= ----------
+  // ---------- Selector de idioma (Español / English): links a cada URL; en la app cambia en el lugar ----------
   function pintarTodo() {
     aplicarIdioma(); avisoSinNavegador(); cargarVoces();
     $("bFavTxt").textContent = tr(editando ? "favListo" : "favElegir");
     pintarSalir(Date.now() < confirmarHasta);
     pintarCats(); pintarGrilla(); pintarFrase();
   }
-  document.querySelectorAll("#idioma [data-lang]").forEach(b => b.onclick = () => {
+  document.querySelectorAll("#idioma [data-lang]").forEach(b => b.onclick = ev => {
+    ev.preventDefault();
     if (b.dataset.lang === lang) return;
-    lang = aj.idioma = b.dataset.lang; guardar();
+    aj.idioma = b.dataset.lang; guardar(); // pie.js también la guarda en "puente-idioma" (data-idioma)
+    if (!EN_APP) { // web: a la URL del otro idioma, conservando los demás parámetros (sin ?lang=)
+      const u = new URL(b.href, location.href), q = new URLSearchParams(location.search); q.delete("lang");
+      u.search = q.toString(); u.hash = location.hash; location.href = u.href; return;
+    }
+    lang = aj.idioma;
     try { const u = new URL(location.href); if (u.searchParams.has("lang")) { u.searchParams.set("lang", lang); history.replaceState(null, "", u); } } catch { /* sin history: igual queda guardado */ }
     $("olvidarMsg").textContent = "";
     pintarTodo();

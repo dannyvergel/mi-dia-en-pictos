@@ -7,4 +7,5 @@ Disallow: /familia.html
 Disallow: /login.html
 Disallow: /firma/
 
+# Las versiones en inglés están en /en/ (mismas páginas, con hreflang). Ver scripts/idiomas.js.
 Sitemap: https://puentepictos.app/sitemap.xml

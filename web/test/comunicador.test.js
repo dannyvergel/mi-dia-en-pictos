@@ -43,9 +43,9 @@ test("todo en el cliente: no llama a /api, no usa IA ni analítica, y el pie com
   assert.ok(h.includes("solo en este dispositivo") && h.includes("Borrar ajustes y favoritos de este dispositivo"));
 });
 
-test("el service worker (pictos-v24) cachea la página, el tablero, los textos y sus pictos, y sigue sin cachear /api ni /descargar", () => {
+test("el service worker (pictos-v25) cachea la página, el tablero, los textos y sus pictos, y sigue sin cachear /api ni /descargar", () => {
   const sw = leer("sw.js");
-  assert.ok(sw.includes("const C = 'pictos-v24'"));
+  assert.ok(sw.includes("const C = 'pictos-v25'"));
   assert.ok(sw.includes("'comunicador.html'") && sw.includes("'comunicador-tablero.js'") && sw.includes("'comunicador-textos.js'"));
   assert.ok(sw.includes("importScripts('comunicador-tablero.js')"));
   assert.ok(sw.includes("self.TABLERO.urls()") && sw.includes("e.data.tipo === 'comunicador'"));
@@ -151,22 +151,34 @@ test("idiomas: ?lang=en manda, si no la elección guardada, si no navigator.lang
   assert.deepEqual(TX.HTML_LANG, { es: "es-AR", en: "en" });
 });
 
-test("idiomas: selector visible Español / English, <html lang> dinámico, se guarda en puente-comunicador y se borra con el botón", () => {
+test("idiomas: selector Español / English (links a cada URL), <html lang> dinámico, se guarda en puente-comunicador y se borra con el botón", () => {
   const h = leer("comunicador.html");
   assert.match(h, /<div class="idioma" id="idioma" role="group" aria-label="Idioma \/ Language">/);
-  assert.match(h, /<button type="button" data-lang="es"[^>]*>Español<\/button>/);
-  assert.match(h, /<button type="button" data-lang="en"[^>]*>English<\/button>/);
+  // Links reales (andan sin JavaScript y Google los sigue); data-idioma hace que pie.js recuerde la elección del sitio.
+  assert.match(h, /<a href="\/comunicador\.html" data-lang="es" data-idioma="es"[^>]*aria-current="page">Español<\/a>/);
+  assert.match(h, /<a href="\/en\/comunicador\.html" data-lang="en" data-idioma="en"[^>]*>English<\/a>/);
   assert.ok(h.includes('<script src="comunicador-textos.js"></script>'));
-  assert.ok(h.includes("TX.elegirIdioma(location.search, aj.idioma, navigator.language)"));
+  // En la web manda la URL (/en/ = inglés); en la app instalada (que no puede salir de /comunicador) sigue ?lang= > guardado > navegador.
+  assert.ok(h.includes('const PAGINA = /^en\\b/i.test(document.documentElement.lang) ? "en" : "es"'));
+  assert.ok(h.includes("EN_APP ? TX.elegirIdioma(location.search, guardado, navigator.language) : TX.elegirIdioma(location.search, PAGINA, \"\")"));
+  assert.ok(h.includes("let lang = idiomaInicial(aj.idioma);"));
   assert.ok(h.includes("document.documentElement.lang = TX.HTML_LANG[lang]"));
   assert.ok(h.includes('idioma: "" }'), "idioma en los mismos ajustes (DEF)");
-  assert.ok(h.includes("lang = aj.idioma = b.dataset.lang; guardar();"));
+  assert.ok(h.includes("aj.idioma = b.dataset.lang; guardar();"));
+  assert.ok(h.includes("location.href = u.href"), "en la web, el selector navega a la otra URL");
   const olvidar = h.slice(h.indexOf('$("bOlvidar").onclick'), h.indexOf("// ---------- App para Android"));
-  assert.ok(olvidar.includes("localStorage.removeItem(CLAVE)") && olvidar.includes("aj = { ...DEF") && olvidar.includes('TX.elegirIdioma(location.search, "", navigator.language)'));
+  assert.ok(olvidar.includes("localStorage.removeItem(CLAVE)") && olvidar.includes("aj = { ...DEF") && olvidar.includes('idiomaInicial("")'));
   assert.ok(h.includes('$("grupoGenero").hidden = lang !== "es"'), "en inglés se oculta nene/nena");
-  // hreflang en la página y en el sitemap
-  assert.ok(h.includes('<link rel="alternate" hreflang="en" href="https://puentepictos.app/comunicador.html?lang=en">'));
-  assert.ok(leer("sitemap.xml").includes('hreflang="en" href="https://puentepictos.app/comunicador.html?lang=en"'));
+  // hreflang en la página y en el sitemap: el inglés tiene su URL /en/comunicador.html (ya no ?lang=en)
+  assert.ok(h.includes('<link rel="alternate" hreflang="en" href="https://puentepictos.app/en/comunicador.html">'));
+  assert.ok(leer("sitemap.xml").includes('hreflang="en" href="https://puentepictos.app/en/comunicador.html"'));
+  assert.ok(h.includes('canon.href = "https://puentepictos.app" + (lang === "en" ? "/en/comunicador.html" : "/comunicador.html")'));
+  // La versión en inglés se sirve ya traducida (desde comunicador-textos.js), con su propio <html lang>.
+  const en = leer("en/comunicador.html");
+  assert.match(en, /<html lang="en">/);
+  assert.ok(en.includes(`<h1 data-i18n="titulo">${TX.en.titulo}</h1>`));
+  assert.ok(en.includes('<link rel="canonical" href="https://puentepictos.app/en/comunicador.html">'));
+  assert.match(en, /<a href="\/en\/comunicador\.html" data-lang="en"[^>]*aria-current="page">English<\/a>/);
   // Título y metas coherentes con «Puente Comunicador»
   assert.match(h, /<title>Puente Comunicador · /);
   assert.ok(h.includes('<meta name="application-name" content="Puente Comunicador">'));
