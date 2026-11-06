@@ -34,6 +34,14 @@ async function db() {
   return cliente;
 }
 
+// Para el chequeo de salud (_lib/salud.js): un SELECT 1 sin crear tablas ni tocar datos.
+async function ping() {
+  if (!dbActiva()) throw new Error("Base de datos no configurada");
+  if (!cliente) cliente = crearCliente();
+  const filas = await cliente.query("SELECT 1 AS ok");
+  return Number(filas[0]?.ok) === 1;
+}
+
 async function q(text, params) { return (await db()).query(text, params); }
 async function uno(text, params) { return (await q(text, params))[0] || null; }
 // Varias sentencias [[sql, params], …] en una sola transacción (todo o nada). Devuelve las filas de cada una.
@@ -49,4 +57,4 @@ function usarBaseDePrueba(pg) {
   } : null;
 }
 
-module.exports = { dbActiva, db, q, uno, transaccion, asegurarEsquema, usarBaseDePrueba };
+module.exports = { dbActiva, db, ping, q, uno, transaccion, asegurarEsquema, usarBaseDePrueba };
