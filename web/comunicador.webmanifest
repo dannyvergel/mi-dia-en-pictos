@@ -1,0 +1,44 @@
+{
+  "name": "Puente Comunicador",
+  "short_name": "Comunicador",
+  "description": "Comunicador con pictogramas de ARASAAC, libre y sin cuenta: tocá los dibujos, armá la frase y el celular la dice. Funciona sin conexión.",
+  "id": "/comunicador.html",
+  "start_url": "/comunicador.html?app",
+  "scope": "/comunicador",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#fbf7ee",
+  "theme_color": "#2f4a3e",
+  "lang": "es-AR",
+  "dir": "ltr",
+  "categories": [
+    "education",
+    "medical"
+  ],
+  "icons": [
+    {
+      "src": "/icono-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icono-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icono-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icono.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
