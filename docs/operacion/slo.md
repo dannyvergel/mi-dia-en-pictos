@@ -74,10 +74,10 @@ Si el mes cierra muy por encima (por ejemplo 99,9%), no hace falta hacer nada: e
 
 - **Las notificaciones de GitHub.** El mail de una corrida programada que falla le llega a quien creó el workflow o a quien cambió el cron por última vez (si otra persona lo desactiva y lo vuelve a activar, le llega a esa persona). Tiene que estar activado en GitHub → **Settings** → **Notifications** → **Actions** (marcar email y «Only notify for failed workflows»).
 - **Los 60 días.** En un repo público, GitHub desactiva solo los workflows programados después de **60 días sin actividad en el repo** (sin commits). Si el repo queda quieto (por ejemplo en vacaciones), entrá a GitHub → **Actions** → **salud** → **Enable workflow**, o hacé cualquier commit antes de que se cumplan. Un monitoreo apagado no avisa que está apagado.
-- **El costo en la base.** Cada chequeo despierta la base de Neon, que se duerme a los 5 minutos sin uso. Con un chequeo cada 15 minutos todo el día, fuera de horario escolar la base pasa un tercio del tiempo despierta solo por el monitoreo: del orden de 160 horas por mes. Con la compute mínima de 0,25 CU son unas **40 CU-hora de las 100 que da gratis el plan Free** por mes. Si el consumo de Neon se acerca al límite (Neon → **Billing** o **Usage**), la opción es chequear solo en horario escolar, cambiando el cron por:
+- **El costo en la base.** Cada chequeo despierta la base de Neon, que se duerme a los 5 minutos sin uso. Por eso salud.yml corre solo en horario escolar (decisión de Danny, 2026-11-06):
 
 ```yaml
     - cron: "*/15 10-20 * * 1-5"
 ```
 
-  Eso mide igual el SLO (que es solo en horario escolar) y deja de gastar cómputo de noche y los fines de semana. A cambio, una caída de noche se descubre a la mañana. Con el plan Free, si se terminan las horas de cómputo, Neon suspende la base hasta el mes siguiente: eso sería una caída total.
+  Es de lunes a viernes, de 7:00 a 17:45 ART. Mide igual el SLO, que es solo en horario escolar, y no gasta cómputo de noche ni los fines de semana. A cambio, una caída de noche se descubre a la mañana. Correrlo todo el día costaría unas 40 de las 100 CU-hora gratis del plan Free por mes. Con el plan Free, si se terminan las horas de cómputo, Neon suspende la base hasta el mes siguiente, y eso sería una caída total.

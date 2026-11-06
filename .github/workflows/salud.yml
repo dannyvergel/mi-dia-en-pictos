@@ -10,7 +10,8 @@ name: salud
 
 on:
   schedule:
-    - cron: "*/15 * * * *"
+    # Horario escolar: lunes a viernes de 7:00 a 17:45 ART (10 a 20 UTC), para no gastar computo de Neon de noche.
+    - cron: "*/15 10-20 * * 1-5"
   workflow_dispatch:
 
 permissions: {}
