@@ -268,3 +268,8 @@ Datos de menores: solo nombre de pila, sin fotos ni diagnósticos, consentimient
 ## Créditos
 Escuelas: Padrón Oficial de Establecimientos Educativos, Ministerio de Educación de la Nación (actualización 07/09/2026; CC BY 4.0 en datos.gob.ar).
 Autor pictogramas: Sergio Palao. Origen: ARASAAC (http://www.arasaac.org). Licencia: CC BY-NC-SA. Propiedad: Gobierno de Aragón (España).
+
+## Licencia
+El código de Puente es software libre bajo la **GNU Affero General Public License v3.0** (AGPL-3.0-only): ver [`LICENSE`](LICENSE). Si lo modificás y lo ofrecés como servicio en red, tenés que publicar tu código con la misma licencia.
+
+La licencia cubre solo el código. Los pictogramas de ARASAAC (CC BY-NC-SA, Gobierno de Aragón) y los datos del Padrón Oficial (CC BY 4.0) mantienen sus propias licencias: ver *Créditos*.
