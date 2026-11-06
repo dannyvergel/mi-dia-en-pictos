@@ -81,8 +81,9 @@ const diaSemana = f => DIAS[new Date(f + "T12:00:00").getDay()];
 const textoDe = a => norm(`${a.actividad} ${a.palabra_clave}`);
 
 function crearHerramientas(ctx) {
-  const { alumno, registros = [], ppi = [], perfil = {} } = ctx;
-  const delAlumno = registros.filter(r => r.alumno === alumno).sort((a, b) => a.fecha.localeCompare(b.fecha));
+  const { alumno, alumno_id = null, registros = [], ppi = [], perfil = {} } = ctx;
+  // Con id (Cuaderno con cuentas) se filtra por id: dos chicos con el mismo nombre no se mezclan. Sin id, por nombre.
+  const delAlumno = registros.filter(r => alumno_id != null && r.alumno_id != null ? Number(r.alumno_id) === Number(alumno_id) : r.alumno === alumno).sort((a, b) => a.fecha.localeCompare(b.fecha));
 
   return {
     leer_perfil: {

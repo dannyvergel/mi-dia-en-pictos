@@ -2,7 +2,7 @@
 // y termina con un plan concreto. Sin API key corre un plan fijo (modo demo).
 const { crearHerramientas } = require("./_lib/tools");
 const { exigirDocente } = require("./_lib/auth");
-const { exigirVisiblePorNombre } = require("./_lib/alumnos");
+const { exigirVisible, exigirVisiblePorNombre } = require("./_lib/alumnos");
 const { manejarError, hoyLocal } = require("./_lib/http");
 const { uno } = require("./_lib/db");
 const { objetivosAPpi, apoyosAPerfil } = require("./_lib/fichas");
@@ -120,13 +120,15 @@ module.exports = async (req, res) => {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-Docente-Pin");
   if (req.method === "OPTIONS") return res.status(204).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Usá POST" });
-  let body, ficha = null;
+  let body, ficha = null, a = null;
   try {
     const yo = await exigirDocente(req, res);
     if (!yo) return;
     body = typeof req.body === "string" ? JSON.parse(req.body) : (req.body || {});
     // Con cuentas: solo alumnos que la docente puede ver (admin: su escuela; si no, sus asignados).
-    const a = body.alumno ? await exigirVisiblePorNombre(yo, body.alumno) : null;
+    // Por id (Cuaderno con cuentas); por nombre queda por compatibilidad (modo PIN, clientes viejos).
+    a = body.alumno_id != null && body.alumno_id !== "" ? await exigirVisible(yo, body.alumno_id)
+      : body.alumno ? await exigirVisiblePorNombre(yo, body.alumno) : null;
     // Con cuentas, la ficha manda (objetivos y apoyos salen de la base, no del navegador).
     if (a) ficha = await uno("SELECT apoyos, objetivos FROM fichas WHERE alumno_id = $1", [a.id]);
   } catch (e) { return manejarError(res, e); }
@@ -134,8 +136,8 @@ module.exports = async (req, res) => {
   // los objetivos del PPI y los registros del alumno (que las herramientas resumen sin alertas ni notas del legajo).
   const ppi = ficha?.objetivos?.length ? objetivosAPpi(ficha.objetivos) : (body.ppi || []);
   const perfil = ficha?.apoyos ? apoyosAPerfil(ficha.apoyos) : (body.perfil || {});
-  const ctx = { alumno: limpiarTexto(String(body.alumno || "").slice(0, 40)), registros: Array.isArray(body.registros) ? body.registros : [],
-    ppi: ppiParaIA(ppi), perfil: perfilParaIA(perfil), hoy: hoyLocal() };
+  const ctx = { alumno: limpiarTexto(String((a && a.nombre) || body.alumno || "").slice(0, 40)), registros: Array.isArray(body.registros) ? body.registros : [],
+    ...(a ? { alumno_id: Number(a.id) } : {}), ppi: ppiParaIA(ppi), perfil: perfilParaIA(perfil), hoy: hoyLocal() };
   if (!ctx.alumno || !ctx.registros.length) return res.status(400).json({ error: "Faltan alumno o registros" });
 
   const t0 = Date.now();

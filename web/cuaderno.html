@@ -185,6 +185,17 @@ function modoAbierto() {
 }
 
 let ALUMNOS = ["Juan", "Sofía", "Mateo", "Valentina"];
+// Clave de cada alumno en los selectores: en demo/PIN, el nombre; con cuentas (MODO_DB), el id (FICHAS[id]). Así dos chicos
+// con el mismo nombre de pila (en distintos equipos o escuelas) no se confunden. nom(k): el nombre para mostrar.
+const nom = k => MODO_DB ? (FICHAS[k]?.nombre || "") : k;
+const idDe = k => MODO_DB && FICHAS[k] ? FICHAS[k].id : null;
+// ¿Este día guardado es de este alumno? Con cuentas, por id; los días viejos sin id, por nombre solo si el nombre no se repite.
+function esDe(d, k) {
+  if (!MODO_DB) return d.alumno === k;
+  if (d.alumno_id != null) return String(d.alumno_id) === String(k);
+  return d.alumno === nom(k) && ALUMNOS.filter(x => nom(x) === nom(k)).length === 1;
+}
+const diasDe = k => JSON.parse(localStorage.getItem("hist") || "[]").filter(d => esDe(d, k));
 const EJEMPLO = "Llegó contento, desayunó bien. A las 9 hicimos música y le encantó tocar el tambor. A las 11 en el recreo se angustió por el ruido y lloró un rato, lo calmamos con los auriculares. Después almorzó poco. A la tarde pintó con témperas y saludó solito a sus compañeros al irse.";
 const $ = id => document.getElementById(id);
 let hoy = null;
@@ -217,19 +228,21 @@ $("btnMic").onclick = () => {
 
 // ---------- generar ----------
 $("btnEnviar").onclick = async () => {
-  const texto = $("texto").value.trim(), alumno = $("alumno").value;
+  const texto = $("texto").value.trim(), k = $("alumno").value;
   if (!texto) return alert("Contá cómo fue el día primero.");
   $("estado").textContent = "Armando el día…";
   try {
-    hoy = (await viaApi(alumno, texto)) || await demo(alumno, texto);
-    guardar(hoy); pintar(hoy); publicarFamilia(alumno, true);
+    hoy = (await viaApi(k, texto)) || await demo(nom(k), texto);
+    if (idDe(k) != null) { hoy.alumno_id = idDe(k); hoy.alumno = nom(k); }
+    guardar(hoy); pintar(hoy); publicarFamilia(k, true);
     $("estado").textContent = "Listo. Mirá las pestañas Alumno y Familia.";
   } catch (e) { console.error(e); $("estado").textContent = "Error: " + e.message; }
 };
 
 
-async function viaApi(alumno, texto) {
-  try { const r = await fetch("api/dia", { method: "POST", headers: H(), body: JSON.stringify({ alumno, texto }) }); return r.ok ? r.json() : null; }
+async function viaApi(k, texto) {
+  const body = { alumno: nom(k), texto, ...(idDe(k) != null ? { alumno_id: idDe(k) } : {}) };
+  try { const r = await fetch("api/dia", { method: "POST", headers: H(), body: JSON.stringify(body) }); return r.ok ? r.json() : null; }
   catch { return null; }
 }
 
@@ -306,7 +319,7 @@ function perfilDe(a) { return MODO_DB ? { ...PERFIL_VACIO, ...Puente.perfilDe(FI
 const ppiDe = a => MODO_DB ? Puente.ppiDe(FICHAS[a]?.objetivos) : (PPI[a] || PPI.Juan);
 function pintarPerfil() {
   const a = $("alumnoP").value, p = perfilDe(a);
-  $("perfilNom").textContent = a;
+  $("perfilNom").textContent = nom(a);
   document.querySelectorAll(".pf").forEach(t => t.value = p[t.dataset.k] || "");
 }
 $("alumnoP").onchange = pintarPerfil;
@@ -337,14 +350,14 @@ $("btnSeed").onclick = async () => {
 };
 
 $("btnAgente").onclick = async () => {
-  const alumno = $("alumnoP").value;
-  const registros = JSON.parse(localStorage.getItem("hist") || "[]").filter(d => d.alumno === alumno);
+  const k = $("alumnoP").value, alumno = nom(k);
+  const registros = diasDe(k);
   if (registros.length < 3) return alert(`Necesito al menos 3 días de ${alumno}. Cargá los de ejemplo o registrá más días.`);
   $("resultadoP").style.display = "none"; $("trazaCard").style.display = "block";
   $("traza").innerHTML = `<div class="paso"><span class="spin"></span><span>El agente está trabajando con ${registros.length} días de ${esc(alumno)}…</span></div>`;
   $("modoP").textContent = ""; $("estadoP").textContent = "";
   try {
-    const r = await fetch("api/agente", { signal: AbortSignal.timeout(80000), method: "POST", headers: H(), body: JSON.stringify({ alumno, registros, ppi: ppiDe(alumno), perfil: perfilDe(alumno) }) });
+    const r = await fetch("api/agente", { signal: AbortSignal.timeout(80000), method: "POST", headers: H(), body: JSON.stringify({ alumno, ...(idDe(k) != null ? { alumno_id: idDe(k) } : {}), registros, ppi: ppiDe(k), perfil: perfilDe(k) }) });
     if (!r.ok) throw new Error("el agente respondió " + r.status);
     const j = await r.json();
     $("traza").innerHTML = "";
@@ -425,7 +438,7 @@ async function publicarFamilia(alumno, soloSiExiste) {
 }
 $("btnLinkF").onclick = () => publicarFamilia($("alumnoF").value, false);
 $("btnAbrirF").onclick = () => window.open(MODO_DB ? `familia.html?alumno=${FICHAS[$("alumnoF").value]?.id}` : $("urlF").value, "_blank");
-$("btnWaF").onclick = () => window.open("https://wa.me/?text=" + encodeURIComponent(MODO_DB ? `Hola! Ya pueden ver el espacio de ${$("alumnoF").value} en Puente 🌉 Entren con el email que nos dieron (les llega un código, sin contraseña):\n${$("urlF").value}` : `Hola! Este es el espacio de ${$("alumnoF").value} en Puente 🌉 Ahí van a poder ver cómo le va día a día y hacer preguntas cuando quieran:\n${$("urlF").value}`), "_blank");
+$("btnWaF").onclick = () => window.open("https://wa.me/?text=" + encodeURIComponent(MODO_DB ? `Hola! Ya pueden ver el espacio de ${nom($("alumnoF").value)} en Puente 🌉 Entren con el email que nos dieron (les llega un código, sin contraseña):\n${$("urlF").value}` : `Hola! Este es el espacio de ${$("alumnoF").value} en Puente 🌉 Ahí van a poder ver cómo le va día a día y hacer preguntas cuando quieran:\n${$("urlF").value}`), "_blank");
 mostrarLink();
 
 // ---------- con cuentas (base de datos) ----------
@@ -435,10 +448,13 @@ async function entrarConCuenta(e) {
   MODO_DB = true;
   const b = document.createElement("button"); b.textContent = "Fichas"; b.onclick = () => location.href = "docente.html";
   document.querySelector("nav").appendChild(b);
-  try { FICHAS = Object.fromEntries((await Puente.api("api/fichas")).alumnos.map(a => [a.nombre, a])); }
+  try { FICHAS = Object.fromEntries((await Puente.api("api/fichas")).alumnos.map(a => [String(a.id), a])); }
   catch (err) { if (err.status === 401) return location.href = "login.html?volver=cuaderno"; $("estado").textContent = err.message; }
-  ALUMNOS = Object.keys(FICHAS);
-  for (const id of ["alumno", "alumnoP", "alumnoF"]) { $(id).innerHTML = ""; ALUMNOS.forEach(a => $(id).add(new Option(a, a))); }
+  ALUMNOS = Object.values(FICHAS).sort((x, y) => x.nombre.localeCompare(y.nombre)).map(a => String(a.id));
+  // Si dos chicos se llaman igual, se aclara el espacio (o el grado) en la etiqueta. El valor siempre es el id.
+  const etiqueta = k => { const f = FICHAS[k], rep = ALUMNOS.filter(x => FICHAS[x].nombre === f.nombre).length > 1;
+    return rep ? `${f.nombre} · ${f.espacio_nombre || f.grado || "#" + f.id}` : f.nombre; };
+  for (const id of ["alumno", "alumnoP", "alumnoF"]) { $(id).innerHTML = ""; ALUMNOS.forEach(a => $(id).add(new Option(etiqueta(a), a))); }
   if (!ALUMNOS.length) $("estado").innerHTML = `Todavía no cargaste alumnos. <a href="docente.html">Crealos en Fichas</a>.`;
   $("descF").textContent = "Las familias entran con el email que figura en la ficha del alumno (les llega un código). Cada vez que cargás un día se actualiza su espacio.";
   $("btnLinkF").textContent = "Publicar ahora para la familia";
@@ -446,14 +462,14 @@ async function entrarConCuenta(e) {
   document.querySelectorAll(".pf").forEach(t => t.readOnly = true);
   pintarPerfil(); mostrarLink();
 }
-async function publicarConCuenta(alumno) {
-  const f = FICHAS[alumno]; if (!f) return;
-  const registros = JSON.parse(localStorage.getItem("hist") || "[]").filter(d => d.alumno === alumno);
+async function publicarConCuenta(k) {
+  const f = FICHAS[k]; if (!f) return;
+  const alumno = f.nombre, registros = diasDe(k);
   if (!registros.length) { $("estadoF").textContent = `Todavía no hay días de ${alumno}.`; return; }
   $("estadoF").textContent = "Publicando…";
   try {
-    const j = await Puente.api("api/familia", { method: "POST", body: { accion: "publicar", alumno_id: f.id, registros, ...(extrasFamilia[alumno] || {}) } });
-    $("alumnoF").value = alumno; mostrarLink();
+    const j = await Puente.api("api/familia", { method: "POST", body: { accion: "publicar", alumno_id: f.id, registros, ...(extrasFamilia[k] || {}) } });
+    $("alumnoF").value = k; mostrarLink();
     $("estadoF").textContent = `Listo: ${j.dias} días visibles para la familia de ${alumno}` + (f.contactos.some(c => c.email) ? "." : ". Ojo: su ficha no tiene emails de contacto, nadie de la familia puede entrar todavía.");
   } catch (err) { $("estadoF").textContent = "No se pudo publicar: " + err.message; }
 }

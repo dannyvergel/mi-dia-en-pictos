@@ -9,20 +9,21 @@ async function picto(kw) {
   } catch { return { picto_id: null, picto_url: null }; }
 }
 const { exigirDocente } = require("./_lib/auth");
-const { exigirVisiblePorNombre } = require("./_lib/alumnos");
+const { exigirVisible, exigirVisiblePorNombre } = require("./_lib/alumnos");
 const { manejarError, hoyLocal } = require("./_lib/http");
 const { limpiarTexto } = require("./_lib/minimizar");
 module.exports = async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-Docente-Pin");
   if (req.method === "OPTIONS") return res.status(204).end();
-  let b, nombre;
+  let b, nombre, a = null;
   try {
     const yo = await exigirDocente(req, res);
     if (!yo) return;
     b = typeof req.body === "string" ? JSON.parse(req.body) : (req.body || {});
     // Con cuentas: solo alumnos que la docente puede ver (admin: su escuela; si no, sus asignados).
-    const a = await exigirVisiblePorNombre(yo, b.alumno);
+    // Por id (Cuaderno con cuentas): dos chicos con el mismo nombre en distintos equipos no se confunden. Por nombre: compatibilidad.
+    a = b.alumno_id != null && b.alumno_id !== "" ? await exigirVisible(yo, b.alumno_id) : await exigirVisiblePorNombre(yo, b.alumno);
     nombre = a?.nombre || String(b.alumno || "").slice(0, 40);
   } catch (e) { return manejarError(res, e); }
   if (!require("./_lib/pin").iaActiva()) return res.status(503).json({ error: "sin key" });
@@ -39,7 +40,8 @@ module.exports = async (req, res) => {
     if (!r.ok) throw new Error("OpenRouter " + r.status);
     const raw = (await r.json()).choices[0].message.content;
     const d = JSON.parse(raw.match(/\{[\s\S]*\}/)[0]);
-    d.alumno = b.alumno || d.alumno; d.fecha = fecha;
+    d.alumno = (a ? a.nombre : b.alumno) || d.alumno; d.fecha = fecha;
+    if (a) d.alumno_id = Number(a.id);
     for (const a of d.actividades || []) Object.assign(a, await picto(a.palabra_clave || a.actividad));
     const al = (d.alertas || []).map(x => "⚠️ " + x.detalle).join("\n");
     d.mensaje_familia = `Hola! Así fue el día de ${d.alumno} 🌈\n\n${d.resumen_familia}` + (al ? "\n\n" + al : "") + (d.logros?.length ? "\n\n⭐ Logros: " + d.logros.join(", ") : "");
