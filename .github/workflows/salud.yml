@@ -1,0 +1,50 @@
+# Monitoreo de producción: cada 15 minutos pide el chequeo de salud y la portada de https://puentepictos.app.
+# Si alguno no da 200, el workflow falla y GitHub le manda un mail a quien creó el workflow (o a quien cambió el cron por última vez),
+# si tiene activadas las notificaciones de Actions. Es la alerta: gratis y sin cuentas nuevas.
+# Ojo:
+#  - En un repo público, GitHub desactiva los workflows programados después de 60 días sin actividad en el repo
+#    (sin commits). Se vuelve a prender desde Actions → salud → Enable workflow. Ver docs/operacion/slo.md.
+#  - GitHub no garantiza la hora exacta del cron: con carga, una corrida puede atrasarse o saltearse.
+#  - Cada corrida despierta la base de Neon (se duerme a los 5 minutos sin uso). Costo en horas de cómputo: docs/operacion/slo.md.
+name: salud
+
+on:
+  schedule:
+    # Horario escolar: lunes a viernes de 7:00 a 17:45 ART (10 a 20 UTC), para no gastar computo de Neon de noche.
+    - cron: "*/15 10-20 * * 1-5"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: salud
+  cancel-in-progress: false
+
+jobs:
+  salud:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SITIO: https://puentepictos.app
+    steps:
+      - name: Chequeo de salud (/api/config?accion=salud)
+        run: |
+          # --retry: reintenta 2 veces ante 5xx o error de red (la base puede tardar en despertar).
+          code=$(curl -sS -o salud.json -w '%{http_code}' --max-time 20 --retry 2 --retry-delay 15 --retry-all-errors \
+            "$SITIO/api/config?accion=salud") || true
+          code=${code:-000}
+          echo "HTTP $code"
+          cat salud.json 2>/dev/null || true
+          echo
+          { echo "### Chequeo de salud"; echo "HTTP $code"; echo '```'; cat salud.json 2>/dev/null || true; echo; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          test "$code" = "200"
+          test "$(jq -r '.ok' salud.json)" = "true"
+      - name: Portada (/)
+        if: always()
+        run: |
+          code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 --retry 2 --retry-delay 15 --retry-all-errors \
+            "$SITIO/") || true
+          code=${code:-000}
+          echo "HTTP $code"
+          echo "### Portada: HTTP $code" >> "$GITHUB_STEP_SUMMARY"
+          test "$code" = "200"

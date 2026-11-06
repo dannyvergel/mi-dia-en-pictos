@@ -1,0 +1,37 @@
+# Tests de web/ en cada PR y en cada push a main.
+# No usa secretos ni la base real: los tests corren con PGlite y un Blob en memoria (ver web/test/ayuda.js).
+# Si algún día un test necesita una credencial, que se saltee cuando PUENTE_CI=1 (test(..., { skip: process.env.PUENTE_CI === "1" }))
+# y que quede anotado en docs/operacion/README.md (sección «Tests en CI»).
+name: tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: web
+    env:
+      PUENTE_CI: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm test

@@ -238,6 +238,11 @@ data/           Relato de ejemplo para la demo
 ## Publicar en Vercel
 Importar el repo en Vercel y elegir `web` como *Root Directory* (sin build, es estático).
 
+## Operación
+Monitoreo, tests en GitHub Actions, rotación de credenciales, backup, rollback y objetivo de disponibilidad: [docs/operacion/](docs/operacion/README.md).
+- `GET /api/config?accion=salud` → `{ ok, db, version }` con 200 o 503 (SELECT 1 a la base con tiempo máximo de 3 s, sin datos personales). Lo pide `.github/workflows/salud.yml` cada 15 minutos.
+- `.github/workflows/tests.yml` corre `npm test` en cada PR y en cada push a `main`.
+
 ## Correr la demo
 ```bash
 cd web && python3 -m http.server 8080
