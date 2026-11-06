@@ -132,7 +132,8 @@ async function notificar(req, d, alumnoNombre) {
   const emails = (await q(`SELECT f.email FROM familias f JOIN familia_alumno fa ON fa.familia_id = f.id WHERE fa.alumno_id = $1 ORDER BY f.email`,
     [d.alumno_id])).map(f => f.email);
   if (!emails.length) return { enviados: 0, fallidos: 0, aviso: "Este alumno todavía no tiene familias vinculadas: no le avisamos a nadie." };
-  const r = await avisos.documentoCompartido(req, { emails, tipo: d.tipo, alumno: alumnoNombre });
+  const esp = await uno("SELECT e.tipo FROM alumnos a JOIN escuelas e ON e.id = a.escuela_id WHERE a.id = $1", [d.alumno_id]);
+  const r = await avisos.documentoCompartido(req, { emails, tipo: d.tipo, alumno: alumnoNombre, espacio: esp?.tipo });
   if (r.enviados) await q("UPDATE documentos SET notificado = now() WHERE id = $1", [d.id]);
   if (r.fallidos) return { ...r, aviso: r.enviados
     ? "El documento quedó guardado, pero a alguna familia no le pudimos mandar el mail. Probá «Informar» en un rato."
