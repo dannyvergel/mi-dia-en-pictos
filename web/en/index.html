@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- SEO e idiomas: lo genera scripts/idiomas.js (npm run idiomas). No editar a mano: cambiar scripts/idiomas/paginas.js. -->
+<title>Puente · From school to home, in pictograms | Special education</title>
+<meta name="description" content="The teacher dictates how the school day went, Puente turns it into ARASAAC pictograms and the family sees it at home. For special education, autism and AAC. Free.">
+<link rel="canonical" href="https://puentepictos.app/en/">
+<link rel="alternate" hreflang="es-AR" href="https://puentepictos.app/">
+<link rel="alternate" hreflang="en" href="https://puentepictos.app/en/">
+<link rel="alternate" hreflang="x-default" href="https://puentepictos.app/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Puente">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="es_AR">
+<meta property="og:title" content="Puente: from school to home, in pictograms">
+<meta property="og:description" content="The teacher dictates how the day went, Puente turns it into pictograms and the family sees it at home. Free and non-profit.">
+<meta property="og:url" content="https://puentepictos.app/en/">
+<meta property="og:image" content="https://puentepictos.app/og-en.png">
+<meta property="og:image:secure_url" content="https://puentepictos.app/og-en.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Chalkboard with the name Puente, the line “from school to home, in pictograms” and a strip of ARASAAC pictograms">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Puente: from school to home, in pictograms">
+<meta name="twitter:description" content="The teacher dictates how the day went, Puente turns it into pictograms and the family sees it at home. Free and non-profit.">
+<meta name="twitter:image" content="https://puentepictos.app/og-en.png">
+<meta name="twitter:image:alt" content="Chalkboard with the name Puente, the line “from school to home, in pictograms” and a strip of ARASAAC pictograms">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://puentepictos.app/#organizacion","name":"Puente","url":"https://puentepictos.app/","logo":"https://puentepictos.app/icono-512.png","email":"soporte@puentepictos.app","description":"Free, non-profit project that brings the school day home in pictograms, for special education schools and families.","areaServed":"AR","sameAs":["https://github.com/dannyvergel/mi-dia-en-pictos"]},{"@type":"WebSite","@id":"https://puentepictos.app/#sitio","name":"Puente","url":"https://puentepictos.app/","inLanguage":["es-AR","en"],"publisher":{"@id":"https://puentepictos.app/#organizacion"}},{"@type":"WebPage","@id":"https://puentepictos.app/en/#pagina","url":"https://puentepictos.app/en/","name":"Puente · From school to home, in pictograms | Special education","inLanguage":"en","isPartOf":{"@id":"https://puentepictos.app/#sitio"},"about":{"@id":"https://puentepictos.app/#puente"}},{"@type":"WebApplication","@id":"https://puentepictos.app/#puente","name":"Puente","url":"https://puentepictos.app/en/","applicationCategory":"EducationalApplication","operatingSystem":"Web, Android","inLanguage":"es-AR","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"ARS"},"description":"The teacher dictates how the day went and Puente turns it into a strip of ARASAAC pictograms the student can use to tell the family. For special education schools (autism, intellectual disability, communication needs). Currently in Spanish, in a pilot in Santa Fe, Argentina.","audience":{"@type":"EducationalAudience","educationalRole":"teacher, parent"},"publisher":{"@id":"https://puentepictos.app/#organizacion"}},{"@type":"WebApplication","@id":"https://puentepictos.app/#comunicador","name":"Puente Comunicador","url":"https://puentepictos.app/en/comunicador.html","applicationCategory":"EducationalApplication","operatingSystem":"Web, Android","inLanguage":["es-AR","en"],"isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"ARS"},"description":"Free AAC (augmentative and alternative communication) board with ARASAAC pictograms. No account, works offline, nothing leaves the device.","publisher":{"@id":"https://puentepictos.app/#organizacion"}}]}</script>
+<!-- /SEO -->
+<!-- Portada pública. El Cuaderno del día (la app de la docente) está en cuaderno.html. -->
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#2f4a3e">
+<link rel="icon" href="/icono.svg" type="image/svg+xml">
+<link rel="preload" href="/fuentes/atkinson-hyperlegible-400-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/estilo.css">
+<style>
+  .portada .pagina { min-height: 0; padding-top: 22px; }
+  .lema { font-family: var(--mano); font-size: 30px; line-height: 1.15; margin: 0 0 8px; }
+  .intro { font-size: 18px; margin: 0 0 6px; }
+  .botones { display: flex; gap: 10px; margin: 16px 0 6px; }
+  .botones .big { flex: 1; margin: 0; text-align: center; text-decoration: none; }
+  .botones .big.alt { background: #fff; }
+  .pasos { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .pasos li { background: #fff; border: 1px solid var(--borde); border-radius: 12px; padding: 12px; text-align: center; }
+  .pasos img { width: 72px; height: 72px; object-fit: contain; }
+  .pasos .n { display: inline-block; width: 26px; height: 26px; line-height: 26px; border-radius: 50%; background: var(--lapiz); font-weight: 700; margin-bottom: 4px; }
+  .pasos b { display: block; font-family: var(--mano); font-size: 21px; font-weight: 400; line-height: 1.15; }
+  .pasos span { font-size: 14px; color: var(--gris); }
+  .tira.ejemplo { grid-template-columns: repeat(6, 1fr); gap: 8px; }
+  .tira.ejemplo .picto { padding: 8px 6px; }
+  .tira.ejemplo .picto .t { font-size: 13px; letter-spacing: .3px; }
+  .lista-puntos { margin: 6px 0 0; padding-left: 20px; } .lista-puntos li { margin: 4px 0; }
+  .piloto { background: #fdf6e1; border-left: 5px solid var(--lapiz); }
+  .chiquito { font-size: 14px; }
+  .sumarse { margin: 12px 0 0; }
+  .sumarse > summary.big { margin: 0; text-align: center; }
+  .sumarse > summary.big::after { content: none; }
+  .sumarse > summary:focus-visible { outline: 3px solid #f2b632; outline-offset: 2px; }
+  .sumarse form { margin-top: 4px; }
+  .sumarse .big { width: 100%; }
+  .opc { font-weight: 400; color: var(--gris); }
+  .trampa { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+  .sumarse .error { color: var(--bad); font-weight: 700; }
+  .gracias { font-family: var(--mano); font-size: 24px; margin: 12px 0 0; }
+
+  /* ---------- Preguntale al pizarrón ---------- */
+  .pz { margin-top: 26px; }
+  .pz h3 { margin-bottom: 4px; }
+  .pz-bajada { margin: 0 0 10px; }
+  .pz-pizarron { position: relative; display: grid; grid-template-columns: 128px 1fr; gap: 6px 16px; align-items: start;
+    color: var(--tiza); padding: 18px 18px 22px; border-radius: 12px; border: 10px solid var(--madera);
+    background: radial-gradient(120% 140% at 15% 0%, #3a5a4c 0%, var(--pizarron) 50%, var(--pizarron-2) 100%);
+    box-shadow: inset 0 0 0 2px #6f4a2e, inset 0 0 28px #0005, 0 6px 18px -10px #2a1d0f88; min-height: 170px; }
+  .pz-pizarron::after { content: ""; position: absolute; right: 28px; bottom: -10px; width: 44px; height: 8px; border-radius: 3px; background: var(--lapiz); box-shadow: -54px 0 0 #f7f4ec; }
+  .pz-cara { width: 128px; height: auto; display: block; overflow: visible; }
+  .pz-cara .ojo { transform-box: fill-box; transform-origin: center; transition: transform .09s; }
+  .pz-cara.parpadea .ojo { transform: scaleY(.12); }
+  .pz-cara .boca-abierta { opacity: 0; transform-box: fill-box; transform-origin: center; }
+  .pz-cara.habla .boca { opacity: 0; }
+  .pz-cara.habla .boca-abierta { opacity: 1; animation: pz-habla .22s ease-in-out infinite alternate; }
+  @keyframes pz-habla { from { transform: scaleY(.35); } to { transform: scaleY(1); } }
+  .pz-texto { min-width: 0; }
+  .pz-q { font-family: var(--texto); font-size: 14px; color: #d9e4dc; margin: 0 0 4px; font-style: italic; overflow-wrap: anywhere; }
+  .pz-tiza { font-family: var(--mano); font-size: 22px; line-height: 1.3; margin: 0; color: var(--tiza);
+    text-shadow: 0 0 1px #fff8, 0 0 5px #ffffff26; overflow-wrap: anywhere; min-height: 3.9em; }
+  .pz-tiza.escribiendo::after { content: ""; display: inline-block; width: 16px; height: 5px; margin-left: 3px; border-radius: 2px; background: var(--tiza); vertical-align: middle; transform: rotate(-12deg); }
+  .pz-pie { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+  .pz-accion, .pz-escuchar { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 6px 14px; border-radius: 22px;
+    border: 2px dashed #f4f1e8cc; background: transparent; color: var(--tiza); font: 700 15px/1.2 var(--texto); text-decoration: none; cursor: pointer; }
+  .pz-accion:hover, .pz-escuchar:hover { background: #ffffff1a; border-style: solid; }
+  .pz-escuchar { border-style: solid; border-color: #f4f1e866; }
+  .pz-pizarron :focus-visible { outline: 3px solid var(--lapiz); outline-offset: 2px; box-shadow: none; }
+  .pz-form { display: flex; gap: 8px; margin-top: 12px; }
+  .pz-form input { flex: 1; min-width: 0; }
+  .pz-form .big { width: auto; margin: 0; padding: 0 18px; }
+  .pz-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 0; }
+  .pz-chip { min-height: 44px; border: 1.5px solid var(--tinta); color: var(--tinta); background: #fff; border-radius: 22px; padding: 6px 14px; font: 15px/1.2 var(--texto); cursor: pointer; text-align: left; }
+  .pz-chip:hover { background: var(--tinta); color: var(--tiza); }
+  .pz-todas { margin-top: 12px; }
+  .pz-todas > summary { font-weight: 700; padding: 10px 0; }
+  .pz-todas dl { margin: 0; }
+  .pz-todas dt { font-weight: 700; margin-top: 12px; }
+  .pz-todas dd { margin: 2px 0 0; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  .pz-burbuja { position: fixed; right: max(14px, env(safe-area-inset-right)); bottom: max(14px, env(safe-area-inset-bottom)); z-index: 30;
+    display: flex; align-items: center; gap: 8px; padding: 6px 14px 6px 6px; min-height: 56px; border-radius: 30px; text-decoration: none;
+    background: var(--pizarron); color: var(--tiza); border: 3px solid var(--madera); font: 700 15px var(--texto); box-shadow: 0 6px 18px -6px #0008; }
+  .pz-burbuja svg { width: 44px; height: 38px; }
+  @media (prefers-reduced-motion: no-preference) { .pz-burbuja { animation: pz-entra .3s ease; } }
+  @keyframes pz-entra { from { transform: translateY(16px); opacity: 0; } }
+  @media (min-width: 761px) { .pz-burbuja { display: none; } }
+  @media (max-width: 560px) {
+    .pz-pizarron { grid-template-columns: 1fr; padding: 12px 14px 20px; border-width: 8px; }
+    .pz-cara { width: 88px; margin: 0 auto -6px; }
+    .pz-tiza { font-size: 20px; line-height: 1.28; min-height: 5.2em; }
+    .pz-accion, .pz-escuchar { font-size: 14px; padding: 6px 12px; }
+    .pz-form .big { padding: 0 14px; }
+  }
+  /* ---------- Comunicador: libre y sin cuenta, visible arriba ---------- */
+  .com-promo { margin: 18px 0 0; border-left: 5px solid var(--lapiz); }
+  .com-promo h3 { font-family: var(--mano); font-size: 23px; font-weight: 400; line-height: 1.15; margin: 0 0 4px; }
+  .com-promo .rotulo { font-family: var(--texto); font-size: 13px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; color: var(--gris); margin-bottom: 4px; }
+  .com-cab { display: flex; gap: 12px; align-items: center; }
+  .com-frase { display: flex; gap: 4px; flex: none; }
+  .com-frase img { width: 52px; height: 52px; object-fit: contain; background: #fff; border: 1px solid var(--borde); border-radius: 8px; padding: 3px; }
+  .com-promo p { margin: 6px 0 0; }
+  .com-promo .botones { margin: 10px 0 4px; }
+  @media (max-width: 640px) { .com-cab { flex-direction: column; align-items: flex-start; gap: 8px; } .com-frase img { width: 48px; height: 48px; } }
+  /* ---------- Sumate a Puente: tester Android, piloto y donaciones (mismo estilo que el bloque del Comunicador) ---------- */
+  .sumate { margin: 22px 0 14px; }
+  .sumate > h2 { margin: 0 0 10px; }
+  .sumate-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; align-items: stretch; }
+  .sumate-grid .card { margin: 0; border-left: 5px solid var(--lapiz); display: flex; flex-direction: column; }
+  .sumate-grid h3 { font-family: var(--mano); font-size: 23px; font-weight: 400; line-height: 1.15; margin: 0 0 4px; }
+  .sumate-grid p { margin: 6px 0 0; }
+  .sumate-grid .acciones { margin-top: auto; padding-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+  .sumate-grid .acciones .big { margin: 0; }
+  .sumate-codigo { margin: 12px 0 0; }
+  .tarjetas { margin-top: 22px; }
+  .quien { border-left: 5px solid var(--pizarron); }
+  @media (min-width: 1000px) { .quien { margin-top: 14px; } }
+  /* ---------- Escritorio: todo a la vista, pizarrón a la derecha ---------- */
+  @media (min-width: 1000px) {
+    main.portada { max-width: 1240px; }
+    .portada .pagina { padding: 18px 22px 10px 40px; }
+    .portada-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(360px, .8fr); gap: 0 28px; align-items: start; }
+    .col-der .pz { margin-top: 0; }
+    .lema { font-size: 32px; }
+    .intro { font-size: 17px; }
+    .botones { margin: 12px 0 4px; }
+    .portada h3.sub { margin-top: 16px !important; }
+    .pasos { gap: 10px; }
+    .pasos li { padding: 8px 10px; }
+    .pasos img { width: 56px; height: 56px; }
+    .pasos span { font-size: 13px; line-height: 1.35; }
+    .pasos b { font-size: 19px; }
+    .tira.ejemplo .picto { padding: 6px 4px; }
+    .pz-pizarron { grid-template-columns: 76px 1fr; gap: 4px 12px; padding: 14px 14px 18px; }
+    .pz-cara { width: 76px; }
+    .pz-tiza { font-size: 20px; min-height: 5.2em; }
+    .pz-chips { gap: 6px; }
+    .pz-chip { font-size: 14px; padding: 4px 12px; }
+    .tarjetas { display: grid; grid-template-columns: 1fr 1fr 1.25fr; gap: 14px; align-items: start; margin-top: 20px; }
+    .tarjetas .card { margin: 0; height: 100%; }
+    .tarjetas .card.piloto { height: auto; }
+    .botones.final { display: none; }
+    .com-promo { margin-top: 14px; padding: 12px 14px; }
+    .com-promo .botones { margin: 8px 0 2px; }
+    .com-promo .big { padding: 10px; font-size: 15px; }
+    .sumate-grid .card { padding: 12px 14px; }
+    .sumate-grid .big { padding: 10px; font-size: 15px; }
+  }
+  @media (min-width: 1000px) and (max-height: 820px) {
+    .portada .pagina { padding-top: 12px; }
+    header { padding-top: 12px; padding-bottom: 10px; }
+    .intro { margin-bottom: 0; }
+    .tira.ejemplo .picto img { max-height: 76px; }
+  }
+  @media (max-width: 640px) {
+    .tira.ejemplo { grid-template-columns: repeat(3, 1fr); }
+    .pasos { grid-template-columns: 1fr; }
+    .pasos li { display: grid; grid-template-columns: 64px 1fr; gap: 0 12px; align-items: center; text-align: left; }
+    .pasos li img { grid-row: span 3; width: 64px; height: 64px; }
+    .pasos .n { display: none; }
+    .lema { font-size: 26px; }
+    .botones { flex-direction: column; }
+  }
+</style>
+<script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
+<script defer src="/_vercel/insights/script.js"></script>
+</head>
+<body>
+<a class="saltar" href="#contenido">Skip to content</a>
+<header><!-- idiomas --><nav class="idiomas" aria-label="Idioma / Language"><a href="/" hreflang="es-AR" lang="es-AR" data-idioma="es">Español</a><span aria-hidden="true"> · </span><a href="/en/" hreflang="en" lang="en" data-idioma="en" aria-current="page">English</a></nav><!-- /idiomas --><h1>Puente</h1><div class="bajada">from school to home, in pictograms</div><span class="tiza"></span></header>
+<main id="contenido" tabindex="-1" class="portada" style="margin-top:14px"><div class="pagina" style="border-radius:14px">
+
+  <section class="on" aria-labelledby="lema">
+   <div class="portada-grid">
+    <div class="col-izq">
+    <h2 class="lema" id="lema">How the school day went, told in pictograms.</h2>
+    <p class="intro">The teacher says how the day went, Puente lays it out in pictograms and the family sees it at home. The child can use the pictures to tell their day, and the family knows what happened.</p>
+    <div class="botones">
+      <a class="big" id="btnEntrar" href="/login.html">Sign in</a>
+      <a class="big alt" id="btnFamilia" href="/login.html?familia">I'm a family member</a>
+    </div>
+    <a class="big alt chico demo-btn" id="btnDemo" href="https://puente-pictos-demo.vercel.app/cuaderno.html">Try the demo, no account needed</a>
+    <p class="muted chiquito demo-txt">It uses test data, and what you enter stays in your browser. The demo and the signed-in areas are in Spanish for now.</p>
+    <p class="muted" id="sesionTxt" hidden></p>
+
+    <div class="card com-promo" id="comunicador" role="region" aria-labelledby="comTitulo">
+      <div class="com-cab">
+        <div class="com-frase" aria-hidden="true"><img src="https://static.arasaac.org/pictograms/6632/6632_300.png" alt="" width="52" height="52" loading="lazy"><img src="https://static.arasaac.org/pictograms/5441/5441_300.png" alt="" width="52" height="52" loading="lazy"><img src="https://static.arasaac.org/pictograms/23392/23392_300.png" alt="" width="52" height="52" loading="lazy"></div>
+        <div>
+          <span class="rotulo">Communicator, free and no account</span>
+          <h3 id="comTitulo">Talk by tapping pictures</h3>
+        </div>
+      </div>
+      <p>Tap the pictograms to build a sentence, and the board says it out loud. It works without internet and nothing leaves your device. Anyone can use it, no need to be in the pilot.</p>
+      <div class="botones">
+        <a class="big" id="btnComunicador" href="/en/comunicador.html">Open the Communicator</a>
+        <a class="big alt" id="btnComApk" href="/descargar/comunicador.apk" download>Get the Android app</a>
+      </div>
+      <p class="muted chiquito">The Android app is not on Google Play yet. For now it installs from the APK file.</p>
+    </div>
+
+    <h3 class="sub" style="margin-top:22px">How it works</h3>
+    <ol class="pasos">
+      <li><img src="https://static.arasaac.org/pictograms/2456/2456_300.png" alt="" width="72" height="72" loading="lazy"><span class="n">1</span><b>The teacher dictates the day</b><span>Spoken or typed, in about 20 seconds.</span></li>
+      <li><img src="https://static.arasaac.org/pictograms/24791/24791_300.png" alt="" width="72" height="72" loading="lazy"><span class="n">2</span><b>It becomes pictograms</b><span>Each activity in order, with a picture you can tap and hear.</span></li>
+      <li><img src="https://static.arasaac.org/pictograms/6964/6964_300.png" alt="" width="72" height="72" loading="lazy"><span class="n">3</span><b>The family sees it at home</b><span>They sign in with their email and see the day, what went well and what is coming up.</span></li>
+    </ol>
+
+    <h3 class="sub" style="margin-top:22px">A sample day</h3>
+    <p class="muted" style="margin-top:0">Tap a picture to hear it. (Made-up example.)</p>
+    <div class="tira ejemplo" id="ejemplo">
+      <div class="picto bien" data-h="We got to school"><img src="https://static.arasaac.org/pictograms/32446/32446_300.png" alt="School" width="120" height="120"><div class="t">Arrive</div><div class="h">08:00</div></div>
+      <div class="picto bien" data-h="We had breakfast"><img src="https://static.arasaac.org/pictograms/4625/4625_300.png" alt="Breakfast" width="120" height="120"><div class="t">Breakfast</div><div class="h">08:30</div></div>
+      <div class="picto bien" data-h="We had music"><img src="https://static.arasaac.org/pictograms/24791/24791_300.png" alt="Music" width="120" height="120"><div class="t">Music</div><div class="h">09:00</div></div>
+      <div class="picto dificil" data-h="Break time was very noisy"><img src="https://static.arasaac.org/pictograms/33064/33064_300.png" alt="Break time" width="120" height="120"><div class="t">Break</div><div class="h">11:00</div></div>
+      <div class="picto bien" data-h="We had lunch"><img src="https://static.arasaac.org/pictograms/28207/28207_300.png" alt="Lunch" width="120" height="120"><div class="t">Lunch</div><div class="h">12:00</div></div>
+      <div class="picto bien" data-h="We said goodbye and went home"><img src="https://static.arasaac.org/pictograms/6610/6610_300.png" alt="Saying goodbye" width="120" height="120"><div class="t">Goodbye</div><div class="h">15:00</div></div>
+    </div>
+    </div><!-- /col-izq -->
+
+    <aside class="col-der" aria-label="Frequently asked questions">
+    <!-- Preguntale al pizarrón: FAQ 100 % en el navegador (pizarron.js), sin IA ni API. Sin JavaScript queda la lista de abajo. -->
+    <section class="on pz" id="preguntale" aria-labelledby="pzTitulo">
+      <h3 id="pzTitulo">Ask the chalkboard</h3>
+      <p class="muted pz-bajada">It has the frequently asked questions about Puente written down. It does not use AI: what you type never leaves your browser.</p>
+      <div class="pz-pizarron" id="pzPizarron">
+        <svg class="pz-cara" id="pzCara" viewBox="0 0 120 92" aria-hidden="true" focusable="false">
+          <path d="M18 36 Q60 2 102 36" fill="none" stroke="#f4f1e8" stroke-width="4.5" stroke-linecap="round"/>
+          <path d="M28 36v-6M42 36v-12M60 36v-15M78 36v-12M92 36v-6" stroke="#f4f1e8" stroke-width="3" stroke-linecap="round" opacity=".9"/>
+          <ellipse class="ojo" cx="44" cy="54" rx="5.5" ry="7.5" fill="#f4f1e8"/>
+          <ellipse class="ojo" cx="76" cy="54" rx="5.5" ry="7.5" fill="#f4f1e8"/>
+          <circle cx="32" cy="68" r="6.5" fill="#f2b6b0" opacity=".55"/>
+          <circle cx="88" cy="68" r="6.5" fill="#f2b6b0" opacity=".55"/>
+          <path class="boca" d="M49 70 Q60 80 71 70" fill="none" stroke="#f4f1e8" stroke-width="3.5" stroke-linecap="round"/>
+          <ellipse class="boca-abierta" cx="60" cy="74" rx="7.5" ry="6" fill="#1b2d25" stroke="#f4f1e8" stroke-width="3"/>
+        </svg>
+        <div class="pz-texto">
+          <p class="pz-q" id="pzQ" hidden></p>
+          <p class="pz-tiza" id="pzTiza" aria-hidden="true">Hi! I'm Puente's chalkboard. The frequently asked questions and their answers are below.</p>
+          <div class="pz-pie"><div class="pz-pie" id="pzAcciones" style="margin:0"></div><button type="button" class="pz-escuchar" id="pzEscuchar" hidden>Listen</button></div>
+        </div>
+      </div>
+      <p class="sr-only" id="pzVivo" role="status" aria-live="polite" aria-atomic="true"></p>
+      <form class="pz-form" id="pzForm" hidden role="search" aria-label="Ask the chalkboard">
+        <label for="pzPregunta" class="sr-only">Your question about Puente</label>
+        <input id="pzPregunta" maxlength="160" autocomplete="off" enterkeyhint="send" placeholder="Type your question…">
+        <button class="big">Ask</button>
+      </form>
+      <div class="pz-chips" id="pzChips" hidden aria-label="Suggested questions" role="group"></div>
+      <details class="pz-todas" id="pzTodas" open>
+        <summary>All frequently asked questions</summary>
+        <dl>
+        <dt>What is Puente?</dt><dd>Puente is a tool for special education schools. The teacher says how the school day went, Puente lays it out in pictograms and the family sees it at home. The child can use the pictures to tell their day, and the family knows what happened.</dd>
+        <dt>Who is it for?</dt><dd>Special education schools: children with autism, intellectual disability or communication needs. Teachers and school leaders use it to record the day in seconds, and families see it in pictograms.</dd>
+        <dt>How does it work?</dt><dd>First, the teacher dictates or types how the day went. Then Puente turns it into a strip of ARASAAC pictograms, one activity after another. Finally, the family sees it in their private space: the day, what went well and what is coming up.</dd>
+        <dt>How much does it cost?</dt><dd>Nothing. Puente is free and non-profit: schools and families never pay. Data is never sold or used for advertising.</dd>
+        <dt>How can I join the pilot?</dt><dd>Puente is in a closed pilot with 15 places in total for teachers, school leaders and families, in schools in Santa Fe, Argentina. You can only get in with an invitation link: the school invites its teachers, and teachers invite families. If you want to take part, fill in the “Join the pilot” form and we will email you.</dd>
+        <dt>What data does it keep?</dt><dd>As little as possible. For each student, only the first name and the class: no surname, no photos, no ID number and no diagnoses. The school enters the support profile and the daily record, always with the family's consent. Data is never sold or used for advertising.</dd>
+        <dt>What does the AI do with the data?</dt><dd>AI helps put the teacher's account of the day in order, draft the progress report and answer the family's questions. Puente only uses providers that do not store or train on the data, and sends them the minimum: the first name, never emails, phone numbers or health information. The teacher reviews everything and decides.</dd>
+        <dt>How do I delete my data?</dt><dd>Families can download their data, withdraw consent and ask to leave from their own space. The school can also remove a student. When that happens, the student's data is deleted. For any request, email soporte@puentepictos.app.</dd>
+        <dt>Where do the pictograms come from?</dt><dd>From ARASAAC. Pictograms by Sergio Palao. Owner: Government of Aragón (Spain). License: CC BY-NC-SA. That is also why Puente uses them on a non-profit basis.</dd>
+        <dt>Where is it available?</dt><dd>For now, only in schools in the province of Santa Fe, Argentina: schools are picked from the official register of schools. If you are somewhere else and interested, email us.</dd>
+        <dt>How can I help or donate?</dt><dd>Puente is free and non-profit, and donations help pay for servers and AI. If you want to help, use the donation buttons in “Get involved”, further down this page. Families are never asked to donate.</dd>
+        <dt>How do I sign in?</dt><dd>Teachers and school leaders sign in with their Google account or with a 6-digit code sent by email, no password. Families sign in with the invitation link from the school and a code sent by email. The signed-in areas are in Spanish for now.</dd>
+        <dt>What does the family see?</dt><dd>In their private space, the family sees the last few days in pictograms they can tap and listen to, a schedule of what is coming up, the goals being worked on and what went well. They can also ask about the day, and the answers come only from what the school recorded.</dd>
+        <dt>Do I need to install anything?</dt><dd>No. Puente works in the browser, on a phone or a computer, at puentepictos.app. On Android there are also apps you can download (not on Google Play yet): the Puente app, for people in the pilot, and the Communicator app, free for anyone.</dd>
+        <dt>Is Puente available in English?</dt><dd>This site and the Communicator are in English. The teacher and family areas of Puente are in Spanish for now, because the pilot runs in schools in Argentina.</dd>
+        <dt>How do I contact you?</dt><dd>Email us at soporte@puentepictos.app. If you already have an account, you can also use “Send feedback” at the bottom of the page.</dd>
+        </dl>
+      </details>
+    </section>
+    </aside>
+   </div><!-- /portada-grid -->
+
+   <div class="tarjetas">
+    <div class="card">
+      <span class="rotulo">Who it is for</span>
+      <ul class="lista-puntos">
+        <li><b>Special education</b> schools: children with autism, intellectual disability or communication needs.</li>
+        <li><b>Teachers and school leaders</b>: they record the day in seconds and it is saved automatically.</li>
+        <li><b>Families</b>: they see how the day went, in pictograms, and can ask about it.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <span class="rotulo">Free and non-profit</span>
+      <p style="margin:0">Puente does not charge schools or families. It is careful with children's data: first name only, no photos or diagnoses, and the family gives consent.</p>
+    </div>
+
+    <div class="card piloto">
+      <span class="rotulo">Invitation-only pilot</span>
+      <p style="margin:0">Puente is in a pilot with limited places, in Santa Fe, Argentina. You can only join with an invitation link: the school's leadership invites teachers, and teachers invite families.</p>
+      <details class="sumarse" id="sumarse">
+        <summary class="big" id="btnSumarse">Join the pilot</summary>
+        <form id="fSumarse" novalidate aria-describedby="suAyuda">
+          <p class="muted" id="suAyuda" style="margin:10px 0 0">Leave your details and we will email you. This does not create an account.</p>
+          <label for="suNombre">Full name</label>
+          <input id="suNombre" name="nombre" required minlength="2" maxlength="80" autocomplete="name">
+          <label for="suEmail">Email</label>
+          <input id="suEmail" name="email" type="email" required maxlength="160" autocomplete="email" inputmode="email">
+          <label for="suEscuela">School</label>
+          <input id="suEscuela" name="escuela" required minlength="2" maxlength="120" placeholder="School name or number">
+          <label for="suLugar">City and province or state</label>
+          <input id="suLugar" name="lugar" maxlength="120" autocomplete="address-level2" placeholder="e.g. Rosario, Santa Fe">
+          <label for="suRol">Your role</label>
+          <select id="suRol" name="rol" required>
+            <option value="">Choose one</option>
+            <option value="directora">School leader</option>
+            <option value="seño">Teacher</option>
+            <option value="familia">Family</option>
+            <option value="otro">Other</option>
+          </select>
+          <label for="suAlumnos">Approximate number of students <span class="opc">(optional)</span></label>
+          <input id="suAlumnos" name="alumnos" type="number" min="1" max="2000" inputmode="numeric">
+          <label for="suMensaje">Anything else you would like to tell us <span class="opc">(optional)</span></label>
+          <textarea class="corto" id="suMensaje" name="mensaje" maxlength="600"></textarea>
+          <div class="trampa" aria-hidden="true"><label for="suWeb">Leave empty</label><input id="suWeb" name="sitio_web" tabindex="-1" autocomplete="off"></div>
+          <button class="big" id="suEnviar">Send</button>
+          <p id="suMsg" class="muted" role="status" aria-live="polite"></p>
+        </form>
+        <p class="gracias" id="suGracias" role="status" tabindex="-1" hidden>Thank you! We will email you.</p>
+      </details>
+      <p class="muted chiquito" style="margin:.5em 0 0">or email us at <a href="mailto:soporte@puentepictos.app?subject=Quiero%20sumarme%20al%20piloto%20de%20Puente">soporte@puentepictos.app</a></p>
+      <p class="muted chiquito" style="margin:.5em 0 0">Already in the pilot? <a href="/descargar/puente.apk" id="linkPuenteApk" download>Get the Puente app for Android</a> (APK, not on Google Play yet).</p>
+    </div>
+   </div><!-- /tarjetas -->
+
+    <section class="on sumate" id="sumate" aria-labelledby="sumateTitulo">
+      <h2 id="sumateTitulo">Get involved</h2>
+      <div class="sumate-grid">
+        <div class="card" id="sumateTester">
+          <h3>Test the Android app</h3>
+          <p>We are about to open a closed test on Google Play. For that we need 12 people with Android phones who keep the app installed for 14 days in a row. If you are up for it, email us.</p>
+          <p class="muted chiquito">All we need is the email of the Google account you use on Play, to add you to the testers list.</p>
+          <div class="acciones"><a class="big" id="btnTester" href="mailto:soporte@puentepictos.app?subject=Android%20tester&amp;body=Hi%2C%20I%27d%20like%20to%20test%20the%20Puente%20app%20on%20Android.%0AThe%20email%20of%20my%20Google%20account%20(the%20one%20I%20use%20on%20Play)%20is%3A%20">I want to be a tester</a></div>
+        </div>
+        <div class="card" id="sumateEscuela">
+          <h3>Bring it to your school</h3>
+          <p>The pilot is by invitation and has 15 places in Santa Fe, Argentina, open to teachers, school leaders, therapists and families alike. Tell us who you are and we will email you.</p>
+          <div class="acciones"><a class="big alt" id="btnIrPiloto" href="#sumarse">Join the pilot</a></div>
+        </div>
+        <div class="card" id="sumateDonar" hidden>
+          <h3>Help keep it going</h3>
+          <p>Puente is free and non-profit. Donations pay for the servers and the AI. Families are never charged.</p>
+          <div class="acciones" id="sumateDonBotones"></div>
+        </div>
+      </div>
+      <p class="muted chiquito sumate-codigo">Do you write code? Puente is open source (AGPL-3.0) and the code is on <a href="https://github.com/dannyvergel/mi-dia-en-pictos" target="_blank" rel="noopener">GitHub</a>.</p>
+    </section>
+
+    <div class="card quien" id="quien">
+      <span class="rotulo">Who makes Puente</span>
+      <p style="margin:0">I'm Danny Vergel, from Rosario, Argentina. I work in tech, and I built Puente because I want to help: to give something back with what I know how to do, and with what AI now lets me do. As the Spanish saying goes, «el que no vive para servir, no sirve para vivir»: if you don't live to serve, you're not fit to live.</p>
+      <p class="muted chiquito" style="margin:.5em 0 0"><a href="https://www.linkedin.com/in/dvergel/" target="_blank" rel="noopener">My LinkedIn</a> · <a href="mailto:soporte@puentepictos.app">soporte@puentepictos.app</a> · <a href="https://github.com/dannyvergel/mi-dia-en-pictos" target="_blank" rel="noopener">Open source (AGPL-3.0)</a></p>
+    </div>
+
+    <div class="botones final">
+      <a class="big" href="/login.html">Sign in</a>
+      <a class="big alt" href="/login.html?familia">I'm a family member</a>
+    </div>
+    <p style="text-align:center;margin:6px 0"><a class="demo-link" href="https://puente-pictos-demo.vercel.app/cuaderno.html">Try the demo, no account needed</a></p>
+    <p class="muted chiquito" style="text-align:center">Want to know more? <a href="/en/presentacion.html">See the presentation</a>.</p>
+    <p class="muted chiquito" style="text-align:center"><a href="/en/comunicador.html" id="linkComunicador">Communicator</a>: a pictogram board for talking by tapping pictures, free and with no account.</p>
+  </section>
+</div></main>
+<a class="pz-burbuja" id="pzBurbuja" href="#preguntale" hidden><svg viewBox="0 0 64 56" aria-hidden="true" focusable="false"><rect x="2" y="2" width="60" height="46" rx="6" fill="#2f4a3e" stroke="#8b5e3c" stroke-width="4"/><path d="M14 22 Q32 6 50 22" fill="none" stroke="#f4f1e8" stroke-width="3" stroke-linecap="round"/><ellipse cx="25" cy="29" rx="3" ry="4" fill="#f4f1e8"/><ellipse cx="39" cy="29" rx="3" ry="4" fill="#f4f1e8"/><path d="M27 37 Q32 42 37 37" fill="none" stroke="#f4f1e8" stroke-width="2.5" stroke-linecap="round"/><rect x="40" y="50" width="16" height="5" rx="2" fill="#f2b632"/></svg><span>Questions? Ask here</span></a>
+<footer>Children's data is protected: first name only, no photos or diagnoses.<div id="puente-pie" data-donaciones="no"></div></footer>
+<script src="/pie.js" defer></script>
+<script src="/pizarron.js" defer></script>
+<script>
+// Tira de ejemplo: tocar un dibujo lo lee en voz alta (si el navegador puede).
+document.querySelectorAll("#ejemplo .picto").forEach(p => p.onclick = () => {
+  if (!("speechSynthesis" in window)) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(p.dataset.h); u.lang = "en-US"; speechSynthesis.speak(u);
+});
+// Si ya hay sesión, "Entrar" lleva directo a su lugar. En modo demo (sin base), al Cuaderno del día con PIN.
+fetch("/api/auth", { credentials: "same-origin" }).then(r => r.ok ? r.json() : null).then(e => {
+  if (!e) return;
+  const entrar = document.getElementById("btnEntrar");
+  // En el propio demo, "Probar la demo" abre el Cuaderno de acá mismo.
+  if (e.modo === "demo") { entrar.href = "/cuaderno.html"; document.querySelectorAll('a[href$="demo.vercel.app/cuaderno.html"]').forEach(a => a.href = "/cuaderno.html"); return; }
+  const s = e.sesion;
+  if (!s) return;
+  const txt = document.getElementById("sesionTxt");
+  if (s.tipo === "familia") { entrar.href = "/familia.html"; entrar.textContent = "Go to my space"; txt.textContent = "Signed in as a family (" + s.email + ")."; }
+  else { entrar.href = s.es_plataforma ? "/admin.html" : "/docente.html"; entrar.textContent = s.es_plataforma ? "Go to the platform panel" : "Go to my panel"; txt.textContent = "Signed in as " + s.nombre + "."; }
+  txt.hidden = false;
+}).catch(() => {});
+// «Sumate a Puente»: las donaciones van acá y no en el pie (una sola vía). La URL no está en el código: sale de /api/config.
+// Sin config (por ejemplo, en local) o sin links https, la tarjeta queda oculta, igual que antes en el pie.
+fetch("/api/config", { credentials: "same-origin" }).then(r => r.ok ? r.json() : null).then(c => {
+  const d = (c && c.donaciones) || {};
+  const https = u => typeof u === "string" && /^https:\/\//.test(u);
+  const caja = document.getElementById("sumateDonBotones");
+  const boton = (u, txt, en) => { const a = Object.assign(document.createElement("a"), { className: en ? "big alt" : "big", href: u, target: "_blank", rel: "noopener", textContent: txt }); if (en) a.lang = "en"; caja.append(a); };
+  if (https(d.ar)) boton(d.ar, "Donate from Argentina");
+  if (https(d.intl)) boton(d.intl, "Donate from abroad", true);
+  if (caja.children.length) document.getElementById("sumateDonar").hidden = false;
+}).catch(() => {});
+// «Quiero sumarme al piloto» de la tarjeta baja al formulario y lo abre.
+document.getElementById("btnIrPiloto").addEventListener("click", ev => {
+  const d = document.getElementById("sumarse"); if (!d) return;
+  ev.preventDefault();
+  d.open = true;
+  d.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  setTimeout(() => (document.getElementById("suNombre") || d.querySelector("summary")).focus({ preventScroll: true }), 350);
+});
+// "Quiero sumarme al piloto": manda el pedido a la plataforma (no crea cuentas). Ciudad y alumnos van en el mensaje.
+(() => {
+  const f = document.getElementById("fSumarse"), m = document.getElementById("suMsg"), b = document.getElementById("suEnviar");
+  const v = id => document.getElementById(id).value.trim();
+  const ROLES = { directora: "Directora / director", "seño": "Seño / docente", familia: "Familia", otro: "Otro" };
+  document.getElementById("sumarse").addEventListener("toggle", e => { if (e.target.open && !f.hidden) document.getElementById("suNombre").focus(); });
+  f.onsubmit = async ev => {
+    ev.preventDefault();
+    m.className = "muted"; m.textContent = "";
+    const malo = [...f.querySelectorAll("[required]")].find(x => !x.checkValidity());
+    if (malo) { m.className = "error"; m.textContent = malo.type === "email" ? "Please check the email." : "Please fill in: " + f.querySelector(`label[for="${malo.id}"]`).textContent.trim() + "."; malo.focus(); return; }
+    const mensaje = [v("suLugar") && "Ciudad y provincia: " + v("suLugar"), v("suAlumnos") && "Cantidad aproximada de alumnos: " + v("suAlumnos"), v("suMensaje"), "(Pedido enviado desde la portada en inglés)"].filter(Boolean).join("\n");
+    const rol = v("suRol");
+    b.disabled = true; b.setAttribute("aria-busy", "true"); b.textContent = "Sending…";
+    try {
+      const r = await fetch("/api/solicitudes", { method: "POST", headers: { "content-type": "application/json" }, credentials: "same-origin",
+        body: JSON.stringify({ accion: "crear", nombre: v("suNombre"), email: v("suEmail"), escuela: v("suEscuela"), rol: ROLES[rol] || rol,
+          es_director: rol === "directora", mensaje, sitio_web: document.getElementById("suWeb").value }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error("We couldn't send your request. Please try again or email us.");
+      f.hidden = true;
+      const g = document.getElementById("suGracias"); g.hidden = false; g.focus();
+      window.va && window.va("event", { name: "sumarse_piloto" });
+    } catch (e) { m.className = "error"; m.textContent = e.message || "We couldn't send your request. Please try again or email us."; }
+    finally { b.disabled = false; b.removeAttribute("aria-busy"); b.textContent = "Send"; }
+  };
+})();
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
+</script>
+</body>
+</html>

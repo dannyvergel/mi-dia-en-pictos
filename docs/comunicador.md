@@ -78,18 +78,20 @@ Para sumar o cambiar palabras:
 
 ## Idiomas
 
-La misma página anda en **español** (por defecto) y en **inglés**.
+El Comunicador anda en **español** y en **inglés**, cada uno con **su propia URL** (como todo el sitio público, ver `docs/idiomas.md`):
 
-- **Selector visible «Español / English»** arriba del tablero (se oculta en pantalla completa / modo tablero, junto con el resto de los ajustes).
-- **Qué idioma se usa:** `?lang=en` (o `?lang=es`) manda; si no, la elección guardada; si no, `navigator.language` (`en*` → inglés, cualquier otro → español). La lógica es `elegirIdioma()` en `comunicador-textos.js`, con tests.
-- La elección se guarda en el mismo `localStorage` `puente-comunicador` (campo `idioma`) solo si se toca el selector. «Borrar ajustes y favoritos» también la borra y vuelve al idioma automático. Si la URL tiene `?lang=`, el selector la actualiza con `history.replaceState` para que recargar no lo cambie.
-- `<html lang>` cambia (`es-AR` / `en`), igual que `document.title`. Con `?lang=en` el `canonical` pasa a `…/comunicador.html?lang=en`. La página y `sitemap.xml` declaran `hreflang` es / en / x-default.
+- `/comunicador.html` en español y `/en/comunicador.html` en inglés. La versión en inglés la genera `scripts/idiomas.js` a partir de la misma página y de `comunicador-textos.js`, así que **se sirve ya traducida** (Google la ve sin JavaScript).
+- **Selector visible «Español / English»** arriba del tablero: son links (`<a>`) a las dos URLs (se ocultan en pantalla completa / modo tablero).
+- **Qué idioma se usa en la web:** manda la URL. `?lang=en` / `?lang=es` siguen andando (links viejos) y el `canonical` apunta a la URL del idioma que se ve.
+- **Dentro de la app instalada** (Android / PWA: `?app`, `android-app://` o `display-mode: standalone`) no se puede salir de `/comunicador`, así que el selector cambia el idioma en la misma página, como antes: `?lang=`, si no la elección guardada, si no `navigator.language`. La lógica es `elegirIdioma()` en `comunicador-textos.js`, con tests.
+- La elección se guarda en `localStorage` `puente-comunicador` (campo `idioma`) y, para el resto del sitio, en `puente-idioma` (lo hace `pie.js` con `data-idioma`). «Borrar ajustes y favoritos» borra la del Comunicador.
+- `<html lang>` cambia (`es-AR` / `en`), igual que `document.title`. La página y `sitemap.xml` declaran `hreflang` es-AR / en / x-default (los genera `scripts/idiomas.js`).
 - **Textos de la interfaz:** diccionario simple en `web/comunicador-textos.js` (sin librerías). El HTML trae el español escrito y marca cada texto con `data-i18n` (texto), `data-i18n-html` (texto con negrita o link, solo textos fijos del diccionario) o `data-i18n-aria` (aria-label). Los avisos dinámicos usan `tr("clave")`. Un test exige que el inglés tenga todas las claves del español y que toda clave usada en la página exista.
 - **Vocabulario:** mismos pictos (mismo id) con `en` / `ken` / `dicen`. Inglés natural de chico y en primera persona cuando corresponde («I want», «I don't want», «all done», «it hurts», «wash my hands»).
 - **Género:** en inglés casi no hay palabras con género, así que el ajuste «Habla como nene / nena» se oculta y no se aplica (queda guardado para cuando se vuelve al español).
 - **Voz en inglés:** en-US si hay; si no, en-GB; si no, cualquier `en-*`. La lista de voces muestra solo las del idioma activo, y si no hay ninguna se muestra el aviso en ese idioma.
 - **Crédito ARASAAC en inglés:** «Pictograms author: Sergio Palao. Source: ARASAAC (https://arasaac.org). License: CC BY-NC-SA. Owner: Government of Aragón (Spain).»
-- El pie común (`pie.js`) sigue en español; en inglés se le pone `lang="es-AR"` para que los lectores de pantalla lo lean bien.
+- El pie común (`pie.js`) sale en el idioma de la página (`<html lang>`).
 
 Elecciones en inglés a tener en cuenta (clave de ARASAAC en inglés → lo que se muestra):
 

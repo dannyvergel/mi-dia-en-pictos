@@ -182,7 +182,7 @@
       claves: ["where:4", "available:4", "my country:5", "country:3", "countries:3", "outside argentina:5", "only in:3"],
       acciones: [{ texto: "Email us", href: MAILTO }] },
     { id: "donar", pregunta: "How can I help or donate?",
-      respuesta: "Puente is free and non-profit, and donations help pay for servers and AI. If you want to help, use the donation buttons at the bottom of this page. Families are never asked to donate.",
+      respuesta: "Puente is free and non-profit, and donations help pay for servers and AI. If you want to help, use the donation buttons in “Get involved”, further down this page. Families are never asked to donate.",
       claves: ["donate:5", "how can i help:4", "help out:4", "support puente:4", "sponsor:3", "contribute:3"],
       acciones: [{ texto: "Donate", accion: "donar" }] },
     { id: "entrar", pregunta: "How do I sign in?",

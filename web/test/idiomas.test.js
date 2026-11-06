@@ -6,7 +6,7 @@ const fs = require("fs");
 const path = require("path");
 const RAIZ = path.join(__dirname, "..");
 const leer = f => fs.readFileSync(path.join(RAIZ, f), "utf8");
-const { generar, url } = require("../scripts/idiomas");
+const { generar, url, textosVisibles } = require("../scripts/idiomas");
 const { PAGINAS } = require("../scripts/idiomas/paginas");
 
 test("lo generado está al día (correr npm run idiomas) y no queda texto visible sin traducir", () => {
@@ -61,9 +61,13 @@ test("inglés: sin redirecciones automáticas por idioma, sin datos que no van y
   assert.equal(/location\.(replace|assign)\(|location\.href\s*=\s*[^;]*\/en\//.test(leer("pie.js")), false);
   assert.equal(/nodolab|\bfyo\b|rosarina|\bDRT\b/i.test(todo), false, "sin empleador, Nodolab ni clientes");
   assert.equal(/\bPIN\b[^<\n]{0,25}\d{4,}/.test(todo), false, "sin el PIN del demo");
-  const en = PAGINAS.map(p => leer("en/" + p.archivo)).join("\n") + JSON.stringify(require("../pizarron.js").en.FAQ);
+  // Texto que se lee en inglés: visible, atributos, title/description/OG y el FAQ del pizarrón.
+  const en = PAGINAS.map(p => { const h = leer("en/" + p.archivo);
+    return [...textosVisibles(h)].join("\n") + [...h.matchAll(/<(?:title>([^<]+)|meta (?:name|property)="[^"]*" content="([^"]+)")/g)].map(m => m[1] || m[2]).join("\n"); }).join("\n")
+    + JSON.stringify(require("../pizarron.js").en);
   assert.equal(/\b(empower|seamless|transform(ative|s|ing)?|revolutioni[sz]e|unlock|game[- ]chang|cutting[- ]edge|leverag)/i.test(en), false);
-  assert.equal(/\p{Extended_Pictographic}/u.test(en.replace(/<svg[\s\S]*?<\/svg>/g, "")), false, "sin emojis");
+  assert.equal(/\p{Extended_Pictographic}/u.test(en), false, "sin emojis");
+  assert.equal(/—/.test(en), false, "sin rayas decorativas");
   // Crédito ARASAAC en los dos idiomas
   for (const p of PAGINAS) assert.ok(/Sergio Palao/.test(leer(p.archivo) + leer("pie.js")) && /Sergio Palao/.test(leer("en/" + p.archivo) + leer("pie.js")));
   // Legales: aviso de traducción de cortesía (prevalece el español)
