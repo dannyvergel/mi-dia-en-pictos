@@ -5,8 +5,8 @@ const pinEsperado = () => String(process.env.DOCENTE_PIN || "2026");
 // Demo abierto (DEMO_ABIERTO=1, solo sin base de datos): cualquiera prueba el Cuaderno sin PIN, todo queda en su
 // navegador, no se publican links para familias (no se escribe en Blob) y la IA queda apagada aunque haya key.
 const demoAbierto = () => process.env.DEMO_ABIERTO === "1" && !require("./db").dbActiva();
-// IA disponible: hay key de OpenRouter y no es el demo abierto.
-const iaActiva = () => !!process.env.OPENROUTER_API_KEY && !demoAbierto();
+// IA disponible: hay key de OpenRouter o un LLM propio (LLM_BASE_URL), y no es el demo abierto.
+const iaActiva = () => require("./modelos").iaConfigurada() && !demoAbierto();
 function pinOk(req) {
   if (demoAbierto()) return true;
   const p = String(req.headers["x-docente-pin"] || "");
