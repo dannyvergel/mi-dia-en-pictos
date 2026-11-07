@@ -161,6 +161,8 @@ Decisión del 1/11/2026: el piloto queda abierto a **15 usuarios en total** (se�
 | Variable | Para qué | ¿Obligatoria? |
 |---|---|---|
 | `DATABASE_URL` / `POSTGRES_URL` | Postgres de Neon. Sin esto: modo demo | Sí, para cuentas |
+| `APP_ENV` | `production`, `preview` o `development`. Para correr fuera de Vercel: `production` exige `SESSION_SECRET`, nunca devuelve códigos en las respuestas y hace que `/api/config?accion=salud` exija base. Sin esto se usa `VERCEL_ENV` (en Vercel no hace falta definirla); si tampoco está: `development` | Opcional |
+| `APP_COMMIT` | Commit desplegado (los primeros 7 caracteres salen en el chequeo de salud). Sin esto se usa `VERCEL_GIT_COMMIT_SHA` | Opcional |
 | `DB_DRIVER` | `pg` (Postgres común, autoalojado) o `neon` (HTTP de Neon). Sin esto: `neon` si la URL es un host de Neon (`*.neon.tech`, `*.neon.build`, `*.vercel-storage.com`), `pg` con cualquier otro host. `DB_POOL_MAX` ajusta el pool de `pg` (10) | Opcional |
 | `STORAGE_DRIVER` | `disk` guarda los días publicados y documentos en disco (autoalojado) en vez de Vercel Blob. Sin esto: Blob como siempre | Opcional |
 | `STORAGE_DIR` | Carpeta de `STORAGE_DRIVER=disk`. Hay que respaldarla junto con la base | Opcional (`./data/storage`) |

@@ -7,6 +7,7 @@
 // ganan sobre Resend. SMTP_DISABLED=1 (instalaciones en LAN sin correo) no manda nada: el código de ingreso se escribe SOLO en el log
 // del servidor (`[puente][codigo-login] email=… codigo=…`) y nunca vuelve en una respuesta HTTP, sea cual sea APP_ENV.
 const { errorPublico } = require("./http");
+const { appEnv } = require("./entorno");
 
 const activo = v => /^(1|true|yes|on)$/i.test(String(v ?? "").trim());
 const hayHost = () => !!(process.env.SMTP_URL || process.env.SMTP_HOST);
@@ -16,9 +17,9 @@ function modoCorreo() {
   if (activo(process.env.SMTP_DISABLED)) return "sin_correo";
   if (hayHost()) return "smtp";
   if (process.env.RESEND_API_KEY) return "resend";
-  const env = process.env.APP_ENV || process.env.VERCEL_ENV;
+  const env = appEnv();
   if (env === "production") return "falta";
-  return env === "preview" ? "log" : "dev";
+  return env === "development" ? "dev" : "log"; // solo "development" devuelve el código en la respuesta
 }
 
 // Todo lo que viene de un usuario pasa por acá antes de ir a un HTML.

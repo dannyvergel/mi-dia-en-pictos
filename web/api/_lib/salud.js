@@ -1,18 +1,19 @@
 // Chequeo de salud para el monitoreo (GET /api/config?accion=salud, lo llama .github/workflows/salud.yml).
 // Hace un SELECT 1 a la base con un tiempo máximo corto y responde { ok, db, version }:
 //   db: "ok" | "error" | "lenta" (pasó el tiempo máximo) | "sin_base" (no hay DATABASE_URL: modo demo).
-//   version: los primeros 7 caracteres del commit desplegado (VERCEL_GIT_COMMIT_SHA) o "local".
+//   version: los primeros 7 caracteres del commit desplegado (APP_COMMIT o VERCEL_GIT_COMMIT_SHA) o "local".
 // Sin datos personales y sin secretos: nunca devuelve el mensaje de error de la base (puede traer el host o el usuario).
 // En producción, sin base es 503: Puente con cuentas no funciona sin ella. Fuera de producción, el modo demo es válido.
 // El resultado se guarda unos segundos por instancia, así un pedido repetido no despierta la base cada vez.
 const { dbActiva, ping } = require("./db");
+const { appEnv, appCommit } = require("./entorno");
 
 const TIEMPO_MAXIMO_MS = 3000;
 const RECORDAR_MS = 30 * 1000;
 let ultimo = null; // { hasta, estado: { status, cuerpo } }
 
 function version() {
-  const sha = String(process.env.VERCEL_GIT_COMMIT_SHA || "").trim();
+  const sha = appCommit();
   return /^[0-9a-f]{7,40}$/i.test(sha) ? sha.slice(0, 7).toLowerCase() : "local";
 }
 
@@ -36,7 +37,7 @@ async function chequear({ tiempoMaximoMs = TIEMPO_MAXIMO_MS, ahora = Date.now() 
       console.error("[puente] salud: base", db, e && (e.code || e.name) || "");
     }
   }
-  const produccion = process.env.VERCEL_ENV === "production";
+  const produccion = appEnv() === "production";
   const ok = db === "ok" || (db === "sin_base" && !produccion);
   const estado = { status: ok ? 200 : 503, cuerpo: { ok, db, version: version() } };
   // Un fallo no se recuerda: el próximo pedido vuelve a probar.
