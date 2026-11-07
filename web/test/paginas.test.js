@@ -38,11 +38,16 @@ test("donaciones: nunca en el espacio de la familia ni hardcodeadas; dos botones
   assert.equal(/https:\/\/[^"'`\s]*(sponsor|don)/i.test(js), false);
 });
 
-test("páginas legales: marcadas como borrador, con terceros, derechos y contacto", () => {
+test("páginas legales: sin cartel de borrador ni placeholders, con responsable, regiones, terceros, derechos y contacto", () => {
   const p = leer("privacidad.html");
-  for (const t of ["BORRADOR", "Vercel", "Neon", "Resend", "OpenRouter", "ARASAAC", "fuera de Argentina", "acceso", "rectificación", "supresión", "soporte@puentepictos.app"]) assert.ok(p.includes(t), t);
+  for (const t of ["Danny Gerardo Vergel (persona física)", "Estados Unidos y Brasil", "Vercel", "Neon", "Resend", "OpenRouter", "ARASAAC", "fuera de Argentina", "acceso", "rectificación", "supresión", "soporte@puentepictos.app"]) assert.ok(p.includes(t), t);
   assert.ok(p.includes(require("../api/_lib/legal").VERSION_PRIVACIDAD));
-  assert.ok(leer("terminos.html").includes("BORRADOR"));
+  for (const f of ["privacidad.html", "terminos.html", "en/privacidad.html", "en/terminos.html"]) {
+    const h = leer(f);
+    assert.equal(/class="borrador"|BORRADOR|DRAFT|\[(RESPONSABLE|REGI[OÓ]N|CONTROLLER|REGION)\b/.test(h), false, f);
+    assert.equal(/<title>[^<]*(borrador|draft)/i.test(h), false, f);
+  }
+  assert.equal(leer("estilo.css").includes(".borrador"), false);
   assert.ok(leer("familia.html").includes('href="privacidad.html"'));
 });
 
