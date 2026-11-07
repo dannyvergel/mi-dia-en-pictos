@@ -238,6 +238,9 @@ const SCHEMA = [
     creado TIMESTAMPTZ NOT NULL DEFAULT now()
   )`,
   `CREATE INDEX IF NOT EXISTS documentos_alumno ON documentos (alumno_id, creado DESC)`,
+  // Documento reservado: lo ven solo quien lo subió, la dirección de la escuela y la plataforma (no el resto del equipo).
+  // Nunca puede estar visible para la familia (el CHECK solo se agrega junto con la columna, así migra una base existente).
+  `ALTER TABLE documentos ADD COLUMN IF NOT EXISTS reservado BOOLEAN NOT NULL DEFAULT false CHECK (NOT (reservado AND visible_familia))`,
   // ---------- Métricas de uso del piloto (ver _lib/metricas.js) ----------
   // Contadores diarios agregados por escuela. A propósito sin user_id, alumno_id, email, IP ni user agent.
   // escuela_id = 0: sin escuela. Se borra a los METRICAS_RETENCION_DIAS (400).

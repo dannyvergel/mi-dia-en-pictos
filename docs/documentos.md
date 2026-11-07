@@ -11,6 +11,7 @@ Las seños y terapeutas pueden subir archivos de cada alumno, como informes, act
 ## Permisos
 - **Docente con acceso al alumno** (asignada, admin de su escuela o la plataforma): sube, lista todos, descarga, muestra u oculta y avisa a la familia.
 - **Borrar**: solo quien lo subió o una admin de la escuela del alumno.
+- **Reservado** (`documentos.reservado`, por defecto `false`): se marca al subir (casilla «Reservado: solo para mí y la administración») o después con el botón «Reservar» / «Compartir con el equipo» (`doc_subir` / `doc_cambiar` con `reservado`). Lo ven, descargan, cambian y borran solo quien lo subió, la admin de la escuela y la plataforma. Para el resto de las docentes asignadas no existe: se omite de la lista y da 404. Nunca es visible para la familia: pedir `reservado` y `mostrar_familia` a la vez da 400, reservar un documento visible lo oculta (y borra la marca de aviso), y la base lo impide con un CHECK. No aparece en las vistas ni en la exportación de la familia. Quien puede borrar sigue siendo solo quien lo subió o la admin.
 - **Familia vinculada**: lista y descarga solo los que tienen `visible_familia`, de sus alumnos y de escuelas activas. No puede cambiar ni borrar.
 - Rige aunque `FAMILIA_FUNCIONES` esté en el mínimo (ver `docs/funciones-familia.md`).
 - La descarga sale con `Content-Disposition: attachment`, `Cache-Control: no-store`, `nosniff` y una CSP `sandbox`. El service worker no cachea `/api/`.
@@ -30,4 +31,4 @@ Las seños y terapeutas pueden subir archivos de cada alumno, como informes, act
 - Auditoría: se registran `doc_subir`, `doc_ver` (descarga), `doc_cambiar` y `doc_borrar`, con el id del documento y sin títulos, nombres ni emails.
 - La baja del alumno (`_lib/bajas.js`) borra las filas y los archivos del Blob. Desactivar una escuela no borra nada, pero la familia deja de verlos.
 - La exportación de la familia (`GET api/fichas?exportar=1`) trae los metadatos de los documentos visibles, sin los archivos.
-- Tests: `web/test/documentos.test.js`.
+- Tests: `web/test/documentos.test.js` y `web/test/documentos-reservado.test.js`.

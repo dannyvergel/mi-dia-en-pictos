@@ -4,6 +4,8 @@
 //   Se valida la extensión, el tipo declarado y los primeros bytes del archivo (magic bytes).
 // · Docente con acceso al alumno (asignada, admin de su escuela o plataforma): sube, lista, descarga, muestra/oculta y avisa.
 //   Borra solo quien lo subió o una admin de la escuela del alumno.
+// · Reservado: lo ven, descargan, cambian y borran solo quien lo subió, la admin de la escuela y la plataforma. Para el resto del
+//   equipo asignado no existe (se omite de la lista y da 404). Un reservado nunca está visible para la familia.
 // · Familia vinculada: lista y descarga solo los que tienen visible_familia, de sus alumnos y de escuelas activas.
 //   Rige aunque FAMILIA_FUNCIONES esté en el mínimo: la seño decide documento por documento.
 // · Nunca se mandan a la IA ni a OpenRouter. El aviso por mail no lleva adjunto, título ni contenido.
@@ -17,6 +19,7 @@ const avisos = require("./avisos");
 const { errorPublico } = require("./http");
 
 const MAX_BYTES = 3 * 1024 * 1024;
+const MSG_RESERVADO = "Un documento reservado no se puede mostrar a la familia. Sacale la marca de «reservado» primero.";
 const TIPOS = ["informe", "documento"];
 // Extensión → tipo MIME guardado (el que declara el navegador solo se acepta si coincide o viene vacío).
 const MIMES = {
@@ -84,26 +87,30 @@ async function alumnoDeDocente(yo, id) {
   if (!a) throw errorPublico("No encontramos ese alumno", 404);
   return a;
 }
-const COLS = `d.id, d.alumno_id, d.escuela_id, d.subido_por, d.tipo, d.titulo, d.nombre_archivo, d.mime, d.bytes, d.blob_ruta, d.visible_familia, d.notificado, d.creado`;
+const COLS = `d.id, d.alumno_id, d.escuela_id, d.subido_por, d.tipo, d.titulo, d.nombre_archivo, d.mime, d.bytes, d.blob_ruta, d.visible_familia, d.reservado, d.notificado, d.creado`;
 async function docDeDocente(yo, docId) {
   const d = await uno(`SELECT ${COLS}, a.nombre AS alumno FROM documentos d JOIN alumnos a ON a.id = d.alumno_id WHERE d.id = $1`, [Number(docId) || 0]);
   if (!d) throw errorPublico("No encontramos ese documento", 404);
   await alumnoDeDocente(yo, d.alumno_id); // 404 si no tiene al alumno
+  if (!puedeVerReservado(yo, d)) throw errorPublico("No encontramos ese documento", 404); // un reservado ajeno no existe
   return d;
 }
 // Familia: solo los visibles, de sus alumnos, de escuelas activas.
 async function docDeFamilia(fam, docId) {
   const d = await uno(`SELECT ${COLS} FROM documentos d JOIN familia_alumno fa ON fa.alumno_id = d.alumno_id AND fa.familia_id = $2
     JOIN alumnos a ON a.id = d.alumno_id JOIN escuelas e ON e.id = a.escuela_id
-    WHERE d.id = $1 AND d.visible_familia AND e.activa`, [Number(docId) || 0, fam.id]);
+    WHERE d.id = $1 AND d.visible_familia AND NOT d.reservado AND e.activa`, [Number(docId) || 0, fam.id]);
   if (!d) throw errorPublico("No encontramos ese documento", 404);
   return d;
 }
+// Quién ve un documento reservado: quien lo subió, la admin de la escuela del documento y la plataforma. Los no reservados, todo el equipo con acceso.
+const puedeVerReservado = (yo, d) => !d.reservado || Number(d.subido_por) === Number(yo.id) || S.esPlataforma(yo)
+  || (!!yo.es_admin && Number(yo.escuela_id) === Number(d.escuela_id));
 const puedeBorrar = (yo, d) => Number(d.subido_por) === Number(yo.id) || (!!yo.es_admin && Number(yo.escuela_id) === Number(d.escuela_id));
 
 // ---------- formas de salida (nunca blob_ruta) ----------
 const paraDocente = (yo, d) => ({ id: Number(d.id), alumno_id: Number(d.alumno_id), tipo: d.tipo, titulo: d.titulo, nombre_archivo: d.nombre_archivo,
-  mime: d.mime, bytes: Number(d.bytes), visible_familia: !!d.visible_familia, notificado: d.notificado || null, creado: d.creado,
+  mime: d.mime, bytes: Number(d.bytes), visible_familia: !!d.visible_familia, reservado: !!d.reservado, notificado: d.notificado || null, creado: d.creado,
   subido_por: d.subido_por != null ? { id: Number(d.subido_por), nombre: d.subido_por_nombre || "" } : null, puede_borrar: puedeBorrar(yo, d) });
 const paraFamilia = d => ({ id: Number(d.id), alumno_id: Number(d.alumno_id), tipo: d.tipo, titulo: d.titulo, nombre_archivo: d.nombre_archivo,
   mime: d.mime, bytes: Number(d.bytes), creado: d.creado });
@@ -112,19 +119,19 @@ async function listarDocente(yo, alumnoId) {
   const a = await alumnoDeDocente(yo, alumnoId);
   const filas = await q(`SELECT ${COLS}, doc.nombre AS subido_por_nombre FROM documentos d LEFT JOIN docentes doc ON doc.id = d.subido_por
     WHERE d.alumno_id = $1 ORDER BY d.creado DESC, d.id DESC`, [a.id]);
-  return filas.map(d => paraDocente(yo, d));
+  return filas.filter(d => puedeVerReservado(yo, d)).map(d => paraDocente(yo, d));
 }
 async function listarFamilia(fam, alumnoId) {
   const filas = await q(`SELECT ${COLS} FROM documentos d JOIN familia_alumno fa ON fa.alumno_id = d.alumno_id AND fa.familia_id = $2
     JOIN alumnos a ON a.id = d.alumno_id JOIN escuelas e ON e.id = a.escuela_id
-    WHERE d.alumno_id = $1 AND d.visible_familia AND e.activa ORDER BY d.creado DESC, d.id DESC`, [Number(alumnoId) || 0, fam.id]);
+    WHERE d.alumno_id = $1 AND d.visible_familia AND NOT d.reservado AND e.activa ORDER BY d.creado DESC, d.id DESC`, [Number(alumnoId) || 0, fam.id]);
   return filas.map(paraFamilia);
 }
 // Para la exportación de la familia (derecho de acceso): metadatos de los visibles de todos sus alumnos.
 async function exportarFamilia(fam) {
   const filas = await q(`SELECT ${COLS} FROM documentos d JOIN familia_alumno fa ON fa.alumno_id = d.alumno_id AND fa.familia_id = $1
     JOIN alumnos a ON a.id = d.alumno_id JOIN escuelas e ON e.id = a.escuela_id
-    WHERE d.visible_familia AND e.activa ORDER BY d.alumno_id, d.creado`, [fam.id]);
+    WHERE d.visible_familia AND NOT d.reservado AND e.activa ORDER BY d.alumno_id, d.creado`, [fam.id]);
   return filas.map(paraFamilia);
 }
 
@@ -147,18 +154,20 @@ async function subir(req, yo, b) {
   const a = await alumnoDeDocente(yo, b.id);
   const tipo = validarTipo(b.tipo), titulo = validarTitulo(b.titulo);
   const visible = b.mostrar_familia === true, avisar = b.notificar === true;
+  const reservado = b.reservado === true;
+  if (reservado && visible) throw errorPublico(MSG_RESERVADO);
   if (avisar && !visible) throw errorPublico("Para avisarle a la familia, primero marcá «Mostrar a la familia».");
   const archivo = validarArchivo({ nombre: b.nombre, mime: b.mime, datos: b.datos });
   const ruta = `documentos/${a.id}/${crypto.randomBytes(16).toString("hex")}`;
   await almacen.guardarArchivo(ruta, archivo.datos, archivo.mime);
   let d;
   try {
-    d = await uno(`INSERT INTO documentos (alumno_id, escuela_id, subido_por, tipo, titulo, nombre_archivo, mime, bytes, blob_ruta, visible_familia)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
-      [a.id, a.escuela_id, yo.id, tipo, titulo, archivo.nombre, archivo.mime, archivo.datos.length, ruta, visible]);
+    d = await uno(`INSERT INTO documentos (alumno_id, escuela_id, subido_por, tipo, titulo, nombre_archivo, mime, bytes, blob_ruta, visible_familia, reservado)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id`,
+      [a.id, a.escuela_id, yo.id, tipo, titulo, archivo.nombre, archivo.mime, archivo.datos.length, ruta, visible, reservado]);
   } catch (e) { await almacen.borrarArchivo(ruta); throw e; } // sin fila no queda un archivo suelto
   await auditoria.registrar(req, { evento: "doc_subir", ...auditoria.actor({ tipo: "docente", usuario: yo }), objeto_tipo: "documento", objeto_id: d.id,
-    detalle: { alumno_id: Number(a.id), tipo, bytes: archivo.datos.length, visible } });
+    detalle: { alumno_id: Number(a.id), tipo, bytes: archivo.datos.length, visible, reservado } });
   const aviso = avisar ? await notificar(req, { id: d.id, alumno_id: a.id, tipo }, a.nombre) : null;
   return { documento: (await listarDocente(yo, a.id)).find(x => x.id === Number(d.id)), ...(aviso ? { aviso_familia: aviso } : {}) };
 }
@@ -166,14 +175,16 @@ async function subir(req, yo, b) {
 async function cambiar(req, yo, b) {
   const d = await docDeDocente(yo, b.doc_id);
   let visible = !!d.visible_familia;
-  if (b.mostrar_familia !== undefined) {
-    visible = b.mostrar_familia === true;
-    // Al ocultarlo se borra la marca de aviso: si se vuelve a mostrar, el estado arranca de cero.
-    if (visible !== !!d.visible_familia) await q(`UPDATE documentos SET visible_familia = $2, notificado = CASE WHEN $2 THEN notificado ELSE NULL END WHERE id = $1`, [d.id, visible]);
-  }
+  const reservado = b.reservado !== undefined ? b.reservado === true : !!d.reservado;
+  if (reservado && b.mostrar_familia === true) throw errorPublico(MSG_RESERVADO);
+  if (b.mostrar_familia !== undefined) visible = b.mostrar_familia === true;
+  if (reservado) visible = false; // reservar un documento visible lo oculta a la familia
+  // Al ocultarlo se borra la marca de aviso: si se vuelve a mostrar, el estado arranca de cero.
+  if (visible !== !!d.visible_familia || reservado !== !!d.reservado)
+    await q(`UPDATE documentos SET visible_familia = $2, reservado = $3, notificado = CASE WHEN $2 THEN notificado ELSE NULL END WHERE id = $1`, [d.id, visible, reservado]);
   if (b.notificar === true && !visible) throw errorPublico("Solo se le puede avisar a la familia si el documento está visible para ella.");
   await auditoria.registrar(req, { evento: "doc_cambiar", ...auditoria.actor({ tipo: "docente", usuario: yo }), objeto_tipo: "documento", objeto_id: d.id,
-    detalle: { visible, notificar: b.notificar === true } });
+    detalle: { visible, reservado, notificar: b.notificar === true } });
   const aviso = b.notificar === true ? await notificar(req, d, d.alumno) : null;
   return { documento: (await listarDocente(yo, d.alumno_id)).find(x => x.id === Number(d.id)), ...(aviso ? { aviso_familia: aviso } : {}) };
 }

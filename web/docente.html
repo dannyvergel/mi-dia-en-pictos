@@ -153,6 +153,8 @@
         <input type="file" id="docArchivo" required accept=".pdf,.jpg,.jpeg,.png,.docx,application/pdf,image/jpeg,image/png,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
         <label class="check" style="margin-top:8px"><input type="checkbox" id="docMostrar"> Mostrar a la familia</label>
         <label class="check"><input type="checkbox" id="docNotificar" disabled> Informar a la familia por mail</label>
+        <label class="check"><input type="checkbox" id="docReservado"> Reservado: solo para mí y la administración</label>
+        <p class="muted">Un documento reservado no lo ve el resto del equipo ni se puede mostrar a la familia.</p>
         <p class="muted">El mail solo dice que la escuela compartió un informe o documento y que entren a Puente para verlo: no lleva el archivo ni el título.</p>
         <button class="big" id="docSubir">Subir</button>
       </form>
@@ -542,7 +544,8 @@ $("borrar").onclick = async () => {
 // ---------- informes y documentos del alumno ----------
 const DOC_MAX = 3 * 1024 * 1024;
 const DOC_TIPO = { informe: "Informe", documento: "Documento" };
-const estadoDoc = d => !d.visible_familia ? '<span class="sello">Solo equipo</span>'
+const estadoDoc = d => d.reservado ? '<span class="sello">Reservado: solo para mí y la administración</span>'
+  : !d.visible_familia ? '<span class="sello">Solo equipo</span>'
   : d.notificado ? `<span class="sello avanzando">Familia avisada el ${esc(fecha(d.notificado))}</span>` : '<span class="sello avanzando">Visible para la familia</span>';
 async function cargarDocumentos() {
   if (!actual) return;
@@ -558,7 +561,8 @@ function pintarDocumentos(lista) {
       <span><b>${esc(d.titulo)}</b> <span class="muted">· ${esc(DOC_TIPO[d.tipo] || d.tipo)} · ${esc(fecha(d.creado))}${d.subido_por ? " · subió " + esc(d.subido_por.nombre) : ""}</span><br>${estadoDoc(d)}</span>
       <span class="doc-acc">
         <button type="button" class="enlace" data-a="bajar">Descargar</button>
-        <button type="button" class="enlace" data-a="${d.visible_familia ? "ocultar" : "mostrar"}">${d.visible_familia ? "Ocultar" : "Mostrar"}</button>
+        <button type="button" class="enlace" data-a="${d.reservado ? "desreservar" : "reservar"}">${d.reservado ? "Compartir con el equipo" : "Reservar"}</button>
+        ${d.reservado ? "" : `<button type="button" class="enlace" data-a="${d.visible_familia ? "ocultar" : "mostrar"}">${d.visible_familia ? "Ocultar" : "Mostrar"}</button>`}
         <button type="button" class="enlace" data-a="informar" ${d.visible_familia ? "" : 'disabled title="Primero mostralo a la familia"'}>Informar</button>
         ${d.puede_borrar ? '<button type="button" class="quitar txt" data-a="borrar">Borrar</button>' : ""}
       </span></div>`).join("") : '<p class="vacio">Todavía no hay informes ni documentos.</p>';
@@ -577,16 +581,20 @@ async function accionDoc(d, accion, btn) {
       msg("msgDocs", "Documento borrado ✓");
       return cargarDocumentos();
     }
+    if (accion === "reservar" && !confirm(`¿Reservar «${d.titulo}»? Solo lo vas a ver vos y la administración, y si la familia lo veía, deja de verlo.`)) return;
     if (accion === "informar" && !confirm(`¿Avisarle por mail a la familia de ${actual.nombre} que hay un ${d.tipo} nuevo? El mail no lleva el archivo ni el título.`)) return;
     btn.disabled = true;
-    const body = { accion: "doc_cambiar", doc_id: d.id, ...(accion === "informar" ? { notificar: true } : { mostrar_familia: accion === "mostrar" }) };
+    const cambio = accion === "informar" ? { notificar: true } : accion === "reservar" || accion === "desreservar" ? { reservado: accion === "reservar" } : { mostrar_familia: accion === "mostrar" };
+    const body = { accion: "doc_cambiar", doc_id: d.id, ...cambio };
     const r = await api("api/fichas", { method: "POST", body });
     const af = r.aviso_familia;
-    msg("msgDocs", af ? (af.aviso || "Le avisamos a la familia por mail ✓") : accion === "mostrar" ? "Ahora la familia lo ve ✓" : "La familia ya no lo ve ✓", !!af?.aviso);
+    msg("msgDocs", af ? (af.aviso || "Le avisamos a la familia por mail ✓") : accion === "mostrar" ? "Ahora la familia lo ve ✓" : accion === "reservar" ? "Quedó reservado: solo lo ven quien lo subió y la administración ✓" : accion === "desreservar" ? "Ahora lo ve el equipo del alumno ✓" : "La familia ya no lo ve ✓", !!af?.aviso);
     await cargarDocumentos();
   } catch (e) { msg("msgDocs", e.message, true); if (btn) btn.disabled = false; }
 }
-$("docMostrar").onchange = () => { $("docNotificar").disabled = !$("docMostrar").checked; if (!$("docMostrar").checked) $("docNotificar").checked = false; };
+// Reservado y «Mostrar a la familia» son excluyentes: marcar uno desmarca el otro.
+$("docMostrar").onchange = () => { if ($("docMostrar").checked) $("docReservado").checked = false; $("docNotificar").disabled = !$("docMostrar").checked; if (!$("docMostrar").checked) $("docNotificar").checked = false; };
+$("docReservado").onchange = () => { if ($("docReservado").checked) { $("docMostrar").checked = false; $("docNotificar").checked = false; $("docNotificar").disabled = true; } };
 const leerBase64 = f => new Promise((ok, mal) => { const r = new FileReader(); r.onload = () => ok(String(r.result).replace(/^data:[^,]*,/, "")); r.onerror = () => mal(new Error("No pudimos leer el archivo.")); r.readAsDataURL(f); });
 $("fDocAl").onsubmit = async ev => {
   ev.preventDefault();
@@ -598,7 +606,7 @@ $("fDocAl").onsubmit = async ev => {
   $("docSubir").disabled = true; msg("msgDocs", "Subiendo…");
   try {
     const r = await api("api/fichas", { method: "POST", body: { accion: "doc_subir", id: actual.id, tipo: $("docTipo").value, titulo: $("docTitulo").value,
-      nombre: f.name, mime: f.type, datos: await leerBase64(f), mostrar_familia: $("docMostrar").checked, notificar: $("docNotificar").checked } });
+      nombre: f.name, mime: f.type, datos: await leerBase64(f), mostrar_familia: $("docMostrar").checked, notificar: $("docNotificar").checked, reservado: $("docReservado").checked } });
     ev.target.reset(); $("docNotificar").disabled = true;
     const af = r.aviso_familia;
     msg("msgDocs", "Subido ✓" + (af ? " " + (af.aviso || "Le avisamos a la familia por mail.") : ""), !!af?.aviso);
