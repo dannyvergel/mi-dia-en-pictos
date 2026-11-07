@@ -11,6 +11,6 @@
       "target": {
         "namespace": "android_app",
         "package_name": "app.puentepictos.comunicador",
-        "sha256_cert_fingerprints": ["E5:E5:B5:76:DE:86:BB:A1:47:BA:20:47:3E:0F:8D:A6:95:EF:A2:39:13:A6:A9:92:0F:DF:0F:CD:F3:BA:7C:00"]
+        "sha256_cert_fingerprints": ["E5:E5:B5:76:DE:86:BB:A1:47:BA:20:47:3E:0F:8D:A6:95:EF:A2:39:13:A6:A9:92:0F:DF:0F:CD:F3:BA:7C:00", "AF:FB:1D:78:8F:16:65:A6:B9:80:1C:6E:4B:67:14:89:4B:54:B6:28:8C:E8:5D:AC:8B:67:4F:82:58:A1:9C:FA"]
       }
     }]
