@@ -7,6 +7,22 @@ window.Puente = (() => {
     return j;
   }
   const estado = () => api("api/auth");
+  // Estado de la sesión para el Cuaderno (issue #42). Solo devuelve modo "db" o "demo" si /api/auth lo dijo con un 200 en JSON.
+  // Cualquier otra cosa (sin red, 500, challenge del firewall de Vercel, HTML en vez de JSON) es { modo: "error", status }:
+  // así el Cuaderno nunca confunde un error con el modo demo ni muestra el PIN cuando hay base de datos. Reintenta una vez.
+  async function estadoSeguro({ intentos = 2, espera = 800 } = {}) {
+    let ultimo = { modo: "error", status: 0 };
+    for (let i = 0; i < intentos; i++) {
+      if (i) await new Promise(ok => setTimeout(ok, espera));
+      try {
+        const r = await fetch("api/auth", { credentials: "same-origin", cache: "no-store" });
+        let j = null; try { j = await r.json(); } catch {}
+        if (r.ok && j && (j.modo === "db" || j.modo === "demo")) return j;
+        ultimo = { modo: "error", status: r.status };
+      } catch { ultimo = { modo: "error", status: 0 }; }
+    }
+    return ultimo;
+  }
   async function salir() { try { await api("api/auth", { method: "POST", body: { accion: "logout" } }); } catch {} location.href = "login.html"; }
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   // Mismo criterio que api/_lib/fichas.js: objetivos de la ficha → PPI del agente; apoyos → perfil funcional.
@@ -25,5 +41,5 @@ window.Puente = (() => {
     const a = Object.assign(document.createElement("a"), { href, download: nombre || "archivo" });
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(href), 5000);
   }
-  return { api, estado, salir, esc, ppiDe, perfilDe, bajarArchivo };
+  return { api, estado, estadoSeguro, salir, esc, ppiDe, perfilDe, bajarArchivo };
 })();

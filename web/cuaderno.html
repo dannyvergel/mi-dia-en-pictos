@@ -41,6 +41,13 @@
     <p class="muted" id="pinErr"></p>
   </div>
 </div>
+<div id="authGate" class="gate" hidden>
+  <div class="card cinta" role="alert">
+    <span class="rotulo">No pudimos comprobar tu sesión</span>
+    <p class="muted">Puede ser un problema de conexión. Probá de nuevo en unos segundos. Si sigue pasando, volvé a ingresar.</p>
+    <div class="fila"><button class="big" id="authReintentar" type="button">Reintentar</button><a class="big alt" id="authIngresar" href="login.html?volver=cuaderno">Ingresar de nuevo</a></div>
+  </div>
+</div>
 <header><h1>Puente</h1><div class="bajada">de la escuela a casa, en pictogramas</div><span class="tiza"></span></header>
 <nav>
   <button class="on" data-s="docente">Docente</button>
@@ -158,8 +165,10 @@ async function chequearPin(p) {
 // Con base de datos: sesión de docente (login.html). Sin base: PIN de demo como siempre.
 let MODO_DB = false, FICHAS = {};
 (async () => {
-  const e = await fetch("api/auth").then(r => r.json()).catch(() => ({ modo: "demo" }));
+  // Solo un "modo: demo" explícito de la API lleva al PIN. Un error (red, servidor, firewall) muestra #authGate (issue #42).
+  const e = await Puente.estadoSeguro();
   if (e.modo === "db") return entrarConCuenta(e);
+  if (e.modo !== "demo") return sinSesionVerificada();
   if (e.abierto) return modoAbierto();
   const g = document.getElementById("pinGate"), guardado = localStorage.getItem("puente_pin");
   if (guardado && await chequearPin(guardado).catch(() => true)) return;
@@ -170,6 +179,14 @@ let MODO_DB = false, FICHAS = {};
     else document.getElementById("pinErr").textContent = "PIN incorrecto. Probá de nuevo.";
   };
 })();
+
+// No se pudo leer /api/auth: mensaje claro, reintentar (recarga la página, así también pasa un challenge del firewall) o volver a ingresar.
+function sinSesionVerificada() {
+  const g = document.getElementById("authGate");
+  g.hidden = false;
+  document.getElementById("authReintentar").onclick = () => location.reload();
+  document.getElementById("authReintentar").focus();
+}
 
 // Demo abierto: sin PIN, datos solo en este navegador, sin links para familias y sin IA.
 let ABIERTO = false;
