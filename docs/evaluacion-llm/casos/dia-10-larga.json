@@ -1,0 +1,126 @@
+{
+  "sintetico": true,
+  "aviso": "DATOS SINTÉTICOS: este caso fue escrito a mano para evaluar modelos. Los nombres, hechos, teléfonos y correos son inventados y no corresponden a ninguna persona real. No pegar acá datos de chicos reales.",
+  "id": "dia-10-larga",
+  "tipo": "dia",
+  "alumno": "Martina",
+  "fecha": "2026-08-11",
+  "longitud": "larga (~5000 caracteres)",
+  "texto": "Martina llegó a las 8:20 con su mamá, saludó a la seño Paula con un \"hola\" bien clarito y colgó sola la mochila en su percha, algo que hace unas semanas todavía le costaba. Entró sonriendo y se sentó en su lugar de siempre, al lado de la ventana, porque ahí se siente más cómoda.\n\nA las 8:30 hicimos la ronda de la mañana. Cantamos la canción de bienvenida y Martina eligió ser la encargada del calendario: puso la fecha en el cartel y dijo en voz alta que era martes. Se la notó atenta, miró a sus compañeros mientras hablaban y levantó la mano para contar que ayer fue al cumpleaños de su prima.\n\nA las 9:00 trabajamos con la secuencia de la rutina diaria usando tarjetas con pictogramas. Martina ordenó las cuatro tarjetas de la mañana (llegar, ronda, desayuno, recreo) sin ayuda y después quiso hacerlo con las de la tarde. Cuando una tarjeta se le cayó al piso se frustró un momento, resopló, pero la levantó sola y siguió.\n\nA las 9:45 fue el desayuno en el comedor. Tomó la leche con chocolate, comió dos galletitas y rechazó la manzana, aunque la olió y la tocó, lo cual es un avance porque antes ni la miraba. Ayudó a repartir las servilletas en la mesa y agradeció cuando le alcanzaron el vaso.\n\nA las 10:00, antes del recreo, hizo el taller de huerta: regó los almácigos de lechuga con la regadera chica y anotó en el cuaderno de la huerta cuántas hojas tenía cada plantita. Dijo \"esta es la más grande\" y la señaló con orgullo. Se ensució las manos con tierra y no se molestó; se las lavó sola sin que nadie se lo pidiera. Después comentó, sin que le preguntaran, que en su casa tienen una planta de menta y que a veces la ayuda a regarla con su abuela, y quedó muy conversadora el resto de la mañana.\n\nA las 10:15 salimos al recreo en el patio. Martina se subió al tobogán varias veces y jugó a la mancha con Julián y con Rocío. En un momento se tropezó con una piedrita y se golpeó apenas la rodilla; le pusimos hielo un ratito, se quedó sentada un minuto y después volvió a jugar. Le avisamos a la familia en el cuaderno de comunicaciones. No hubo hinchazón ni llanto fuerte.\n\nA las 11:00 tuvimos taller de música con la profe Silvia. Usamos panderetas, maracas y un bombo. Martina eligió la pandereta y siguió el ritmo de la canción de los animales; en la parte del estribillo hizo los sonidos del perro y del gato. Se rió mucho cuando Julián se equivocó de instrumento y se lo dijo con un gesto amable.\n\nA las 11:45 trabajamos matemática con material concreto. Contó tapitas de colores del uno al diez, agrupó las rojas y las azules y armó dos filas. Logró contar hasta ocho sin equivocarse; en el nueve y el diez necesitó que la seño le marcara con el dedo. Después dibujó en su hoja tantas manzanas como tapitas rojas había.\n\nA las 12:10 ayudó a poner la mesa: colocó los manteles individuales, los cubiertos y los vasos, y contó cuántos chicos faltaban hoy (dos). Se equivocó una vez al repartir los vasos y lo corrigió sola cuando Rocío le avisó. Tardó un poco más que otros días porque quería que quedara todo prolijo, y eso le dio mucha satisfacción. Cuando terminó, se quedó mirando la mesa un momento y dijo \"ya está\", con una sonrisa grande.\n\nA las 12:30 almorzamos. Hoy el menú era milanesa de pollo con ensalada de zanahoria. Martina comió casi toda la milanesa y un poco de zanahoria rallada; dijo \"rico\" dos veces. Se lavó las manos antes y los dientes después, siguiendo el cartel con los pasos que tiene pegado en el baño, aunque en el último paso pidió ayuda con el enjuague.\n\nA las 13:30 vino la fonoaudióloga Paula a trabajar un rato con Martina en el aula de apoyo. Hicieron ejercicios de soplo con burbujas y repitieron palabras de dos sílabas con las imágenes de un lotto de animales. Según la fonoaudióloga, Martina colaboró bien y pidió repetir el juego de las burbujas al final.\n\nA las 14:00, en el rincón de juego simbólico, jugó a la verdulería con Rocío: armó el puesto con cajones, ordenó las frutas de plástico por color, dijo \"¿cuánto sale?\" y pagó con dos billetes de juguete. Inventó un diálogo largo con la clienta y por primera vez ofreció el vuelto sin que se lo sugirieran. Hubo un pequeño desacuerdo por la balanza, pero lo resolvieron turnándose sin intervención de la seño.\n\nA las 14:15 volvimos al aula para el cuento. Leímos \"El monstruo de colores\" y después cada chico eligió un color para su emoción del día. Martina eligió el amarillo y dijo \"contenta\". Pintó con crayones un monstruo amarillo y se lo mostró a Rocío. A las 15:00 guardó sus cosas ordenadamente, se despidió de todos con un beso al aire y se fue con su papá, muy tranquila y con la hoja del monstruo en la mano para mostrarle en casa.",
+  "esperado": {
+    "actividades": [
+      {
+        "actividad": "Ronda de la mañana y calendario",
+        "claves": [
+          "ronda",
+          "calendario"
+        ]
+      },
+      {
+        "actividad": "Secuencia de la rutina con pictogramas",
+        "claves": [
+          "pictograma",
+          "secuencia",
+          "tarjeta"
+        ]
+      },
+      {
+        "actividad": "Desayuno",
+        "claves": [
+          "desayun"
+        ]
+      },
+      {
+        "actividad": "Taller de huerta",
+        "claves": [
+          "huerta",
+          "almacig"
+        ]
+      },
+      {
+        "actividad": "Recreo en el patio",
+        "claves": [
+          "recreo",
+          "tobogan"
+        ]
+      },
+      {
+        "actividad": "Juego simbólico de la verdulería",
+        "claves": [
+          "verduleria",
+          "simbolico"
+        ]
+      },
+      {
+        "actividad": "Taller de música",
+        "claves": [
+          "musica",
+          "pandereta"
+        ]
+      },
+      {
+        "actividad": "Matemática con tapitas",
+        "claves": [
+          "matematica",
+          "tapita"
+        ]
+      },
+      {
+        "actividad": "Almuerzo",
+        "claves": [
+          "almor"
+        ]
+      },
+      {
+        "actividad": "Trabajo con la fonoaudióloga",
+        "claves": [
+          "fonoaudiolog",
+          "burbuja"
+        ]
+      },
+      {
+        "actividad": "Cuento El monstruo de colores",
+        "claves": [
+          "cuento",
+          "monstruo"
+        ]
+      }
+    ],
+    "animo": [
+      "contento",
+      "tranquilo"
+    ],
+    "logros": [
+      {
+        "texto": "Colgó sola su mochila",
+        "claves": [
+          "mochila"
+        ]
+      },
+      {
+        "texto": "Ordenó sin ayuda las tarjetas de la rutina de la mañana",
+        "claves": [
+          "tarjeta",
+          "ordeno"
+        ]
+      }
+    ],
+    "alertas": [
+      {
+        "tipos": [
+          "salud"
+        ],
+        "detalle": "Se golpeó apenas la rodilla en el recreo; se le puso hielo y se avisó a la familia",
+        "nivel": "bajo"
+      }
+    ],
+    "sin_alertas": false
+  },
+  "trampas": {
+    "no_inventar": [
+      "natac",
+      "computac",
+      "educacion fisica"
+    ]
+  }
+}

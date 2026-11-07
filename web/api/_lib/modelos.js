@@ -6,7 +6,8 @@
 //    datos no salen de ahí; si LLM_BASE_URL apunta a un tercero, su política de retención es responsabilidad de quien lo configura.
 //    La minimización (minimizar.js) se aplica siempre, en los dos modos.
 //  Tiempos: LLM_TIMEOUT_MS (por llamada, 28000) y LLM_AGENT_TIMEOUT_MS (tope total del agente, 30000, o LLM_TIMEOUT_MS + 2000 si es mayor).
-//  Un modelo local en CPU necesita valores mucho más grandes (minutos).
+//  Un modelo local en CPU necesita valores mucho más grandes (minutos). Por encima de ~290 s el pedido a LLM_BASE_URL usa node:http
+//  (el fetch de Node corta a los 300 s sin cabeceras, ver pedirChat).
 //
 // Solo modelos baratos y que tengan proveedores sin retención (ZDR). Cualquier otro valor en OPENROUTER_MODEL se ignora.
 // Precios OpenRouter por millón de tokens (nov 2026, endpoints ZDR más baratos): deepseek-v4-flash desde US$0,05–0,09 entrada /
@@ -68,16 +69,50 @@ function cabeceras() {
   const url = (process.env.PUENTE_URL || "https://puentepictos.app").replace(/\/+$/, "");
   return { Authorization: "Bearer " + process.env.OPENROUTER_API_KEY, "Content-Type": "application/json", "HTTP-Referer": url, "X-Title": "Puente" };
 }
+// Node's global fetch (undici) aborts after 300 s without response headers (headersTimeout) and 300 s of body inactivity, whatever
+// the AbortSignal says. A non-streaming local model on CPU sends no headers until generation ends, so timeouts above that never applied.
+// Only for LLM_BASE_URL (local/own server) and only when the timeout is above that limit, requests go through node:http, which has no
+// such socket timeouts: the AbortSignal alone governs both the wait for headers and the body. Below the limit (and always with
+// OpenRouter) global fetch is used exactly as before. The npm undici dispatcher was discarded: it is not compatible with the fetch
+// bundled in Node, and pinning it to a Node-specific version would be fragile.
+const LIMITE_FETCH_MS = 290000;
+const usaTransporteLargo = conTope => modoLLM() === "generico" && conTope && timeoutLlamadaMs() > LIMITE_FETCH_MS;
+// fetch-like request over node:http(s) with no socket timeouts. Resolves a standard Response (body buffered; chat is non-streaming).
+function fetchLargo(url, { method = "GET", headers = {}, body, signal } = {}) {
+  const u = new URL(url);
+  const cliente = u.protocol === "https:" ? require("node:https") : require("node:http");
+  return new Promise((resolve, reject) => {
+    const razon = () => (signal && signal.reason) || Object.assign(new Error("This operation was aborted"), { name: "AbortError" });
+    if (signal && signal.aborted) return reject(razon());
+    const datos = body === undefined ? null : Buffer.from(body);
+    const req = cliente.request(u, { method, headers: { ...headers, ...(datos ? { "Content-Length": datos.length } : {}) } }, res => {
+      const trozos = [];
+      res.on("data", t => trozos.push(t));
+      res.on("error", reject);
+      res.on("aborted", () => reject(razon()));
+      res.on("end", () => {
+        const sinCuerpo = [101, 204, 205, 304].includes(res.statusCode);
+        resolve(new Response(sinCuerpo ? null : Buffer.concat(trozos), { status: res.statusCode, statusText: res.statusMessage, headers: res.headers }));
+      });
+    });
+    const alAbortar = () => { reject(razon()); req.destroy(); };
+    if (signal) signal.addEventListener("abort", alAbortar, { once: true });
+    req.on("close", () => signal && signal.removeEventListener("abort", alAbortar));
+    req.on("error", e => reject(signal && signal.aborted ? razon() : new TypeError("fetch failed", { cause: e })));
+    req.end(datos);
+  });
+}
 // Pedido de chat completions al proveedor configurado. `timeout: true` fuerza el tope por llamada (el agente lo usa siempre);
 // si no, solo se aplica cuando LLM_TIMEOUT_MS está definido (dia.js y chat.js no tenían tope propio).
 function pedirChat(uso, extra, { timeout = false } = {}) {
   const conTope = timeout || entero(process.env.LLM_TIMEOUT_MS) > 0;
-  return fetch(urlChat(), {
+  const init = {
     method: "POST",
     headers: cabeceras(),
     ...(conTope ? { signal: AbortSignal.timeout(timeoutLlamadaMs()) } : {}),
     body: JSON.stringify(cuerpo(uso, extra))
-  });
+  };
+  return usaTransporteLargo(conTope) ? fetchLargo(urlChat(), init) : fetch(urlChat(), init);
 }
 module.exports = { PRINCIPAL, PERMITIDOS, SIN_ZDR, PROVEEDOR, cuerpo, cabeceras, modoLLM, urlChat, nombreProveedor, iaConfigurada, modeloActual,
-  timeoutLlamadaMs, timeoutAgenteMs, pedirChat };
+  timeoutLlamadaMs, timeoutAgenteMs, pedirChat, usaTransporteLargo, fetchLargo };

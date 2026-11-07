@@ -205,6 +205,6 @@ const reiniciarLimitesMemoria = () => memoria.clear(); // solo tests
 
 module.exports = {
   MAX_PREGUNTA, MAX_RESPUESTA, LIMITES, RETENCION_DIAS,
-  negativa, prefiltro, leerJson, limpiarSalida, SISTEMA, preguntar,
+  negativa, prefiltro, leerJson, limpiarSalida, filtraPrompt, mensajes, SISTEMA, preguntar,
   leerHistorial, guardarTurno, limiteDb, limiteMemoria, reiniciarLimitesMemoria
 };

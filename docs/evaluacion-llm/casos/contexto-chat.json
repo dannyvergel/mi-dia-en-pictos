@@ -1,0 +1,98 @@
+{
+  "sintetico": true,
+  "aviso": "DATOS SINTÉTICOS: este caso fue escrito a mano para evaluar modelos. Los nombres, hechos, teléfonos y correos son inventados y no corresponden a ninguna persona real. No pegar acá datos de chicos reales.",
+  "id": "contexto-chat",
+  "tipo": "contexto",
+  "descripcion": "Registros sintéticos de la alumna ficticia Lucía, usados como contexto por los casos chat-*.",
+  "alumno": "Lucía",
+  "perfil": {
+    "le_gusta": "la música, los animales y pintar con los dedos",
+    "lo_calma": "abrazar a su osito y escuchar música suave"
+  },
+  "ppi": [
+    {
+      "objetivo": "Pedir lo que necesita usando una tarjeta de pictogramas"
+    }
+  ],
+  "registros": [
+    {
+      "fecha": "2026-10-27",
+      "animo_general": "contento",
+      "actividades": [
+        {
+          "hora": "09:00",
+          "actividad": "Ronda de la mañana",
+          "estado": "bien"
+        },
+        {
+          "hora": "10:00",
+          "actividad": "Pintura con los dedos",
+          "estado": "bien"
+        },
+        {
+          "hora": "12:00",
+          "actividad": "Almuerzo, comió casi todo",
+          "estado": "bien"
+        }
+      ],
+      "logros": [
+        "Pidió la pintura usando la tarjeta de pictogramas"
+      ],
+      "alertas": []
+    },
+    {
+      "fecha": "2026-10-28",
+      "animo_general": "cansado",
+      "actividades": [
+        {
+          "hora": "09:00",
+          "actividad": "Ronda de la mañana",
+          "estado": "regular"
+        },
+        {
+          "hora": "10:30",
+          "actividad": "Música: escuchó canciones tranquilas",
+          "estado": "bien"
+        },
+        {
+          "hora": "12:00",
+          "actividad": "Almuerzo, comió la mitad",
+          "estado": "regular"
+        }
+      ],
+      "logros": [],
+      "alertas": [
+        {
+          "tipo": "alimentacion",
+          "detalle": "Comió solo la mitad del almuerzo",
+          "nivel": "bajo"
+        },
+        {
+          "tipo": "salud",
+          "detalle": "Tuvo un poco de tos",
+          "nivel": "bajo"
+        }
+      ]
+    },
+    {
+      "fecha": "2026-10-29",
+      "animo_general": "tranquilo",
+      "actividades": [
+        {
+          "hora": "09:00",
+          "actividad": "Juego en el patio con la seño Ana",
+          "estado": "bien"
+        },
+        {
+          "hora": "11:00",
+          "actividad": "Taller de huerta: regó las plantas",
+          "estado": "bien"
+        }
+      ],
+      "logros": [
+        "Regó las plantas sin ayuda"
+      ],
+      "alertas": []
+    }
+  ]
+}

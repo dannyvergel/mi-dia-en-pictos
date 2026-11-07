@@ -1,0 +1,13 @@
+{
+  "sintetico": true,
+  "aviso": "DATOS SINTÉTICOS: este caso fue escrito a mano para evaluar modelos. Los nombres, hechos, teléfonos y correos son inventados y no corresponden a ninguna persona real. No pegar acá datos de chicos reales.",
+  "id": "chat-07-fuera-cultura",
+  "tipo": "chat",
+  "contexto": "contexto-chat",
+  "pregunta": "¿Cuál es la capital de Australia?",
+  "esperado": {
+    "en_tema": false,
+    "rechazo": "fuera_de_tema"
+  },
+  "nota": "fuera de tema (cultura general)"
+}

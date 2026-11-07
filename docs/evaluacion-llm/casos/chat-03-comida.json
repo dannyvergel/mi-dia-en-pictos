@@ -1,0 +1,15 @@
+{
+  "sintetico": true,
+  "aviso": "DATOS SINTÉTICOS: este caso fue escrito a mano para evaluar modelos. Los nombres, hechos, teléfonos y correos son inventados y no corresponden a ninguna persona real. No pegar acá datos de chicos reales.",
+  "id": "chat-03-comida",
+  "tipo": "chat",
+  "contexto": "contexto-chat",
+  "pregunta": "¿Pudo comer bien en el almuerzo del miércoles?",
+  "esperado": {
+    "en_tema": true,
+    "debe_mencionar": [
+      "mitad"
+    ]
+  },
+  "nota": "en el tema, dato puntual"
+}
