@@ -63,7 +63,7 @@
   .frase-item { flex: none; width: 76px; text-align: center; }
   .frase-item img { width: 60px; height: 60px; object-fit: contain; display: block; margin: 0 auto; }
   .frase-item span { display: block; font-weight: 700; font-size: 13px; text-transform: uppercase; line-height: 1.1; overflow-wrap: anywhere; }
-  .frase-botones { display: flex; gap: 8px; }
+  .frase-botones { display: flex; flex-wrap: wrap; gap: 8px; }
   .accion { min-width: 76px; min-height: 76px; padding: 6px 10px; border-radius: 12px; border: 3px solid var(--tinta); background: #fff; color: var(--tinta);
     font: 700 15px/1.15 var(--texto); cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
   .accion svg { width: 30px; height: 30px; }
@@ -169,6 +169,24 @@
   body.completo .com-solo-completo { display: flex; }
   .accion.salir.confirmar { background: #fbefe9; border-color: var(--bad); color: var(--bad); }
 
+  /* Primero y después: pantalla completa con los dos primeros dibujos de la frase, grandes y lado a lado */
+  .pd { position: fixed; inset: 0; z-index: 50; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; background: var(--hoja);
+    padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)); }
+  .pd[hidden] { display: none; }
+  .pd h2 { margin: 0; font-size: 24px; text-align: center; }
+  .pd-pictos { flex: 1 1 auto; min-height: 240px; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 8px; border: 3px solid var(--tinta);
+    border-radius: 14px; background: #fff; color: var(--tinta); font: inherit; cursor: pointer; }
+  .pd-pictos:active { background: #fdf6e1; }
+  .pd-panel { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+  .pd-etq { font-weight: 700; font-size: 20px; text-transform: uppercase; letter-spacing: .4px; color: var(--gris); }
+  .pd-foto { display: block; width: 100%; max-width: 360px; }
+  .pd-foto img { width: 100%; height: auto; aspect-ratio: 1; object-fit: contain; display: block; }
+  .pd-palabra { font-weight: 700; font-size: 28px; text-transform: uppercase; line-height: 1.1; overflow-wrap: anywhere; }
+  .pd-panel.sin-img .pd-foto { display: none; }
+  .pd-panel.sin-img .pd-palabra { font-size: 36px; }
+  .pd-flecha { flex: none; display: block; width: clamp(40px, 12vw, 110px); height: clamp(40px, 12vw, 110px); }
+  .pd-cerrar { flex: none; min-height: 72px; }
+
   @media (max-width: 640px) {
     .tecla .t { font-size: 15px; letter-spacing: 0; }
     .t-grande .tecla .t { font-size: 19px; }
@@ -178,7 +196,7 @@
   }
   /* Sin animaciones ni movimientos que distraigan, aunque el sistema no lo pida */
   .com *, .com *::before, .com *::after { animation: none !important; transition: none !important; }
-  @media (forced-colors: active) { .tecla, .cat, .accion, .frase-tira { border: 2px solid ButtonText; } }
+  @media (forced-colors: active) { .tecla, .cat, .accion, .frase-tira, .pd-pictos, .pd-cerrar { border: 2px solid ButtonText; } }
 </style>
 </head>
 <body class="com">
@@ -201,6 +219,8 @@
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 5h11v14H9l-6-7 6-7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 9l5 6M17 9l-5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span data-i18n="borrar">Borrar</span></button>
         <button type="button" class="accion" id="bTodo" aria-label="Borrar toda la frase" data-i18n-aria="todoAria">
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg><span data-i18n="todo">Todo</span></button>
+        <button type="button" class="accion" id="bPrimero" aria-label="Ver los dos primeros dibujos de la frase como primero y después" data-i18n-aria="pdAbrirAria" disabled>
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 12h15M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span data-i18n="pdAbrir">Primero y después</span></button>
         <button type="button" class="accion salir com-solo-completo" id="bSalir" aria-label="Salir de pantalla completa" data-i18n-aria="salirAria">
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Salir</span></button>
       </div>
@@ -235,6 +255,15 @@
         <span aria-hidden="true" style="font-size:26px;line-height:1;color:#8a5a00">★</span><span id="bFavTxt">Elegir favoritos</span></button>
     </div>
     <p class="muted aviso-voz com-solo-normal" id="avisoVoz" hidden></p>
+    <div class="pd" id="pd" role="dialog" aria-modal="true" aria-labelledby="pdTitulo" hidden>
+      <h2 id="pdTitulo" data-i18n="pdTitulo">Primero y después</h2>
+      <button type="button" class="pd-pictos" id="pdPictos" aria-label="Primero y después. Tocá para escucharlo." data-i18n-aria="pdPictosAria">
+        <span class="pd-panel" id="pdA"><span class="pd-etq" data-i18n="pdPrimero">Primero</span><span class="pd-foto"></span><span class="pd-palabra"></span></span>
+        <svg class="pd-flecha" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 12h15M12 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="pd-panel" id="pdB"><span class="pd-etq" data-i18n="pdDespues">Después</span><span class="pd-foto"></span><span class="pd-palabra"></span></span>
+      </button>
+      <button type="button" class="accion pd-cerrar" id="pdCerrar"><span data-i18n="pdCerrar">Cerrar</span></button>
+    </div>
     <p class="sr-only" id="vivo" role="status" aria-live="polite" aria-atomic="true"></p>
   </div>
 
@@ -442,12 +471,50 @@
     f.setAttribute("aria-label", frase.length ? tr("frasePrefijo") + frase.map(id => texto(todos.get(id))).join(" ") + tr("fraseSufijo") : tr("fraseAriaVacia"));
     f.scrollLeft = f.scrollWidth;
     $("bUltimo").disabled = $("bTodo").disabled = $("bHablar").disabled = !frase.length;
+    $("bPrimero").disabled = frase.length < 2;
   }
   const decirFrase = () => decir(frase.map(id => dicho(todos.get(id))).join(" "));
   $("bHablar").onclick = decirFrase;
   $("frase").onclick = decirFrase;
   $("bUltimo").onclick = () => { frase.pop(); pintarFrase(); anunciar(tr("borreUltimo")); };
   $("bTodo").onclick = () => { frase = []; pintarFrase(); anunciar(tr("fraseBorrada")); };
+
+  // ---------- Primero y después ----------
+  // Los dos primeros dibujos de la frase, grandes. No guarda nada: se arma al abrir, con la frase de ese momento.
+  // Habla por decir() y dicho(), como el resto: la voz, el modo lento y el género se aplican solos.
+  function decirPrimero() {
+    const [a, b] = frase.slice(0, 2).map(id => todos.get(id));
+    if (a && b) decir(tr("pdDecirPrimero", dicho(a)) + " " + dicho(b));
+  }
+  function abrirPrimero() {
+    const dos = frase.slice(0, 2).map(id => todos.get(id));
+    if (dos.length < 2) return;
+    [["pdA", dos[0]], ["pdB", dos[1]]].forEach(([id, p]) => {
+      const panel = $(id);
+      panel.classList.remove("sin-img");
+      panel.querySelector(".pd-foto").innerHTML = `<img src="${T.url(p.id)}" alt="" width="300" height="300" draggable="false">`;
+      panel.querySelector("img").onerror = () => panel.classList.add("sin-img"); // sin conexión y sin caché: queda la palabra
+      panel.querySelector(".pd-palabra").textContent = texto(p);
+    });
+    $("pd").hidden = false;
+    $("pdPictos").focus();
+  }
+  function cerrarPrimero() {
+    $("pd").hidden = true;
+    $("bPrimero").focus();
+  }
+  $("bPrimero").onclick = abrirPrimero;
+  $("pdPictos").onclick = decirPrimero;
+  $("pdCerrar").onclick = cerrarPrimero;
+  document.addEventListener("keydown", e => {
+    if ($("pd").hidden) return;
+    if (e.key === "Escape") { e.preventDefault(); cerrarPrimero(); return; }
+    if (e.key !== "Tab") return;
+    // El Tab da la vuelta dentro del diálogo (el resto de la página queda detrás).
+    const foco = [$("pdPictos"), $("pdCerrar")], i = foco.indexOf(document.activeElement);
+    const j = i < 0 ? 0 : (i + (e.shiftKey ? -1 : 1) + foco.length) % foco.length;
+    e.preventDefault(); foco[j].focus();
+  });
 
   // ---------- Categorías y grilla ----------
   const ICONO = { nucleo: 5441, sentimientos: 35547, necesidades: 6929, personas: 2458, lugares: 6964, acciones: 8142, juegos: 23392, comida: 28339, cuerpo: 2786, ropa: 2309, casa: T.CASA.icono };
