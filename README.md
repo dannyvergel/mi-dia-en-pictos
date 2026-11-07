@@ -255,6 +255,8 @@ Monitoreo, tests en GitHub Actions, rotación de credenciales, backup, rollback 
 - `GET /api/config?accion=salud` → `{ ok, db, version }` con 200 o 503 (SELECT 1 a la base con tiempo máximo de 3 s, sin datos personales). Lo pide `.github/workflows/salud.yml` cada 15 minutos.
 - `.github/workflows/tests.yml` corre `npm test` en cada PR y en cada push a `main`.
 
+**Autoalojado:** `docker compose up` con Postgres, disco, SMTP y IA local opcional, sin servicios de terceros: [docs/operacion/autoalojado.md](docs/operacion/autoalojado.md).
+
 ## Correr la demo
 ```bash
 cd web && python3 -m http.server 8080
