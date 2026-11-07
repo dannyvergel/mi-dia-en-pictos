@@ -186,6 +186,22 @@
   .pd-panel.sin-img .pd-palabra { font-size: 36px; }
   .pd-flecha { flex: none; display: block; width: clamp(40px, 12vw, 110px); height: clamp(40px, 12vw, 110px); }
   .pd-cerrar { flex: none; min-height: 72px; }
+  /* Modo «Elegir»: los mismos dos dibujos, cada uno un botón; el elegido se ve por el borde grueso y la marca ✓ con texto, no solo por el color */
+  .pd-modos { flex: none; display: flex; gap: 8px; }
+  .pd-modo { flex: 1 1 0; min-height: 72px; flex-direction: row; font-size: 18px; }
+  .pd-modo[aria-pressed="true"] { background: var(--pizarron); border-color: var(--pizarron); color: var(--tiza); text-decoration: underline; text-underline-offset: 5px; }
+  .pd-pictos[hidden], .pd-elegir[hidden] { display: none; }
+  .pd-elegir { flex: 1 1 auto; display: flex; flex-direction: column; gap: 10px; }
+  .pd-pregunta { margin: 0; font-size: 28px; font-weight: 700; text-align: center; }
+  .pd-opciones { flex: 1 1 auto; display: flex; gap: 10px; }
+  .pd-opcion { flex: 1 1 0; min-width: 0; min-height: 240px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 12px 8px;
+    border: 3px solid var(--tinta); border-radius: 14px; background: #fff; color: var(--tinta); font: inherit; cursor: pointer; }
+  .pd-opcion:active { background: #fdf6e1; }
+  .pd-opcion[aria-pressed="true"] { border-width: 8px; padding: 7px 3px; background: #fdf6e1; }
+  .pd-opcion.sin-img .pd-foto { display: none; }
+  .pd-opcion.sin-img .pd-palabra { font-size: 36px; }
+  .pd-marca { display: none; font-weight: 700; font-size: 22px; text-transform: uppercase; }
+  .pd-opcion[aria-pressed="true"] .pd-marca { display: block; }
 
   @media (max-width: 640px) {
     .tecla .t { font-size: 15px; letter-spacing: 0; }
@@ -196,7 +212,7 @@
   }
   /* Sin animaciones ni movimientos que distraigan, aunque el sistema no lo pida */
   .com *, .com *::before, .com *::after { animation: none !important; transition: none !important; }
-  @media (forced-colors: active) { .tecla, .cat, .accion, .frase-tira, .pd-pictos, .pd-cerrar { border: 2px solid ButtonText; } }
+  @media (forced-colors: active) { .tecla, .cat, .accion, .frase-tira, .pd-pictos, .pd-cerrar, .pd-modo, .pd-opcion { border: 2px solid ButtonText; } }
 </style>
 </head>
 <body class="com">
@@ -257,11 +273,22 @@
     <p class="muted aviso-voz com-solo-normal" id="avisoVoz" hidden></p>
     <div class="pd" id="pd" role="dialog" aria-modal="true" aria-labelledby="pdTitulo" hidden>
       <h2 id="pdTitulo" data-i18n="pdTitulo">First, then</h2>
+      <div class="pd-modos" role="group" aria-label="How to show the two pictures" data-i18n-aria="pdModosAria">
+        <button type="button" class="accion pd-modo" id="pdModoPD" aria-pressed="true"><span data-i18n="pdModoPD">First, then</span></button>
+        <button type="button" class="accion pd-modo" id="pdModoElegir" aria-pressed="false"><span data-i18n="pdModoElegir">Choose</span></button>
+      </div>
       <button type="button" class="pd-pictos" id="pdPictos" aria-label="First, then. Tap to hear it." data-i18n-aria="pdPictosAria">
         <span class="pd-panel" id="pdA"><span class="pd-etq" data-i18n="pdPrimero">First</span><span class="pd-foto"></span><span class="pd-palabra"></span></span>
         <svg class="pd-flecha" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 12h15M12 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <span class="pd-panel" id="pdB"><span class="pd-etq" data-i18n="pdDespues">Then</span><span class="pd-foto"></span><span class="pd-palabra"></span></span>
       </button>
+      <div class="pd-elegir" id="pdElegir" role="group" aria-label="Choose one of the two pictures" data-i18n-aria="pdElegirAria" hidden>
+        <p class="pd-pregunta" data-i18n="pdElegirPregunta">Which one?</p>
+        <div class="pd-opciones">
+          <button type="button" class="pd-opcion" id="pdOpA" aria-pressed="false"><span class="pd-foto"></span><span class="pd-palabra"></span><span class="pd-marca" aria-hidden="true">✓ <span data-i18n="pdElegido">Chosen</span></span></button>
+          <button type="button" class="pd-opcion" id="pdOpB" aria-pressed="false"><span class="pd-foto"></span><span class="pd-palabra"></span><span class="pd-marca" aria-hidden="true">✓ <span data-i18n="pdElegido">Chosen</span></span></button>
+        </div>
+      </div>
       <button type="button" class="accion pd-cerrar" id="pdCerrar"><span data-i18n="pdCerrar">Close</span></button>
     </div>
     <p class="sr-only" id="vivo" role="status" aria-live="polite" aria-atomic="true"></p>
@@ -486,9 +513,27 @@
     const [a, b] = frase.slice(0, 2).map(id => todos.get(id));
     if (a && b) decir(tr("pdDecirPrimero", dicho(a)) + " " + dicho(b));
   }
+  // Modo «Elegir»: los mismos dos dibujos como dos botones. Tocar uno lo marca y dice «Quiero X». Nada se guarda:
+  // el modo y lo elegido viven solo mientras el diálogo está abierto y se reinician cada vez que se abre.
+  let pdDos = []; // los dos pictos con los que se abrió el diálogo
+  function ponerModo(modo) {
+    const elegir = modo === "elegir";
+    $("pdPictos").hidden = elegir;
+    $("pdElegir").hidden = !elegir;
+    $("pdModoPD").setAttribute("aria-pressed", String(!elegir));
+    $("pdModoElegir").setAttribute("aria-pressed", String(elegir));
+    ["pdOpA", "pdOpB"].forEach(id => $(id).setAttribute("aria-pressed", "false")); // al cambiar de modo no queda nada elegido
+  }
+  function elegirOpcion(i) {
+    const p = pdDos[i];
+    if (!p) return;
+    ["pdOpA", "pdOpB"].forEach((id, j) => $(id).setAttribute("aria-pressed", String(j === i)));
+    decir(tr("pdDecirElegir", dicho(p)));
+  }
   function abrirPrimero() {
     const dos = frase.slice(0, 2).map(id => todos.get(id));
     if (dos.length < 2) return;
+    pdDos = dos;
     [["pdA", dos[0]], ["pdB", dos[1]]].forEach(([id, p]) => {
       const panel = $(id);
       panel.classList.remove("sin-img");
@@ -496,6 +541,14 @@
       panel.querySelector("img").onerror = () => panel.classList.add("sin-img"); // sin conexión y sin caché: queda la palabra
       panel.querySelector(".pd-palabra").textContent = texto(p);
     });
+    [["pdOpA", dos[0]], ["pdOpB", dos[1]]].forEach(([id, p]) => {
+      const op = $(id);
+      op.classList.remove("sin-img");
+      op.querySelector(".pd-foto").innerHTML = `<img src="${T.url(p.id)}" alt="" width="300" height="300" draggable="false">`;
+      op.querySelector("img").onerror = () => op.classList.add("sin-img");
+      op.querySelector(".pd-palabra").textContent = texto(p);
+    });
+    ponerModo("primero"); // siempre se abre en Primero y después
     $("pd").hidden = false;
     $("pdPictos").focus();
   }
@@ -506,12 +559,16 @@
   $("bPrimero").onclick = abrirPrimero;
   $("pdPictos").onclick = decirPrimero;
   $("pdCerrar").onclick = cerrarPrimero;
+  $("pdModoPD").onclick = () => ponerModo("primero");
+  $("pdModoElegir").onclick = () => ponerModo("elegir");
+  $("pdOpA").onclick = () => elegirOpcion(0);
+  $("pdOpB").onclick = () => elegirOpcion(1);
   document.addEventListener("keydown", e => {
     if ($("pd").hidden) return;
     if (e.key === "Escape") { e.preventDefault(); cerrarPrimero(); return; }
     if (e.key !== "Tab") return;
-    // El Tab da la vuelta dentro del diálogo (el resto de la página queda detrás).
-    const foco = [$("pdPictos"), $("pdCerrar")], i = foco.indexOf(document.activeElement);
+    // El Tab da la vuelta dentro del diálogo (el resto de la página queda detrás), por los botones de la vista que se ve.
+    const foco = [...$("pd").querySelectorAll("button")].filter(b => !b.closest("[hidden]")), i = foco.indexOf(document.activeElement);
     const j = i < 0 ? 0 : (i + (e.shiftKey ? -1 : 1) + foco.length) % foco.length;
     e.preventDefault(); foco[j].focus();
   });
