@@ -1,0 +1,21 @@
+# Force LF for text files so Windows checkouts (core.autocrlf) do not break
+# tests that parse source files (e.g. the Play listing and the i18n generator).
+* text=auto eol=lf
+
+# Binary assets: never touch line endings.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.apk binary
+*.aab binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.pdf binary
+*.xlsx binary
+*.zip binary
+*.mp3 binary
+*.ogg binary
