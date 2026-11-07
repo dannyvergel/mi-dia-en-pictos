@@ -162,6 +162,8 @@ Decisión del 1/11/2026: el piloto queda abierto a **15 usuarios en total** (se�
 |---|---|---|
 | `DATABASE_URL` / `POSTGRES_URL` | Postgres de Neon. Sin esto: modo demo | Sí, para cuentas |
 | `DB_DRIVER` | `pg` (Postgres común, autoalojado) o `neon` (HTTP de Neon). Sin esto: `neon` si la URL es un host de Neon (`*.neon.tech`, `*.neon.build`, `*.vercel-storage.com`), `pg` con cualquier otro host. `DB_POOL_MAX` ajusta el pool de `pg` (10) | Opcional |
+| `STORAGE_DRIVER` | `disk` guarda los días publicados y documentos en disco (autoalojado) en vez de Vercel Blob. Sin esto: Blob como siempre | Opcional |
+| `STORAGE_DIR` | Carpeta de `STORAGE_DRIVER=disk`. Hay que respaldarla junto con la base | Opcional (`./data/storage`) |
 | `SESSION_SECRET` | Firma las cookies de sesión y los códigos. 32+ caracteres al azar (`openssl rand -base64 32`) | Sí en producción (sin esto da error) |
 | `DOCENTE_PIN` | Protege la creación de la primera docente (y el modo demo) | Sí en producción para el alta inicial |
 | `ADMIN_EMAIL` | Cuenta de la **plataforma** (superadmin, única que entra a `admin.html`). La primera cuenta solo se puede crear con ese email (sin ella, el alta inicial no anda). Recibe los avisos de solicitudes y comentarios | **Sí** |
