@@ -12,6 +12,7 @@
       {id: 6625, t: "vos", k: "tú", en: "you", ken: "you"},
       {id: 5441, t: "quiero", k: "querer", en: "I want", ken: "I want"},
       {id: 6156, t: "no quiero", k: "no quiero", en: "I don't want", ken: "I don't want"},
+      {id: 37160, t: "necesito", k: "necesitar", en: "I need", ken: "need"},
       {id: 5584, t: "sí", k: "sí", en: "yes", ken: "yes"},
       {id: 5526, t: "no", k: "no", en: "no", ken: "no"},
       {id: 3220, t: "más", k: "más", en: "more", ken: "plus sign"},
@@ -31,7 +32,8 @@
       {id: 35537, t: "cansado", k: "cansado", f: "cansada", en: "tired", ken: "tired"},
       {id: 31310, t: "tranquilo", k: "tranquilo", f: "tranquila", en: "calm", ken: "calm"},
       {id: 30391, t: "nervioso", k: "nervioso", f: "nerviosa", en: "nervous", ken: "nervous"},
-      {id: 35531, t: "aburrido", k: "aburrido", f: "aburrida", en: "bored", ken: "bored"}
+      {id: 35531, t: "aburrido", k: "aburrido", f: "aburrida", en: "bored", ken: "bored"},
+      {id: 7040, t: "enfermo", k: "enfermo", f: "enferma", en: "sick", ken: "sick"}
     ] },
     { id: "necesidades", nombre: "Necesidades", en: "Needs", color: "#b5442e", pictos: [
       {id: 6929, t: "baño", k: "baño", en: "bathroom", ken: "bathroom"},

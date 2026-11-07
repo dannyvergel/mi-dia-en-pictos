@@ -85,6 +85,11 @@ test("vocabulario acotado (90 a 120 pictos) en las categorías pedidas, con ids 
   const palabras = cat => T.CATEGORIAS.find(c => c.id === cat).pictos.map(p => p.t);
   for (const w of ["yo", "quiero", "no quiero", "sí", "no", "más", "terminé", "ayuda"]) assert.ok(palabras("nucleo").includes(w), w);
   for (const w of ["baño", "agua", "comer", "dormir", "me duele"]) assert.ok(palabras("necesidades").includes(w), w);
+  // Frases de arranque y sentimientos: «necesito» (ARASAAC 37160) y «enfermo» (7040) se sumaron después; no se repite nada de lo que ya había.
+  assert.ok(palabras("nucleo").includes("necesito"), "necesito");
+  for (const w of ["contento", "triste", "enojado", "asustado", "cansado", "tranquilo", "enfermo"]) assert.ok(palabras("sentimientos").includes(w), w);
+  const sumados = T.CATEGORIAS.flatMap(c => c.pictos).filter(p => [37160, 7040].includes(p.id));
+  assert.deepEqual(sumados.map(p => [p.id, p.en, p.ken]).sort(), [[37160, "I need", "need"], [7040, "sick", "sick"]].sort());
   for (const c of T.CATEGORIAS) {
     assert.match(c.color, /^#[0-9a-f]{6}$/i);
     for (const p of c.pictos) {
