@@ -58,7 +58,7 @@ LLM_TIMEOUT_MS=120000
 LLM_AGENT_TIMEOUT_MS=180000
 ```
 
-Reiniciar la app: `docker compose up -d app`. Con CPU sola, el agente y el chat son lentos y se necesitan timeouts mucho mayores que los de fábrica (28 s y 30 s). La calidad de cada modelo en español no está evaluada. Se puede usar también un servidor externo compatible con OpenAI (llama.cpp, vLLM) apuntando `LLM_BASE_URL` a él.
+Reiniciar la app: `docker compose up -d app`. Con CPU sola, el agente y el chat son lentos y se necesitan timeouts mucho mayores que los de fábrica (28 s y 30 s). Los timeouts pueden superar los 5 minutos: con `LLM_BASE_URL`, por encima de ~290 s el pedido usa `node:http`, porque el `fetch` de Node corta a los 300 s si el servidor no mandó cabeceras (los modelos locales no responden hasta terminar de generar). Un caso largo en CPU (~6 tokens/s) puede tardar más de 5 minutos. La calidad de cada modelo en español no está evaluada. Se puede usar también un servidor externo compatible con OpenAI (llama.cpp, vLLM) apuntando `LLM_BASE_URL` a él.
 
 ## Copias de seguridad
 
