@@ -1,0 +1,20 @@
+# Keep the build context small and never ship secrets or dev-only files.
+.git
+.github
+.gitattributes
+.env
+.env.*
+!.env.example
+**/node_modules
+web/test
+web/scripts
+web/.vercel
+android-entrega
+docs
+odd
+prompts
+data
+*.pdf
+docker-compose.yml
+Dockerfile
+.dockerignore

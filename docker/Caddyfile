@@ -1,0 +1,15 @@
+# Reverse proxy with automatic HTTPS. PUENTE_DOMAIN comes from .env (see docker-compose.yml).
+# Public domain: Caddy gets a Let's Encrypt certificate (ports 80 and 443 must reach this machine).
+# localhost: Caddy uses its own local CA (the browser asks you to trust it once).
+{$PUENTE_DOMAIN} {
+	# Document uploads are base64 up to ~3 MB; the app accepts up to 5 MB.
+	request_body {
+		max_size 6MB
+	}
+
+	reverse_proxy app:3000 {
+		# Always overwrite: the app trusts this header only because it comes from here (TRUST_PROXY=1).
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+	}
+}
