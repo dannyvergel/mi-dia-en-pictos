@@ -18,7 +18,7 @@ const post = (c, h, body) => c.llamar(h, { method: "POST", body });
 // Datos ficticios que NUNCA tienen que llegar a la IA.
 const PROHIBIDOS = ["laura@mail.com", "341 555 1234", "5551234", "Laura", "celíaco", "risperidona", "ibuprofeno", "Gómez", "papa@mail.com"];
 
-const enviados = [];
+const enviados = [], urls = [];
 let respuestas = [];
 const fetchReal = global.fetch;
 test.before(() => {
@@ -26,6 +26,7 @@ test.before(() => {
   global.fetch = async (url, opts) => {
     if (!/openrouter\.ai/.test(String(url))) return { ok: true, status: 200, json: async () => [] }; // ARASAAC
     const body = JSON.parse(opts.body);
+    urls.push(String(url));
     enviados.push(body);
     const msg = respuestas.length ? respuestas.shift() : { content: JSON.stringify({ en_tema: true, respuesta: "Estuvo contento en Música." }) };
     return { ok: true, status: 200, json: async () => ({ choices: [{ message: msg }] }), text: async () => "" };
@@ -58,6 +59,17 @@ test("modelos: todas las llamadas llevan data_collection=deny y zdr=true, y no s
   const b = modelos.cuerpo("chat", { provider: { data_collection: "allow" }, messages: [] });
   assert.deepEqual(b.provider, { data_collection: "deny", zdr: true });
   assert.equal(modelos.PERMITIDOS.some(m => m.endsWith(":free") || m === "openrouter/free"), false);
+});
+
+test("modo OpenRouter (sin LLM_BASE_URL): siempre la URL de OpenRouter, con provider y models", async () => {
+  assert.equal(process.env.LLM_BASE_URL, undefined);
+  enviados.length = 0; urls.length = 0;
+  respuestas = [{ content: JSON.stringify({ actividades: [], animo_general: "contento", logros: [], alertas: [], resumen_familia: "Bien." }) }];
+  const r = await post(ana, dia, { alumno: "Juan", fecha: "2026-10-28", texto: "Llegó contento." });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.deepEqual(urls, ["https://openrouter.ai/api/v1/chat/completions"]);
+  assert.equal(enviados[0].model, modelos.PRINCIPAL);
+  revisarEnvio(enviados[0]);
 });
 
 test("limpiarTexto tapa emails y teléfonos pero deja fechas y horas", () => {

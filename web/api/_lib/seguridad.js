@@ -2,7 +2,9 @@
 const crypto = require("crypto");
 const { q, uno } = require("./db");
 
-const esProduccion = () => process.env.VERCEL_ENV === "production";
+const { appEnv } = require("./entorno");
+
+const esProduccion = () => appEnv() === "production";
 const COOKIE = "puente_sesion";
 const DURACION = { docente: 7 * 864e5, familia: 30 * 864e5 };
 

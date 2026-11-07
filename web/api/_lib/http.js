@@ -1,4 +1,5 @@
 // Ayudas comunes para las funciones de Vercel.
+const { appEnv } = require("./entorno");
 function cuerpo(req) {
   if (typeof req.body === "string") { try { return JSON.parse(req.body || "{}"); } catch { return {}; } }
   return req.body || {};
@@ -28,7 +29,7 @@ const errorPublico = (msg, status = 400) => Object.assign(new Error(msg), { publ
 // salvo en local. Orden: PUENTE_URL → dominio de producción → URL de la rama/deploy en Vercel.
 function urlPublica(req) {
   if (process.env.PUENTE_URL) return process.env.PUENTE_URL.replace(/\/+$/, "");
-  const host = process.env.VERCEL_ENV === "production"
+  const host = appEnv() === "production"
     ? process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL
     : process.env.VERCEL_BRANCH_URL || process.env.VERCEL_URL;
   if (host) return "https://" + host;

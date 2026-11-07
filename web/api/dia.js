@@ -1,6 +1,6 @@
 // Estructura el relato del día con IA (alternativa a n8n). Sin key responde 503 y la app usa modo demo.
 const SISTEMA = "Sos un asistente para docentes de educación especial en Argentina.\nRecibís el relato informal del día de un alumno, dictado por su docente.\nDevolvé SOLO un JSON válido con esta forma:\n\n{\n  \"alumno\": \"nombre de pila\",\n  \"fecha\": \"YYYY-MM-DD\",\n  \"actividades\": [\n    {\"hora\": \"HH:MM o null\", \"actividad\": \"texto corto\", \"palabra_clave\": \"1 o 2 palabras simples para buscar pictograma\", \"estado\": \"bien|regular|dificil\"}\n  ],\n  \"animo_general\": \"contento|tranquilo|cansado|angustiado|irritable\",\n  \"logros\": [\"...\"],\n  \"alertas\": [{\"tipo\": \"conducta|salud|alimentacion|medicacion|otro\", \"detalle\": \"...\", \"nivel\": \"bajo|medio|alto\"}],\n  \"resumen_familia\": \"3 a 5 oraciones cálidas, claras y sin tecnicismos para la familia, en español rioplatense\",\n  \"registro_docente\": \"versión formal y objetiva para el legajo del alumno\"\n}\n\nReglas:\n- No inventes nada que no esté en el relato. Si falta un dato, usá null o lista vacía.\n- palabra_clave siempre en español, sustantivo o verbo simple (ej: \"desayunar\", \"música\", \"recreo\", \"pintar\").\n- Ordená las actividades cronológicamente.\n- No incluyas diagnósticos médicos.\n- No incluyas emails, teléfonos, apellidos ni datos de contacto.";
-const { PRINCIPAL: MODEL, cuerpo, cabeceras } = require("./_lib/modelos");
+const modelos = require("./_lib/modelos");
 async function picto(kw) {
   try {
     const j = await (await fetch("https://api.arasaac.org/api/pictograms/es/search/" + encodeURIComponent((kw || "").toLowerCase()))).json();
@@ -28,15 +28,11 @@ module.exports = async (req, res) => {
   if (!require("./_lib/pin").iaActiva()) return res.status(503).json({ error: "sin key" });
   const fecha = b.fecha || hoyLocal();
   try {
-    const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: cabeceras(),
-      body: JSON.stringify(cuerpo("dia", { temperature: 0.2, response_format: { type: "json_object" }, messages: [
-        { role: "system", content: SISTEMA },
-        // Minimización: solo el nombre de pila y el relato, con emails y teléfonos tapados.
-        { role: "user", content: `Alumno: ${limpiarTexto(nombre, 40)}\nFecha: ${fecha}\nRelato: ${limpiarTexto(b.texto, 6000)}` }] }))
-    });
-    if (!r.ok) throw new Error("OpenRouter " + r.status);
+    const r = await modelos.pedirChat("dia", { temperature: 0.2, response_format: { type: "json_object" }, messages: [
+      { role: "system", content: SISTEMA },
+      // Minimización: solo el nombre de pila y el relato, con emails y teléfonos tapados.
+      { role: "user", content: `Alumno: ${limpiarTexto(nombre, 40)}\nFecha: ${fecha}\nRelato: ${limpiarTexto(b.texto, 6000)}` }] });
+    if (!r.ok) throw new Error(modelos.nombreProveedor() + " " + r.status);
     const raw = (await r.json()).choices[0].message.content;
     const d = JSON.parse(raw.match(/\{[\s\S]*\}/)[0]);
     d.alumno = b.alumno || d.alumno; d.fecha = fecha;

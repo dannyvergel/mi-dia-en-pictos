@@ -161,11 +161,22 @@ Decisión del 1/11/2026: el piloto queda abierto a **15 usuarios en total** (se�
 | Variable | Para qué | ¿Obligatoria? |
 |---|---|---|
 | `DATABASE_URL` / `POSTGRES_URL` | Postgres de Neon. Sin esto: modo demo | Sí, para cuentas |
+| `APP_ENV` | `production`, `preview` o `development`. Para correr fuera de Vercel: `production` exige `SESSION_SECRET`, nunca devuelve códigos en las respuestas y hace que `/api/config?accion=salud` exija base. Sin esto se usa `VERCEL_ENV` (en Vercel no hace falta definirla); si tampoco está: `development` | Opcional |
+| `APP_COMMIT` | Commit desplegado (los primeros 7 caracteres salen en el chequeo de salud). Sin esto se usa `VERCEL_GIT_COMMIT_SHA` | Opcional |
+| `DB_DRIVER` | `pg` (Postgres común, autoalojado) o `neon` (HTTP de Neon). Sin esto: `neon` si la URL es un host de Neon (`*.neon.tech`, `*.neon.build`, `*.vercel-storage.com`), `pg` con cualquier otro host. `DB_POOL_MAX` ajusta el pool de `pg` (10) | Opcional |
+| `STORAGE_DRIVER` | `disk` guarda los días publicados y documentos en disco (autoalojado) en vez de Vercel Blob. Sin esto: Blob como siempre | Opcional |
+| `STORAGE_DIR` | Carpeta de `STORAGE_DRIVER=disk`. Hay que respaldarla junto con la base | Opcional (`./data/storage`) |
 | `SESSION_SECRET` | Firma las cookies de sesión y los códigos. 32+ caracteres al azar (`openssl rand -base64 32`) | Sí en producción (sin esto da error) |
 | `DOCENTE_PIN` | Protege la creación de la primera docente (y el modo demo) | Sí en producción para el alta inicial |
 | `ADMIN_EMAIL` | Cuenta de la **plataforma** (superadmin, única que entra a `admin.html`). La primera cuenta solo se puede crear con ese email (sin ella, el alta inicial no anda). Recibe los avisos de solicitudes y comentarios | **Sí** |
 | `RESEND_API_KEY` | Envía los códigos de ingreso (docentes y familias), los avisos de solicitudes y las invitaciones a familias ([resend.com](https://resend.com)) | Sí en producción |
 | `RESEND_FROM` | Remitente, ej. `Puente <hola@tudominio.com>` (dominio verificado en Resend) | Recomendada (por defecto `onboarding@resend.dev`, que solo manda a tu propio email) |
+| `SMTP_URL` / `SMTP_HOST` | Correo por SMTP (nodemailer) en vez de Resend, para autoalojar. Con cualquiera de las dos se usa SMTP aunque haya `RESEND_API_KEY`. `SMTP_URL` es del tipo `smtp://usuario:clave@host:587`; con `SMTP_HOST` se completa con `SMTP_PORT` (587), `SMTP_USER`, `SMTP_PASS` y `SMTP_SECURE` (TLS implícito; por defecto solo con puerto 465) | Opcional |
+| `SMTP_FROM` | Remitente de los mails por SMTP (por defecto `RESEND_FROM`) | Opcional |
+| `SMTP_DISABLED` | `1`: instalación en LAN sin correo. No se manda nada; el código de ingreso se escribe solo en el log del servidor (`[puente][codigo-login] email=… codigo=…`) y nunca en una respuesta HTTP | Opcional |
+| `LLM_BASE_URL` | IA propia en vez de OpenRouter, para autoalojar: cualquier servidor compatible con OpenAI (Ollama, llama.cpp, vLLM). Se llama a `LLM_BASE_URL/chat/completions`, sin campos de OpenRouter ni lista de modelos permitidos, y la IA queda activa sin ninguna key. La minimización de datos sigue igual; las garantías ZDR son solo de OpenRouter | Opcional |
+| `LLM_MODEL` / `LLM_API_KEY` | Modelo y key (esta última opcional en servidores locales) de `LLM_BASE_URL`. Sin `LLM_BASE_URL` se ignoran | Opcional |
+| `LLM_TIMEOUT_MS` / `LLM_AGENT_TIMEOUT_MS` | Tope por llamada a la IA (28000) y tope total del agente (30000, o `LLM_TIMEOUT_MS` + 2000 si es mayor). Un modelo local solo con CPU necesita valores mucho más grandes (minutos) | Opcional |
 | `PUENTE_URL` | Base de los links en los mails, ej. `https://puentepictos.app` (con dominio propio: `https://puentepictos.app`). También es el Referer que se manda a OpenRouter. Si falta se usa el dominio de producción de Vercel (o la URL de la rama en *preview*) | Opcional |
 | `CRON_SECRET` | Protege la limpieza diaria (`/api/auditoria?accion=limpieza`, la llama el cron de `vercel.json`). 16+ caracteres al azar (`openssl rand -base64 32`). Sin esto el cron responde 401 y solo queda la limpieza perezosa | Recomendada |
 | `CHAT_RETENCION_DIAS` | Días que se guarda el historial del chat de la familia | Opcional (30) |

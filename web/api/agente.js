@@ -8,7 +8,7 @@ const { uno } = require("./_lib/db");
 const { objetivosAPpi, apoyosAPerfil } = require("./_lib/fichas");
 const { perfilParaIA, ppiParaIA, limpiarTexto } = require("./_lib/minimizar");
 
-const { PRINCIPAL: MODEL, cuerpo, cabeceras } = require("./_lib/modelos");
+const modelos = require("./_lib/modelos");
 const MAX_PASOS = 8;
 
 const SISTEMA = `Sos el Agente de Progreso de "Puente", para docentes de educación especial en Argentina.
@@ -36,13 +36,8 @@ function aTools(h) {
 const resumir = (r) => { const s = JSON.stringify(r); return s.length > 220 ? s.slice(0, 217) + "…" : s; };
 
 async function llm(messages, tools) {
-  const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: cabeceras(),
-    signal: AbortSignal.timeout(28000),
-    body: JSON.stringify(cuerpo("agente", { temperature: 0.2, messages, ...(tools ? { tools, tool_choice: "auto" } : { response_format: { type: "json_object" } }) }))
-  });
-  if (!r.ok) throw new Error("OpenRouter " + r.status + ": " + (await r.text()).slice(0, 200));
+  const r = await modelos.pedirChat("agente", { temperature: 0.2, messages, ...(tools ? { tools, tool_choice: "auto" } : { response_format: { type: "json_object" } }) }, { timeout: true });
+  if (!r.ok) throw new Error(modelos.nombreProveedor() + " " + r.status + ": " + (await r.text()).slice(0, 200));
   return (await r.json()).choices[0].message;
 }
 
@@ -58,7 +53,7 @@ async function correrAgente(ctx, h, traza) {
     { role: "user", content: `Alumno: ${ctx.alumno}. Hoy es ${ctx.hoy}. Objetivos del PPI: ${ctx.ppi.map(o => o.objetivo).join(" | ")}. Analizá su progreso.` }
   ];
   const tools = aTools(h);
-  const limite = Date.now() + 30000; // si se estira, cerramos con lo que haya
+  const limite = Date.now() + modelos.timeoutAgenteMs(); // si se estira, cerramos con lo que haya
   for (let i = 0; i < MAX_PASOS && Date.now() < limite; i++) {
     const msg = await llm(messages, tools);
     messages.push(msg);
@@ -155,5 +150,5 @@ module.exports = async (req, res) => {
     resultado = await planFijo(ctx, h, traza);
     modo = e.demo ? "demo" : "plan-fijo";
   }
-  res.status(200).json({ modo, modelo: modo === "ia" ? MODEL : null, ms: Date.now() - t0, traza, agenda: ctx.agenda || null, resultado });
+  res.status(200).json({ modo, modelo: modo === "ia" ? modelos.modeloActual() : null, ms: Date.now() - t0, traza, agenda: ctx.agenda || null, resultado });
 };
