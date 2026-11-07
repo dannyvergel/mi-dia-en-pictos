@@ -19,7 +19,8 @@
     "migrar": "node scripts/migrar.js",
     "padron": "node scripts/padron.js",
     "revisor": "node scripts/revisor.js",
-    "revisor-clave": "node scripts/revisor-clave.js"
+    "revisor-clave": "node scripts/revisor-clave.js",
+    "evaluar:llm": "node scripts/evaluar-llm.js"
   },
   "overrides": {
     "zod": "^4.6.6"

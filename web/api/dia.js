@@ -12,7 +12,13 @@ const { exigirDocente } = require("./_lib/auth");
 const { exigirVisiblePorNombre } = require("./_lib/alumnos");
 const { manejarError, hoyLocal } = require("./_lib/http");
 const { limpiarTexto } = require("./_lib/minimizar");
-module.exports = async (req, res) => {
+// Minimización: solo el nombre de pila y el relato, con emails y teléfonos tapados.
+const mensajes = (nombre, fecha, texto) => [
+  { role: "system", content: SISTEMA },
+  { role: "user", content: `Alumno: ${limpiarTexto(nombre, 40)}\nFecha: ${fecha}\nRelato: ${limpiarTexto(texto, 6000)}` }];
+// Primer objeto JSON de la respuesta del modelo (tolera texto alrededor); lanza si no hay ninguno.
+const extraerJson = raw => JSON.parse(raw.match(/\{[\s\S]*\}/)[0]);
+const handler = async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-Docente-Pin");
   if (req.method === "OPTIONS") return res.status(204).end();
@@ -28,13 +34,10 @@ module.exports = async (req, res) => {
   if (!require("./_lib/pin").iaActiva()) return res.status(503).json({ error: "sin key" });
   const fecha = b.fecha || hoyLocal();
   try {
-    const r = await modelos.pedirChat("dia", { temperature: 0.2, response_format: { type: "json_object" }, messages: [
-      { role: "system", content: SISTEMA },
-      // Minimización: solo el nombre de pila y el relato, con emails y teléfonos tapados.
-      { role: "user", content: `Alumno: ${limpiarTexto(nombre, 40)}\nFecha: ${fecha}\nRelato: ${limpiarTexto(b.texto, 6000)}` }] });
+    const r = await modelos.pedirChat("dia", { temperature: 0.2, response_format: { type: "json_object" }, messages: mensajes(nombre, fecha, b.texto) });
     if (!r.ok) throw new Error(modelos.nombreProveedor() + " " + r.status);
     const raw = (await r.json()).choices[0].message.content;
-    const d = JSON.parse(raw.match(/\{[\s\S]*\}/)[0]);
+    const d = extraerJson(raw);
     d.alumno = b.alumno || d.alumno; d.fecha = fecha;
     for (const a of d.actividades || []) Object.assign(a, await picto(a.palabra_clave || a.actividad));
     const al = (d.alertas || []).map(x => "⚠️ " + x.detalle).join("\n");
@@ -42,3 +45,8 @@ module.exports = async (req, res) => {
     res.status(200).json(d);
   } catch (e) { res.status(502).json({ error: e.message }); }
 };
+// Exportados para el arnés de evaluación (web/scripts/evaluar-llm.js): mismos prompts y mismo parseo que usa la app.
+module.exports = handler;
+module.exports.SISTEMA = SISTEMA;
+module.exports.mensajes = mensajes;
+module.exports.extraerJson = extraerJson;
