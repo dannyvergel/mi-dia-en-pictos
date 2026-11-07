@@ -1,6 +1,12 @@
 // Capa de base de datos: Postgres (Neon, vía Vercel Marketplace).
 // Sin DATABASE_URL / POSTGRES_URL la app queda en "modo demo" (PIN + links con token).
 // En los tests se inyecta una base PGlite con usarBaseDePrueba().
+//
+// Driver (misma interfaz para los dos):
+//   DB_DRIVER=pg    -> Postgres "normal" con `pg` (autoalojado, docker compose).
+//   DB_DRIVER=neon  -> driver HTTP de Neon (Vercel).
+//   sin DB_DRIVER   -> neon si la URL apunta a un host de Neon (*.neon.tech, *.neon.build,
+//                      *.vercel-storage.com); cualquier otro host usa pg. Sin URL: neon (comportamiento histórico).
 const { SCHEMA } = require("./schema");
 
 let cliente = null;      // { query(text, params) -> rows[] }
@@ -10,7 +16,42 @@ let esquemaListo = null; // promesa memorizada por instancia
 const urlBase = () => process.env.DATABASE_URL || process.env.POSTGRES_URL || "";
 const dbActiva = () => inyectado || !!urlBase();
 
+const HOST_NEON = /(^|\.)(neon\.tech|neon\.build|vercel-storage\.com)$/i;
+
+function elegirDriver(env = process.env) {
+  const forzado = String(env.DB_DRIVER || "").trim().toLowerCase();
+  if (forzado === "pg" || forzado === "neon") return forzado;
+  const url = env.DATABASE_URL || env.POSTGRES_URL || "";
+  if (!url) return "neon";
+  try { return HOST_NEON.test(new URL(url).hostname) ? "neon" : "pg"; }
+  catch { return "neon"; }
+}
+
+// Cliente sobre un pool de `pg`. La transacción usa UN cliente del pool: BEGIN, sentencias en orden, COMMIT; ROLLBACK si falla.
+function crearClientePg(pool) {
+  return {
+    query: async (text, params = []) => (await pool.query(text, params)).rows,
+    transaccion: async stmts => {
+      const c = await pool.connect();
+      try {
+        await c.query("BEGIN");
+        const out = [];
+        for (const [t, p] of stmts) out.push((await c.query(t, p || [])).rows);
+        await c.query("COMMIT");
+        return out;
+      } catch (e) {
+        try { await c.query("ROLLBACK"); } catch { /* the original error matters more */ }
+        throw e;
+      } finally { c.release(); }
+    }
+  };
+}
+
 function crearCliente() {
+  if (elegirDriver() === "pg") {
+    const { Pool } = require("pg");
+    return crearClientePg(new Pool({ connectionString: urlBase(), max: Number(process.env.DB_POOL_MAX) || 10 }));
+  }
   const { neon } = require("@neondatabase/serverless");
   const sql = neon(urlBase());
   const filas = r => Array.isArray(r) ? r : (r.rows || []);
@@ -57,4 +98,10 @@ function usarBaseDePrueba(pg) {
   } : null;
 }
 
-module.exports = { dbActiva, db, ping, q, uno, transaccion, asegurarEsquema, usarBaseDePrueba };
+// Solo para tests: inyecta un pool falso con la forma de `pg` (query/connect).
+function usarPoolDePrueba(pool) {
+  inyectado = !!pool; esquemaListo = null;
+  cliente = pool ? crearClientePg(pool) : null;
+}
+
+module.exports = { elegirDriver, crearClientePg, usarPoolDePrueba, dbActiva, db, ping, q, uno, transaccion, asegurarEsquema, usarBaseDePrueba };

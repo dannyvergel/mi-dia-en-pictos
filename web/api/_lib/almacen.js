@@ -8,13 +8,67 @@
 //    ni leer el token OIDC a mano (si se pasa explícito, el SDK no lo renueva y a la hora empieza a dar 403).
 //  · Fuera de Vercel (scripts locales: revisor.js, dev.js): BLOB_READ_WRITE_TOKEN como respaldo. Se pasa explícito para que
 //    un VERCEL_OIDC_TOKEN/BLOB_STORE_ID viejo que haya quedado de un `vercel env pull` no mande la escritura a otro store.
+//
+// Disco local (autoalojado): STORAGE_DRIVER=disk guarda todo bajo STORAGE_DIR (por defecto ./data/storage), con las mismas rutas
+// lógicas que en Blob. Una ruta que resuelva fuera de STORAGE_DIR nunca se lee, escribe ni borra. Sin STORAGE_DRIVER no cambia nada.
+const fs = require("node:fs");
+const fsp = fs.promises;
+const path = require("node:path");
+const crypto = require("node:crypto");
+
 let prueba = null, pruebaArchivos = null, avisado = false, fallosDePrueba = null;
 const ruta = t => `familias/${t}.json`;
 const lleno = v => typeof v === "string" && v.trim() !== "";
 
-// "memoria" (tests o dev sin Blob) | "oidc" | "token" | "sin_configurar". Nunca devuelve ni registra un secreto.
+const usaDisco = (env = process.env) => String(env.STORAGE_DRIVER || "").trim().toLowerCase() === "disk";
+const directorioDisco = (env = process.env) => path.resolve(lleno(env.STORAGE_DIR) ? env.STORAGE_DIR.trim() : "./data/storage");
+
+// Ruta absoluta dentro de STORAGE_DIR, o null si la clave es inválida o se sale de la carpeta (../, absolutas, NUL, vacías).
+function rutaEnDisco(clave) {
+  if (typeof clave !== "string" || clave === "" || clave.includes("\0") || clave.includes("\\")) return null;
+  const base = directorioDisco();
+  const destino = path.resolve(base, clave);
+  return destino !== base && destino.startsWith(base + path.sep) ? destino : null;
+}
+const sinSobras = async tmp => { try { await fsp.unlink(tmp); } catch { /* already gone */ } };
+// Escritura atómica: archivo temporal en la misma carpeta y rename (o link, que falla si el destino existe).
+async function escribirDisco(clave, datos, { sobrescribir }) {
+  const destino = rutaEnDisco(clave);
+  if (!destino) throw new Error("ruta de almacenamiento no válida");
+  await fsp.mkdir(path.dirname(destino), { recursive: true });
+  const tmp = `${destino}.${process.pid}.${crypto.randomBytes(6).toString("hex")}.tmp`;
+  await fsp.writeFile(tmp, datos, { flag: "wx", mode: 0o600 });
+  try {
+    if (sobrescribir) { await fsp.rename(tmp, destino); return; }
+    try { await fsp.link(tmp, destino); }
+    catch (e) {
+      if (e.code === "EEXIST") throw new Error("el archivo ya existe");
+      // Filesystems without hard links: check, then rename.
+      if (fs.existsSync(destino)) throw new Error("el archivo ya existe");
+      await fsp.rename(tmp, destino); return;
+    }
+    await sinSobras(tmp);
+  } catch (e) { await sinSobras(tmp); throw e; }
+}
+// Buffer, o null si no existe o la clave es inválida.
+async function leerDisco(clave) {
+  const destino = rutaEnDisco(clave);
+  if (!destino) return null;
+  try { return await fsp.readFile(destino); }
+  catch (e) { if (e.code === "ENOENT" || e.code === "ENOTDIR" || e.code === "EISDIR") return null; throw e; }
+}
+// Borra y verifica. Una clave inválida no puede existir en el store: no hay nada que borrar (ok).
+async function borrarDisco(clave) {
+  const destino = rutaEnDisco(clave);
+  if (!destino) return { ok: true };
+  try { await fsp.unlink(destino); } catch (e) { if (e.code !== "ENOENT") return { ok: false, error: textoDeError(e) }; }
+  return fs.existsSync(destino) ? { ok: false, error: "el archivo sigue en el disco después de borrarlo" } : { ok: true };
+}
+
+// "memoria" (tests o dev sin Blob) | "disco" | "oidc" | "token" | "sin_configurar". Nunca devuelve ni registra un secreto.
 function modoBlob(env = process.env) {
   if (prueba) return "memoria";
+  if (usaDisco(env)) return "disco";
   const oidc = lleno(env.BLOB_STORE_ID), rw = lleno(env.BLOB_READ_WRITE_TOKEN);
   if (lleno(env.VERCEL)) return oidc ? "oidc" : rw ? "token" : "sin_configurar";
   // Local: el token que pasa quien corre el script manda (ver credenciales()).
@@ -38,12 +92,21 @@ function credenciales(env = process.env) {
 
 async function leerFamilia(token) {
   if (prueba) return prueba.has(token) ? JSON.parse(prueba.get(token)) : null;
+  if (usaDisco()) {
+    if (!/^[A-Za-z0-9_-]+$/.test(String(token || ""))) return null;
+    const b = await leerDisco(ruta(token));
+    return b ? JSON.parse(b.toString("utf8")) : null;
+  }
   const { get } = require("@vercel/blob");
   const r = await get(ruta(token), { access: "private", useCache: false, ...credenciales() });
   return r ? JSON.parse(await new Response(r.stream).text()) : null;
 }
 async function guardarFamilia(token, datos) {
   if (prueba) return void prueba.set(token, JSON.stringify(datos));
+  if (usaDisco()) {
+    if (!/^[A-Za-z0-9_-]+$/.test(String(token || ""))) throw new Error("ruta de almacenamiento no válida");
+    return escribirDisco(ruta(token), JSON.stringify(datos), { sobrescribir: true });
+  }
   const { put } = require("@vercel/blob");
   await put(ruta(token), JSON.stringify(datos), { access: "private", allowOverwrite: true, addRandomSuffix: false, contentType: "application/json", ...credenciales() });
 }
@@ -51,6 +114,7 @@ async function guardarFamilia(token, datos) {
 async function borrarFamilia(token) {
   if (!token) return true;
   if (prueba) { prueba.delete(token); return !prueba.has(token); }
+  if (usaDisco()) return (await borrarDisco(ruta(token))).ok;
   try {
     const { del, head } = require("@vercel/blob");
     await del(ruta(token), credenciales());
@@ -64,12 +128,14 @@ async function borrarFamilia(token) {
 const noEncontrado = e => /not.?found/i.test(e?.name || "") || /not.?found|does not exist/i.test(e?.message || "");
 async function guardarArchivo(ruta, datos, mime) {
   if (pruebaArchivos) return void pruebaArchivos.set(ruta, { datos: Buffer.from(datos), mime });
+  if (usaDisco()) return escribirDisco(ruta, Buffer.from(datos), { sobrescribir: false });
   const { put } = require("@vercel/blob");
   await put(ruta, datos, { access: "private", allowOverwrite: false, addRandomSuffix: false, contentType: mime, ...credenciales() });
 }
 // Devuelve un Buffer, o null si no está.
 async function leerArchivo(ruta) {
   if (pruebaArchivos) return pruebaArchivos.has(ruta) ? Buffer.from(pruebaArchivos.get(ruta).datos) : null;
+  if (usaDisco()) return leerDisco(ruta);
   const { get } = require("@vercel/blob");
   try {
     const r = await get(ruta, { access: "private", useCache: false, ...credenciales() });
@@ -85,6 +151,7 @@ async function intentarBorrarArchivo(ruta) {
     pruebaArchivos.delete(ruta);
     return { ok: !pruebaArchivos.has(ruta), error: "" };
   }
+  if (usaDisco()) return fallosDePrueba?.has(ruta) ? { ok: false, error: "fallo simulado (tests)" } : borrarDisco(ruta);
   try {
     const { del, head } = require("@vercel/blob");
     await del(ruta, credenciales());
@@ -118,5 +185,5 @@ const archivosDePrueba = () => pruebaArchivos;
 // Tests: Set de rutas cuyo borrado falla (null lo apaga).
 const fallarBorradoDePrueba = rutas => { fallosDePrueba = rutas; };
 
-module.exports = { modoBlob, hayBlob, credenciales, leerFamilia, guardarFamilia, borrarFamilia, guardarArchivo, leerArchivo, borrarArchivo, intentarBorrarArchivo,
+module.exports = { directorioDisco, modoBlob, hayBlob, credenciales, leerFamilia, guardarFamilia, borrarFamilia, guardarArchivo, leerArchivo, borrarArchivo, intentarBorrarArchivo,
   usarAlmacenDePrueba, archivosDePrueba, fallarBorradoDePrueba };

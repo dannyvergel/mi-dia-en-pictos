@@ -4,7 +4,7 @@
 //  3. post-chequeo de la salida: sin URLs, sin bloques de código, largo acotado, sin filtrar las instrucciones;
 //  4. historial del lado del servidor (tabla chat_turnos, 30 días) — nunca el que manda el navegador;
 //  5. límites por cuenta e IP (con base) o por token + IP en memoria (modo demo).
-const { cuerpo: cuerpoLLM, cabeceras } = require("./modelos");
+const modelos = require("./modelos");
 const { diaSemana } = require("./tools");
 const { q } = require("./db");
 const S = require("./seguridad");
@@ -147,12 +147,8 @@ async function preguntar(d, pregunta, { historial = [], quien } = {}) {
   if (regla) { registrarNegativa("prefiltro:" + regla, quien); return { respuesta: negativa(d.alumno), modo: "fuera_de_tema", en_tema: false }; }
   if (!require("./pin").iaActiva()) return { respuesta: SIN_IA, modo: "demo", en_tema: true };
 
-  const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: cabeceras(),
-    body: JSON.stringify(cuerpoLLM("chat", { temperature: 0.2, response_format: { type: "json_object" }, messages: mensajes(d, p, historial) }))
-  });
-  if (!r.ok) throw new Error("OpenRouter " + r.status);
+  const r = await modelos.pedirChat("chat", { temperature: 0.2, response_format: { type: "json_object" }, messages: mensajes(d, p, historial) });
+  if (!r.ok) throw new Error(modelos.nombreProveedor() + " " + r.status);
   const j = await r.json().catch(() => null);
   const o = leerJson(j?.choices?.[0]?.message?.content);
   if (!o) { registrarNegativa("json_invalido", quien); return { respuesta: negativa(d.alumno), modo: "fuera_de_tema", en_tema: false }; }
