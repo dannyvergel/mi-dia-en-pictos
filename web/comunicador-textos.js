@@ -105,7 +105,7 @@
     propiosLleno: "Ya sumaste 60 dibujos propios. Sacá alguno de Favoritos para sumar otro.",
     creditoRotulo: "Pictogramas de ARASAAC",
     creditoTexto: "Autor pictogramas: Sergio Palao. Origen: ARASAAC (<a href=\"https://arasaac.org\" rel=\"noopener\">https://arasaac.org</a>). Licencia: CC BY-NC-SA. Propiedad: Gobierno de Aragón (España). Puente los usa sin fines de lucro.",
-    pie: "Comunicador libre de Puente: no guarda nada fuera de tu dispositivo.",
+    pie: "Comunicador libre de Puente: no guarda nada en los servidores de Puente. Los pictogramas y la palabra que buscás vienen de ARASAAC. <a href=\"/privacidad-comunicador.html\">Privacidad</a>",
     apk: "<a href=\"/descargar/comunicador.apk\" download>Bajar la app para Android</a> (Puente Comunicador)"
   };
   const EN = {
@@ -210,7 +210,7 @@
     propiosLleno: "You already added 60 pictures of your own. Remove one from Favorites to add another.",
     creditoRotulo: "ARASAAC pictograms",
     creditoTexto: "Pictograms author: Sergio Palao. Source: ARASAAC (<a href=\"https://arasaac.org\" rel=\"noopener\">https://arasaac.org</a>). License: CC BY-NC-SA. Owner: Government of Aragón (Spain). Puente uses them on a non-profit basis.",
-    pie: "Puente's free communicator: nothing is stored outside your device.",
+    pie: "Puente's free communicator: nothing is stored on Puente's servers. The pictograms and the word you search come from ARASAAC. <a href=\"/en/privacidad-comunicador.html\">Privacy</a>",
     apk: "<a href=\"/descargar/comunicador.apk\" download>Get the Android app</a> (Puente Comunicador)"
   };
   const IDIOMAS = ["es", "en"];
