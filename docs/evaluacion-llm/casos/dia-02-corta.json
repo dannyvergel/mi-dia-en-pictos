@@ -1,0 +1,41 @@
+{
+  "sintetico": true,
+  "aviso": "DATOS SINTÉTICOS: este caso fue escrito a mano para evaluar modelos. Los nombres, hechos, teléfonos y correos son inventados y no corresponden a ninguna persona real. No pegar acá datos de chicos reales.",
+  "id": "dia-02-corta",
+  "tipo": "dia",
+  "alumno": "Valentina",
+  "fecha": "2026-03-11",
+  "longitud": "corta",
+  "texto": "Hoy Valentina estuvo cansada. Hizo la rutina de ingreso, trabajó con el rompecabezas de animales y después se durmió un rato en el rincón de lectura. No quiso comer la fruta.",
+  "esperado": {
+    "actividades": [
+      {
+        "actividad": "Rompecabezas de animales",
+        "claves": [
+          "rompecabezas"
+        ]
+      },
+      {
+        "actividad": "Descanso en el rincón de lectura",
+        "claves": [
+          "durm",
+          "descans",
+          "lectura"
+        ]
+      }
+    ],
+    "animo": [
+      "cansado"
+    ],
+    "alertas": [],
+    "sin_alertas": false
+  },
+  "trampas": {
+    "no_inventar": [
+      "natac",
+      "recreo",
+      "musica",
+      "almor"
+    ]
+  }
+}

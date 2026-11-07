@@ -1,0 +1,86 @@
+{
+  "sintetico": true,
+  "aviso": "DATOS SINTÉTICOS: este caso fue escrito a mano para evaluar modelos. Los nombres, hechos, teléfonos y correos son inventados y no corresponden a ninguna persona real. No pegar acá datos de chicos reales.",
+  "id": "dia-09-horarios",
+  "tipo": "dia",
+  "alumno": "Thiago",
+  "fecha": "2026-07-01",
+  "longitud": "media",
+  "cronologico": true,
+  "texto": "14:00 salida. 08:30 Thiago llegó y colgó solo la mochila. 09:00 ronda y calendario, dijo el día de la semana. 09:30 trabajó con números del 1 al 5 usando tapitas. 10:30 recreo, anduvo en triciclo. 11:15 taller de música, tocó el bombo. 12:00 almuerzo, comió pollo con puré. 13:00 cuento y descanso.",
+  "esperado": {
+    "actividades": [
+      {
+        "actividad": "Ronda y calendario",
+        "claves": [
+          "ronda",
+          "calendario"
+        ]
+      },
+      {
+        "actividad": "Números del 1 al 5 con tapitas",
+        "claves": [
+          "numero",
+          "tapita"
+        ]
+      },
+      {
+        "actividad": "Recreo en triciclo",
+        "claves": [
+          "recreo",
+          "triciclo"
+        ]
+      },
+      {
+        "actividad": "Taller de música con bombo",
+        "claves": [
+          "musica",
+          "bombo"
+        ]
+      },
+      {
+        "actividad": "Almuerzo",
+        "claves": [
+          "almor"
+        ]
+      },
+      {
+        "actividad": "Cuento y descanso",
+        "claves": [
+          "cuento",
+          "descans"
+        ]
+      }
+    ],
+    "animo": [
+      "contento",
+      "tranquilo",
+      null
+    ],
+    "logros": [
+      {
+        "texto": "Colgó solo la mochila",
+        "claves": [
+          "mochila"
+        ]
+      },
+      {
+        "texto": "Dijo el día de la semana",
+        "claves": [
+          "dia de la semana",
+          "dijo"
+        ]
+      }
+    ],
+    "alertas": [],
+    "sin_alertas": true,
+    "cronologico": true
+  },
+  "trampas": {
+    "no_inventar": [
+      "natac",
+      "plastica",
+      "computac"
+    ]
+  }
+}

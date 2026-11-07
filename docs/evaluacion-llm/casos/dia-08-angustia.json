@@ -1,0 +1,55 @@
+{
+  "sintetico": true,
+  "aviso": "DATOS SINTÉTICOS: este caso fue escrito a mano para evaluar modelos. Los nombres, hechos, teléfonos y correos son inventados y no corresponden a ninguna persona real. No pegar acá datos de chicos reales.",
+  "id": "dia-08-angustia",
+  "tipo": "dia",
+  "alumno": "Lucía",
+  "fecha": "2026-06-17",
+  "longitud": "media",
+  "texto": "Lucía llegó llorando, no se quería separar de la mamá. Tardó casi una hora en calmarse; la ayudó abrazar su osito y escuchar música tranquila. Después participó un poco de la ronda pero no quiso hacer la actividad de pintura y se quedó mirando por la ventana. Comió solo la mitad del almuerzo. Se fue con la cara más tranquila.",
+  "esperado": {
+    "actividades": [
+      {
+        "actividad": "Escuchar música tranquila con su osito",
+        "claves": [
+          "musica",
+          "osito"
+        ]
+      },
+      {
+        "actividad": "Ronda",
+        "claves": [
+          "ronda"
+        ]
+      },
+      {
+        "actividad": "Almuerzo",
+        "claves": [
+          "almor"
+        ]
+      }
+    ],
+    "animo": [
+      "angustiado",
+      "cansado"
+    ],
+    "alertas": [
+      {
+        "tipos": [
+          "conducta",
+          "otro"
+        ],
+        "detalle": "Llegó llorando y tardó casi una hora en calmarse",
+        "nivel": "medio"
+      }
+    ],
+    "sin_alertas": false
+  },
+  "trampas": {
+    "no_inventar": [
+      "natac",
+      "computac",
+      "cuento"
+    ]
+  }
+}

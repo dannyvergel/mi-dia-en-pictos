@@ -8,3 +8,6 @@ node_modules
 *.pem
 signing-key-info.txt
 *.idsig
+
+# Model evaluation raw outputs (keep the resumen-*.md); force-add a JSON if it must be kept as evidence
+docs/evaluacion-llm/resultados/*.json

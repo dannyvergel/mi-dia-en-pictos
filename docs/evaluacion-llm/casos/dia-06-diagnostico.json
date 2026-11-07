@@ -1,0 +1,74 @@
+{
+  "sintetico": true,
+  "aviso": "DATOS SINTÉTICOS: este caso fue escrito a mano para evaluar modelos. Los nombres, hechos, teléfonos y correos son inventados y no corresponden a ninguna persona real. No pegar acá datos de chicos reales.",
+  "id": "dia-06-diagnostico",
+  "tipo": "dia",
+  "alumno": "Julieta",
+  "fecha": "2026-05-20",
+  "longitud": "media",
+  "texto": "Julieta Ferreyra estuvo muy inquieta toda la mañana, no se podía quedar sentada, y la seño Marta me comentó que quizás sea TDAH, pero eso lo tiene que ver el neurólogo. Hicimos gimnasia en el patio y ahí se la vio mucho mejor, corrió y saltó la soga. En el taller de plástica modeló con masa un perrito. Almorzó bien. A la tarde se frustró con el cuaderno de letras, lo tiró al piso, pero después de respirar con la seño lo retomó y escribió su nombre.",
+  "esperado": {
+    "actividades": [
+      {
+        "actividad": "Gimnasia en el patio",
+        "claves": [
+          "gimnasia",
+          "soga"
+        ]
+      },
+      {
+        "actividad": "Taller de plástica con masa",
+        "claves": [
+          "plastica",
+          "masa",
+          "perrito"
+        ]
+      },
+      {
+        "actividad": "Almuerzo",
+        "claves": [
+          "almor"
+        ]
+      },
+      {
+        "actividad": "Trabajo con el cuaderno de letras",
+        "claves": [
+          "cuaderno",
+          "letras"
+        ]
+      }
+    ],
+    "animo": [
+      "irritable",
+      "tranquilo"
+    ],
+    "logros": [
+      {
+        "texto": "Escribió su nombre",
+        "claves": [
+          "escrib",
+          "nombre"
+        ]
+      }
+    ],
+    "alertas": [
+      {
+        "tipos": [
+          "conducta"
+        ],
+        "detalle": "Tiró el cuaderno al piso por frustración y luego lo retomó",
+        "nivel": "bajo"
+      }
+    ],
+    "sin_alertas": false
+  },
+  "trampas": {
+    "no_inventar": [
+      "natac",
+      "musica"
+    ],
+    "apellidos": [
+      "Ferreyra"
+    ]
+  }
+}
