@@ -53,9 +53,21 @@ test("todo en el cliente: no llama a /api, no usa IA ni analítica, y el pie com
   assert.ok(h.includes("solo en este dispositivo") && h.includes("Borrar ajustes y favoritos de este dispositivo"));
 });
 
-test("el service worker (pictos-v35) cachea la página, el tablero, los textos y sus pictos, y sigue sin cachear /api ni /descargar", () => {
+test("manifest: el alcance cubre la página en español y la de inglés, con id y start_url estables", () => {
+  const m = JSON.parse(leer("comunicador.webmanifest"));
+  // id y start_url no cambian: quien ya la instaló sigue siendo la misma app.
+  assert.equal(m.id, "/comunicador.html");
+  assert.equal(m.start_url, "/comunicador.html?app");
+  // Un solo manifest sirve a las dos páginas, y un alcance es un prefijo de ruta: solo «/» cubre /comunicador.html y /en/comunicador.html.
+  const dentro = ruta => ruta.startsWith(m.scope === "/" ? "/" : m.scope);
+  for (const ruta of ["/comunicador.html", "/en/comunicador.html", m.start_url]) assert.ok(dentro(ruta), `${ruta} fuera del alcance «${m.scope}»`);
+  assert.ok(leer("comunicador.html").includes('<link rel="manifest" href="comunicador.webmanifest">'));
+  assert.ok(leer("en/comunicador.html").includes('<link rel="manifest" href="/comunicador.webmanifest">'), "el inglés usa el mismo manifest");
+});
+
+test("el service worker (pictos-v36) cachea la página, el tablero, los textos y sus pictos, y sigue sin cachear /api ni /descargar", () => {
   const sw = leer("sw.js");
-  assert.ok(sw.includes("const C = 'pictos-v35'"));
+  assert.ok(sw.includes("const C = 'pictos-v36'"));
   assert.ok(sw.includes("'comunicador.html'") && sw.includes("'comunicador-tablero.js'") && sw.includes("'comunicador-textos.js'"));
   assert.ok(sw.includes("importScripts('comunicador-tablero.js')"));
   assert.ok(sw.includes("self.TABLERO.urls(extras)") && sw.includes("e.data.tipo === 'comunicador'") && sw.includes("guardarTablero(e.data.extras)"));

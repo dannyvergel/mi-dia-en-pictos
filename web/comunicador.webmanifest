@@ -4,7 +4,7 @@
   "description": "Comunicador con pictogramas de ARASAAC, libre y sin cuenta: tocá los dibujos, armá la frase y el celular la dice. Funciona sin conexión.",
   "id": "/comunicador.html",
   "start_url": "/comunicador.html?app",
-  "scope": "/comunicador",
+  "scope": "/",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#fbf7ee",
