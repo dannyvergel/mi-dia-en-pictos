@@ -19,7 +19,8 @@
 //   POST accion=doc_subir   { id, tipo, titulo, nombre, mime, datos (base64), mostrar_familia?, notificar? }
 //   GET ?documentos=<alumno_id>           → lista (sin la ruta del Blob)
 //   GET ?documento=<doc_id>               → el archivo (attachment, no-store)
-//   POST accion=doc_cambiar { doc_id, mostrar_familia?, notificar? }
+//   POST accion=doc_cambiar { doc_id, mostrar_familia?, notificar?, reservado? }
+//   Límites (LIMITES_DOCUMENTOS en _lib/documentos.js): subidas por hora (429), documentos y bytes por alumno (413), descargas por sesión por hora (429).
 //   POST accion=doc_borrar  { doc_id }    (quien lo subió o la admin de la escuela)
 //   Piloto: sumar emails nuevos de familia (crear/guardar) respeta el tope de cupos (409 "El piloto está completo").
 //   POST accion=importar_previa | importar_confirmar | importar_enviar   (solo admins de escuela / plataforma)

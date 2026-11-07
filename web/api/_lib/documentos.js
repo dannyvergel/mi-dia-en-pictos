@@ -20,6 +20,14 @@ const { errorPublico } = require("./http");
 
 const MAX_BYTES = 3 * 1024 * 1024;
 const MSG_RESERVADO = "Un documento reservado no se puede mostrar a la familia. Sacale la marca de «reservado» primero.";
+// Límites contra abuso (se cuentan con el mismo contador de intentos de seguridad.js, tabla limites). Todos los números, acá.
+// El archivo en sí ya está acotado a MAX_BYTES (3 MB) por el body de Vercel.
+const LIMITES_DOCUMENTOS = {
+  subidasPorHora: 20,                      // subidas por docente por hora → 429
+  maxDocumentosPorAlumno: 50,              // documentos guardados por alumno → 413
+  maxBytesPorAlumno: 50 * 1024 * 1024,     // suma de bytes de los documentos de un alumno → 413
+  descargasPorHora: 120                    // descargas por sesión por hora (docente o familia) → 429
+};
 const TIPOS = ["informe", "documento"];
 // Extensión → tipo MIME guardado (el que declara el navegador solo se acepta si coincide o viene vacío).
 const MIMES = {
@@ -28,6 +36,7 @@ const MIMES = {
   png: "image/png",
   docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 };
+const MB = n => Math.round(n / (1024 * 1024));
 const empieza = (buf, bytes) => bytes.every((b, i) => buf[i] === b);
 // Primeros bytes de cada formato. DOCX es un ZIP que adentro tiene la carpeta word/ (los nombres van sin comprimir).
 const FIRMAS = {
@@ -157,7 +166,16 @@ async function subir(req, yo, b) {
   const reservado = b.reservado === true;
   if (reservado && visible) throw errorPublico(MSG_RESERVADO);
   if (avisar && !visible) throw errorPublico("Para avisarle a la familia, primero marcá «Mostrar a la familia».");
+  const L = LIMITES_DOCUMENTOS, claveSubidas = `doc_subir:${yo.id}`;
+  if (await S.superaLimite(claveSubidas, L.subidasPorHora, 60))
+    throw errorPublico(`Subiste muchos documentos en poco tiempo (máximo ${L.subidasPorHora} por hora). Probá de nuevo en un rato.`, 429);
   const archivo = validarArchivo({ nombre: b.nombre, mime: b.mime, datos: b.datos });
+  const uso = await uno("SELECT count(*)::int AS n, coalesce(sum(bytes), 0)::float8 AS bytes FROM documentos WHERE alumno_id = $1", [a.id]);
+  if (uso.n >= L.maxDocumentosPorAlumno)
+    throw errorPublico(`Este alumno ya tiene ${uso.n} documentos, el máximo permitido. Borrá alguno que ya no haga falta para subir otro.`, 413);
+  if (Number(uso.bytes) + archivo.datos.length > L.maxBytesPorAlumno)
+    throw errorPublico(`Los documentos de este alumno ya ocupan casi todo el espacio permitido (${MB(L.maxBytesPorAlumno)} MB). Borrá alguno que ya no haga falta para subir otro.`, 413);
+  await S.registrarIntento(claveSubidas); // recién acá cuenta: una subida rechazada por inválida no gasta cupo
   const ruta = `documentos/${a.id}/${crypto.randomBytes(16).toString("hex")}`;
   await almacen.guardarArchivo(ruta, archivo.datos, archivo.mime);
   let d;
@@ -202,7 +220,13 @@ async function borrar(req, yo, b) {
 
 // Manda el archivo. ses = { tipo, usuario }. Content-Disposition attachment y no-store: el navegador lo baja, no lo muestra ni lo guarda en caché.
 async function descargar(req, res, ses, docId) {
+  // Descargas por hora y por sesión (la cookie, hasheada; si no se puede leer, por usuario). Solo cuentan las que encuentran un documento.
+  const token = String(S.leerCookies(req)[S.COOKIE] || "").split(".")[0];
+  const claveVer = `doc_ver:${token ? S.sha256(token) : ses.tipo + ses.usuario.id}`;
+  if (await S.superaLimite(claveVer, LIMITES_DOCUMENTOS.descargasPorHora, 60))
+    throw errorPublico(`Bajaste muchos documentos en poco tiempo (máximo ${LIMITES_DOCUMENTOS.descargasPorHora} descargas por hora). Probá de nuevo en un rato.`, 429);
   const d = ses.tipo === "docente" ? await docDeDocente(ses.usuario, docId) : await docDeFamilia(ses.usuario, docId);
+  await S.registrarIntento(claveVer);
   const datos = await almacen.leerArchivo(d.blob_ruta);
   if (!datos) throw errorPublico("No encontramos el archivo. Avisale a la escuela.", 404);
   await auditoria.registrar(req, { evento: "doc_ver", ...auditoria.actor(ses), objeto_tipo: "documento", objeto_id: d.id, detalle: { alumno_id: Number(d.alumno_id) } });
@@ -216,5 +240,5 @@ async function descargar(req, res, ses, docId) {
   return res.status(200).end(datos);
 }
 
-module.exports = { MAX_BYTES, TIPOS, MIMES, sanitizarNombre, validarArchivo, validarTipo, validarTitulo,
+module.exports = { MAX_BYTES, LIMITES_DOCUMENTOS, TIPOS, MIMES, sanitizarNombre, validarArchivo, validarTipo, validarTitulo,
   listarDocente, listarFamilia, exportarFamilia, subir, cambiar, borrar, descargar };
