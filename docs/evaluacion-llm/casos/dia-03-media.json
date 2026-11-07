@@ -1,0 +1,63 @@
+{
+  "sintetico": true,
+  "aviso": "DATOS SINTÉTICOS: este caso fue escrito a mano para evaluar modelos. Los nombres, hechos, teléfonos y correos son inventados y no corresponden a ninguna persona real. No pegar acá datos de chicos reales.",
+  "id": "dia-03-media",
+  "tipo": "dia",
+  "alumno": "Joaquín",
+  "fecha": "2026-04-02",
+  "longitud": "media",
+  "texto": "Joaquín vino con mucho sueño. En el desayuno tomó la leche pero no quiso tocar el pan. Después, en el taller de cocina, amasó pizzetas con la seño Ana y las probó: ¡le encantaron! A las 11 tuvimos recreo en el patio; jugó a la pelota con Santi, se cayó y se raspó la rodilla, le pusimos una curita y siguió jugando. Al mediodía no quiso almorzar nada, solo tomó agua, y dijo \"me duele la panza\" dos veces. Por la tarde dibujó un barco y estuvo tranquilo hasta la salida.",
+  "esperado": {
+    "actividades": [
+      {
+        "actividad": "Desayuno",
+        "claves": [
+          "desayun"
+        ]
+      },
+      {
+        "actividad": "Taller de cocina: amasó pizzetas",
+        "claves": [
+          "cocina",
+          "pizzeta"
+        ]
+      },
+      {
+        "actividad": "Recreo: juego con la pelota",
+        "claves": [
+          "recreo",
+          "pelota"
+        ]
+      },
+      {
+        "actividad": "Dibujo de un barco",
+        "claves": [
+          "dibuj",
+          "barco"
+        ]
+      }
+    ],
+    "animo": [
+      "cansado",
+      "tranquilo"
+    ],
+    "alertas": [
+      {
+        "tipos": [
+          "alimentacion",
+          "salud"
+        ],
+        "detalle": "No quiso almorzar y dijo que le dolía la panza",
+        "nivel": "medio"
+      }
+    ],
+    "sin_alertas": false
+  },
+  "trampas": {
+    "no_inventar": [
+      "natac",
+      "musica",
+      "computac"
+    ]
+  }
+}

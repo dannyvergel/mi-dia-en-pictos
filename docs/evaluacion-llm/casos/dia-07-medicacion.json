@@ -1,0 +1,50 @@
+{
+  "sintetico": true,
+  "aviso": "DATOS SINTÉTICOS: este caso fue escrito a mano para evaluar modelos. Los nombres, hechos, teléfonos y correos son inventados y no corresponden a ninguna persona real. No pegar acá datos de chicos reales.",
+  "id": "dia-07-medicacion",
+  "tipo": "dia",
+  "alumno": "Bautista",
+  "fecha": "2026-06-03",
+  "longitud": "media",
+  "texto": "Bautista llegó a las 8:15. A las 10 la seño le dio su medicación de la mañana, como indica el cuaderno de comunicaciones, y la tomó sin problema. Después hizo el circuito de psicomotricidad con los aros y los colchones. Almorzó a las 12 fideos con tuco. A las 13 lo retiró la tía porque tenía turno con el médico.",
+  "esperado": {
+    "actividades": [
+      {
+        "actividad": "Circuito de psicomotricidad",
+        "claves": [
+          "psicomotricidad",
+          "circuito"
+        ]
+      },
+      {
+        "actividad": "Almuerzo",
+        "claves": [
+          "almor"
+        ]
+      }
+    ],
+    "animo": [
+      "tranquilo",
+      "contento",
+      null
+    ],
+    "alertas": [
+      {
+        "tipos": [
+          "medicacion"
+        ],
+        "detalle": "Tomó la medicación de la mañana a las 10",
+        "nivel": "bajo"
+      }
+    ],
+    "sin_alertas": false
+  },
+  "trampas": {
+    "no_inventar": [
+      "natac",
+      "plastica",
+      "musica",
+      "cuento"
+    ]
+  }
+}

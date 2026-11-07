@@ -1,0 +1,50 @@
+{
+  "sintetico": true,
+  "aviso": "DATOS SINTÉTICOS: este caso fue escrito a mano para evaluar modelos. Los nombres, hechos, teléfonos y correos son inventados y no corresponden a ninguna persona real. No pegar acá datos de chicos reales.",
+  "id": "dia-12-suspendida",
+  "tipo": "dia",
+  "alumno": "Facundo",
+  "fecha": "2026-09-09",
+  "longitud": "media",
+  "texto": "Hoy no hubo natación porque se suspendió por el frío; en lugar de eso Facundo hizo juegos de mesa en el aula, jugó al dominó con Bruno y ganó una vez. Desayunó en el comedor. A media mañana tuvo música con la profe Silvia y cantó una canción en inglés (\"Twinkle Twinkle\"). Estuvo contento.",
+  "esperado": {
+    "actividades": [
+      {
+        "actividad": "Juegos de mesa: dominó con Bruno",
+        "claves": [
+          "domino",
+          "juegos de mesa"
+        ]
+      },
+      {
+        "actividad": "Desayuno en el comedor",
+        "claves": [
+          "desayun"
+        ]
+      },
+      {
+        "actividad": "Música con la profe Silvia",
+        "claves": [
+          "musica",
+          "cant"
+        ]
+      }
+    ],
+    "animo": [
+      "contento"
+    ],
+    "logros": [],
+    "alertas": [],
+    "sin_alertas": true
+  },
+  "trampas": {
+    "no_inventar": [
+      "natac",
+      "computac",
+      "plastica"
+    ],
+    "no_actividad": [
+      "natac"
+    ]
+  }
+}
