@@ -171,6 +171,7 @@ Decisión del 1/11/2026: el piloto queda abierto a **15 usuarios en total** (se�
 | `CHAT_RETENCION_DIAS` | Días que se guarda el historial del chat de la familia | Opcional (30) |
 | `DIAS_PUBLICADOS_RETENCION` | Días publicados que ve la familia (los más viejos se ocultan y se sacan al volver a publicar) | Opcional (365) |
 | `FICHAS_RETENCION_DIAS` | Días sin cambios ni publicaciones para contar una ficha como inactiva (solo se informa en la limpieza, no se borra) | Opcional (730) |
+| `DOCUMENTOS_RETENCION_DIAS` | Días sin actividad del alumno para borrar sus informes y documentos en la limpieza diaria (y reintento de archivos que el Blob no borró) | Opcional (1825 = 5 años) |
 | `AUDITORIA_RETENCION_DIAS` | Días que se guarda el registro de accesos | Opcional (365) |
 | `FEEDBACK_RETENCION_DIAS` | Días que se guardan los comentarios | Opcional (365) |
 | `AUDITORIA_ALERTA_FALLOS` | Códigos incorrectos en 30 min para una cuenta que disparan el mail de alerta a la plataforma | Opcional (5) |

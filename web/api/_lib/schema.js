@@ -238,6 +238,20 @@ const SCHEMA = [
     creado TIMESTAMPTZ NOT NULL DEFAULT now()
   )`,
   `CREATE INDEX IF NOT EXISTS documentos_alumno ON documentos (alumno_id, creado DESC)`,
+  // Documento reservado: lo ven solo quien lo subió, la dirección de la escuela y la plataforma (no el resto del equipo).
+  // Nunca puede estar visible para la familia (el CHECK solo se agrega junto con la columna, así migra una base existente).
+  `ALTER TABLE documentos ADD COLUMN IF NOT EXISTS reservado BOOLEAN NOT NULL DEFAULT false CHECK (NOT (reservado AND visible_familia))`,
+  // ---------- Archivos del Blob que no se pudieron borrar ----------
+  // Cuando borrar un archivo del Blob falla, la ruta queda acá y la limpieza diaria (_lib/retencion.js, barrerHuerfanos) lo reintenta
+  // hasta HUERFANOS_MAX_INTENTOS. Sin datos de personas: solo la ruta (documentos/<alumno_id>/<hex>) y el último error.
+  `CREATE TABLE IF NOT EXISTS blobs_huerfanos (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    ruta TEXT NOT NULL UNIQUE,
+    intentos INT NOT NULL DEFAULT 1,
+    ultimo_error TEXT NOT NULL DEFAULT '',
+    ultimo_intento TIMESTAMPTZ NOT NULL DEFAULT now(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`,
   // ---------- Métricas de uso del piloto (ver _lib/metricas.js) ----------
   // Contadores diarios agregados por escuela. A propósito sin user_id, alumno_id, email, IP ni user agent.
   // escuela_id = 0: sin escuela. Se borra a los METRICAS_RETENCION_DIAS (400).
