@@ -192,9 +192,9 @@ async function cambiar(req, yo, b) {
 async function borrar(req, yo, b) {
   const d = await docDeDocente(yo, b.doc_id);
   if (!puedeBorrar(yo, d)) throw errorPublico("Solo quien lo subió o la dirección de la escuela pueden borrar este documento.", 403);
-  const blob_borrado = await almacen.borrarArchivo(d.blob_ruta);
+  const blob_borrado = await almacen.borrarArchivo(d.blob_ruta); // si falla, queda en blobs_huerfanos y la limpieza diaria lo reintenta
   await q("DELETE FROM documentos WHERE id = $1", [d.id]);
-  if (!blob_borrado) console.error(`[puente] documento #${d.id}: el archivo no se pudo borrar del Blob (${d.blob_ruta}); reintentar a mano`);
+  if (!blob_borrado) console.error(`[puente] documento #${d.id}: el archivo no se pudo borrar del Blob (${d.blob_ruta}); anotado como huérfano, se reintenta en la limpieza`);
   await auditoria.registrar(req, { evento: "doc_borrar", ...auditoria.actor({ tipo: "docente", usuario: yo }), objeto_tipo: "documento", objeto_id: d.id,
     detalle: { alumno_id: Number(d.alumno_id), blob_borrado } });
   return { ok: true, blob_borrado };
