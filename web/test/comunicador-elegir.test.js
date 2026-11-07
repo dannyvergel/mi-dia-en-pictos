@@ -76,8 +76,10 @@ test("Elegir: no guarda nada, no hace pedidos y no suma campos a los ajustes", (
 test("Elegir: textos en español e inglés, y el inglés generado los trae", () => {
   for (const k of CLAVES) for (const l of TX.IDIOMAS) assert.ok(typeof TX[l][k] === "string" && TX[l][k].trim(), `${l}.${k}`);
   assert.deepEqual(Object.keys(TX.en).sort(), Object.keys(TX.es).sort());
-  assert.equal(TX.es.pdDecirElegir.replace("{t}", "agua"), "Quiero agua.");
-  assert.equal(TX.en.pdDecirElegir.replace("{t}", "water"), "I want water.");
+  // Only the chosen word is spoken: a "Quiero ..." prefix breaks with "no quiero", "me duele" or "feliz".
+  assert.equal(TX.es.pdDecirElegir.replace("{t}", "agua"), "agua.");
+  assert.equal(TX.en.pdDecirElegir.replace("{t}", "water"), "water.");
+  assert.equal(TX.es.pdDecirElegir.replace("{t}", "no quiero"), "no quiero.");
   assert.equal(TX.es.pdElegirPregunta, "¿Cuál querés?");
   assert.equal(TX.en.pdElegirPregunta, "Which one?");
   assert.equal(TX.es.pdModoElegir, "Elegir");
