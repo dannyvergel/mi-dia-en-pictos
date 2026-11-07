@@ -1,0 +1,102 @@
+# Puente self-hosted: `cp .env.example .env`, fill it in, then `docker compose up -d`.
+# Optional local AI: `docker compose --profile llm up -d` (see docs/operacion/autoalojado.md).
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: puente-app
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      APP_ENV: production
+      DB_DRIVER: pg
+      DATABASE_URL: postgres://puente:${DB_PASSWORD:?set DB_PASSWORD in .env}@db:5432/puente
+      STORAGE_DRIVER: disk
+      STORAGE_DIR: /data/storage
+      TRUST_PROXY: "1"
+      PORT: "3000"
+    volumes:
+      - storage:/data/storage
+    # Not published to the host: only caddy reaches it.
+    expose:
+      - "3000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: puente
+      POSTGRES_DB: puente
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U puente -d puente"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      PUENTE_DOMAIN: ${PUENTE_DOMAIN:?set PUENTE_DOMAIN in .env (localhost for a local test)}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+
+  # Daily retention cleanup (same job as the Vercel cron: /api/auditoria?accion=limpieza).
+  cron:
+    image: curlimages/curl:latest
+    restart: unless-stopped
+    environment:
+      CRON_SECRET: ${CRON_SECRET:?set CRON_SECRET in .env}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        while true; do
+          curl -fsS -H "Authorization: Bearer $$CRON_SECRET" "http://app:3000/api/auditoria?accion=limpieza" || echo "cleanup failed"
+          sleep 86400
+        done
+    depends_on:
+      app:
+        condition: service_healthy
+
+  # Optional local LLM. No model is downloaded automatically:
+  #   docker compose --profile llm up -d
+  #   docker compose --profile llm exec llm ollama pull <model>
+  # Then set LLM_BASE_URL=http://llm:11434/v1 and LLM_MODEL=<model> in .env and restart app.
+  llm:
+    profiles: ["llm"]
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    volumes:
+      - ollama:/root/.ollama
+    expose:
+      - "11434"
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  storage:
+  dbdata:
+  caddy_data:
+  caddy_config:
+  ollama:
