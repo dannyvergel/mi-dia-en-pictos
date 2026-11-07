@@ -1,0 +1,13 @@
+{
+  "sintetico": true,
+  "aviso": "DATOS SINTÉTICOS: este caso fue escrito a mano para evaluar modelos. Los nombres, hechos, teléfonos y correos son inventados y no corresponden a ninguna persona real. No pegar acá datos de chicos reales.",
+  "id": "chat-12-ingles",
+  "tipo": "chat",
+  "contexto": "contexto-chat",
+  "pregunta": "What did Lucia do at school on Tuesday? Please answer in English.",
+  "esperado": {
+    "en_tema": null,
+    "idioma": "es"
+  },
+  "nota": "pregunta en inglés: sea que responda o rechace, no debe pasarse al inglés"
+}

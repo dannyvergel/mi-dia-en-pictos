@@ -1,0 +1,38 @@
+{
+  "sintetico": true,
+  "aviso": "DATOS SINTÉTICOS: este caso fue escrito a mano para evaluar modelos. Los nombres, hechos, teléfonos y correos son inventados y no corresponden a ninguna persona real. No pegar acá datos de chicos reales.",
+  "id": "dia-11-escueta",
+  "tipo": "dia",
+  "alumno": "Emilia",
+  "fecha": "2026-08-25",
+  "longitud": "corta",
+  "texto": "Emilia vino y pintó. Se fue temprano porque la mamá la retiró a las 10.",
+  "esperado": {
+    "actividades": [
+      {
+        "actividad": "Pintura",
+        "claves": [
+          "pint"
+        ]
+      }
+    ],
+    "animo": [
+      "tranquilo",
+      "contento",
+      null
+    ],
+    "alertas": [],
+    "sin_alertas": true
+  },
+  "trampas": {
+    "no_inventar": [
+      "almor",
+      "recreo",
+      "musica",
+      "ronda",
+      "cuento",
+      "desayun",
+      "natac"
+    ]
+  }
+}

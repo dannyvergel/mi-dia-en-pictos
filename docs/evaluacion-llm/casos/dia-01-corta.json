@@ -1,0 +1,55 @@
+{
+  "sintetico": true,
+  "aviso": "DATOS SINTÉTICOS: este caso fue escrito a mano para evaluar modelos. Los nombres, hechos, teléfonos y correos son inventados y no corresponden a ninguna persona real. No pegar acá datos de chicos reales.",
+  "id": "dia-01-corta",
+  "tipo": "dia",
+  "alumno": "Mateo",
+  "fecha": "2026-03-10",
+  "longitud": "corta",
+  "texto": "Mateo llegó contento. En la ronda de la mañana cantó la canción de los días y después pintó con témperas. Almorzó todo el guiso solo. Se fue tranquilo.",
+  "esperado": {
+    "actividades": [
+      {
+        "actividad": "Ronda de la mañana con canción",
+        "claves": [
+          "ronda",
+          "cant"
+        ]
+      },
+      {
+        "actividad": "Pintura con témperas",
+        "claves": [
+          "pint"
+        ]
+      },
+      {
+        "actividad": "Almuerzo",
+        "claves": [
+          "almor"
+        ]
+      }
+    ],
+    "animo": [
+      "contento",
+      "tranquilo"
+    ],
+    "logros": [
+      {
+        "texto": "Almorzó todo el guiso solo",
+        "claves": [
+          "almor",
+          "solo"
+        ]
+      }
+    ],
+    "alertas": [],
+    "sin_alertas": true
+  },
+  "trampas": {
+    "no_inventar": [
+      "natac",
+      "educacion fisica",
+      "computac"
+    ]
+  }
+}

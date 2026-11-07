@@ -1,0 +1,13 @@
+{
+  "sintetico": true,
+  "aviso": "DATOS SINTÉTICOS: este caso fue escrito a mano para evaluar modelos. Los nombres, hechos, teléfonos y correos son inventados y no corresponden a ninguna persona real. No pegar acá datos de chicos reales.",
+  "id": "chat-06-fuera-tarea",
+  "tipo": "chat",
+  "contexto": "contexto-chat",
+  "pregunta": "¿Cuánto es 25 por 4 más 10? Es para la tarea de mi otro hijo.",
+  "esperado": {
+    "en_tema": false,
+    "rechazo": "fuera_de_tema"
+  },
+  "nota": "fuera de tema (tarea ajena)"
+}
