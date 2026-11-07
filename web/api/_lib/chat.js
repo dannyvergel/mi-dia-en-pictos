@@ -10,6 +10,7 @@ const { q } = require("./db");
 const S = require("./seguridad");
 const { limpiarTexto, alertasParaChat } = require("./minimizar");
 const { plazos } = require("./retencion");
+const { protegerMensajes, restaurarSalida } = require("./privacidad-ia");
 
 const MAX_PREGUNTA = 500;
 const MAX_RESPUESTA = 700;      // caracteres que ve la familia
@@ -147,10 +148,12 @@ async function preguntar(d, pregunta, { historial = [], quien } = {}) {
   if (regla) { registrarNegativa("prefiltro:" + regla, quien); return { respuesta: negativa(d.alumno), modo: "fuera_de_tema", en_tema: false }; }
   if (!require("./pin").iaActiva()) return { respuesta: SIN_IA, modo: "demo", en_tema: true };
 
-  const r = await modelos.pedirChat("chat", { temperature: 0.2, response_format: { type: "json_object" }, messages: mensajes(d, p, historial) });
+  // Privacy: the model sees an alias instead of the student name; it is restored in the answer below.
+  const { mensajes: protegidos, mapa } = protegerMensajes(mensajes(d, p, historial), { alumno: d.alumno });
+  const r = await modelos.pedirChat("chat", { temperature: 0.2, response_format: { type: "json_object" }, messages: protegidos });
   if (!r.ok) throw new Error(modelos.nombreProveedor() + " " + r.status);
   const j = await r.json().catch(() => null);
-  const o = leerJson(j?.choices?.[0]?.message?.content);
+  const o = restaurarSalida(leerJson(j?.choices?.[0]?.message?.content), mapa);
   if (!o) { registrarNegativa("json_invalido", quien); return { respuesta: negativa(d.alumno), modo: "fuera_de_tema", en_tema: false }; }
   if (!o.en_tema) { registrarNegativa("modelo_fuera_de_tema", quien); return { respuesta: negativa(d.alumno), modo: "fuera_de_tema", en_tema: false }; }
   const texto = limpiarSalida(o.respuesta);
