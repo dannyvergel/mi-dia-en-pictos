@@ -25,7 +25,7 @@ const directorioDisco = (env = process.env) => path.resolve(lleno(env.STORAGE_DI
 
 // Ruta absoluta dentro de STORAGE_DIR, o null si la clave es inválida o se sale de la carpeta (../, absolutas, NUL, vacías).
 function rutaEnDisco(clave) {
-  if (typeof clave !== "string" || clave === "" || clave.includes("\0")) return null;
+  if (typeof clave !== "string" || clave === "" || clave.includes("\0") || clave.includes("\\")) return null;
   const base = directorioDisco();
   const destino = path.resolve(base, clave);
   return destino !== base && destino.startsWith(base + path.sep) ? destino : null;
