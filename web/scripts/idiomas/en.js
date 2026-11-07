@@ -155,12 +155,12 @@ module.exports = {
 
   // ---------------- Política de privacidad ----------------
   "privacidad.html": {
-    iguales: ["2026-11-01-borrador"],
+    iguales: ["2026-11-06"],
     pares: [
       ['<div class="bajada">Política de privacidad</div>', '<div class="bajada">Privacy policy</div>'],
       ...legalComun("privacidad.html"),
-      ['<p>Versión <code>2026-11-01-borrador</code>. Cuando cambie, se vuelve a pedir el consentimiento.</p>',
-        '<p>Version <code>2026-11-01-borrador</code>. When it changes, consent is requested again.</p>'],
+      ['<p>Versión <code>2026-11-06</code>. Cuando cambie, se vuelve a pedir el consentimiento.</p>',
+        '<p>Version <code>2026-11-06</code>. When it changes, consent is requested again.</p>'],
       ['<h2>Qué es Puente y para qué usa los datos</h2>', '<h2>What Puente is and what it uses data for</h2>'],
       ['<p>Puente es una herramienta gratuita y sin fines de lucro para escuelas de educación especial. Las docentes registran cómo fue el día de cada alumno y Puente lo muestra a su familia en pictogramas, con un resumen claro. La <b>única finalidad</b> es la comunicación entre la escuela y la familia y el seguimiento pedagógico del alumno (registro diario, objetivos del PPI y apoyos). Los datos no se venden, no se usan para publicidad y no se comparten con nadie fuera de lo que se explica acá.</p>',
         '<p>Puente is a free, non-profit tool for special education schools. Teachers record how each student\'s day went and Puente shows it to the family in pictograms, with a clear summary. Its <b>only purpose</b> is communication between school and family and the student\'s educational follow-up (daily record, individual education plan goals and supports). Data is not sold, not used for advertising and not shared with anyone beyond what is explained here.</p>'],
@@ -268,11 +268,11 @@ module.exports = {
 
   // ---------------- Términos de uso ----------------
   "terminos.html": {
-    iguales: ["2026-11-01-borrador"],
+    iguales: ["2026-11-06"],
     pares: [
       ['<div class="bajada">Términos de uso</div>', '<div class="bajada">Terms of use</div>'],
       ...legalComun("terminos.html"),
-      ['<p>Versión <code>2026-11-01-borrador</code>.</p>', '<p>Version <code>2026-11-01-borrador</code>.</p>'],
+      ['<p>Versión <code>2026-11-06</code>.</p>', '<p>Version <code>2026-11-06</code>.</p>'],
       ['<h2>Términos de uso</h2>', '<h2>Terms of use</h2>'],
       ['<h3>1. El servicio</h3>', '<h3>1. The service</h3>'],
       ['<p>Puente es una herramienta gratuita y sin fines de lucro para la comunicación entre escuelas de educación especial y familias, en etapa de prueba (BETA). Se ofrece «tal cual»: puede tener errores, cambios o interrupciones. No reemplaza la comunicación directa con la escuela ni el cuaderno de comunicaciones oficial.</p>',
