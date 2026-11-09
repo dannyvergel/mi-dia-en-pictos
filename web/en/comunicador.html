@@ -200,6 +200,14 @@
   .pd-opcion[aria-pressed="true"] { border-width: 8px; padding: 7px 3px; background: #fdf6e1; }
   .pd-opcion.sin-img .pd-foto { display: none; }
   .pd-opcion.sin-img .pd-palabra { font-size: 36px; }
+  /* Buscar otro dibujo desde el diálogo: un botón por dibujo, fuera de los botones de vista; el buscador existente se muestra acá mientras se usa */
+  .pd-buscar { flex: none; display: flex; gap: 10px; }
+  .pd-buscar-btn {
+    flex: 1 1 0; min-width: 0; min-height: 72px; flex-direction: row; font-size: 18px; padding: 6px 12px; }
+  .pd .buscador { flex: none; margin: 0; }
+  .pd-volver {
+    flex: none; min-height: 72px; }
+  .pd-volver[hidden] { display: none; }
   .pd-marca { display: none; font-weight: 700; font-size: 22px; text-transform: uppercase; }
   .pd-opcion[aria-pressed="true"] .pd-marca { display: block; }
 
@@ -212,7 +220,7 @@
   }
   /* Sin animaciones ni movimientos que distraigan, aunque el sistema no lo pida */
   .com *, .com *::before, .com *::after { animation: none !important; transition: none !important; }
-  @media (forced-colors: active) { .tecla, .cat, .accion, .frase-tira, .pd-pictos, .pd-cerrar, .pd-modo, .pd-opcion { border: 2px solid ButtonText; } }
+  @media (forced-colors: active) { .tecla, .cat, .accion, .frase-tira, .pd-pictos, .pd-cerrar, .pd-modo, .pd-opcion, .pd-buscar-btn, .pd-volver { border: 2px solid ButtonText; } }
 </style>
 </head>
 <body class="com">
@@ -289,6 +297,11 @@
           <button type="button" class="pd-opcion" id="pdOpB" aria-pressed="false"><span class="pd-foto"></span><span class="pd-palabra"></span><span class="pd-marca" aria-hidden="true">✓ <span data-i18n="pdElegido">Chosen</span></span></button>
         </div>
       </div>
+      <div class="pd-buscar" id="pdBuscar">
+        <button type="button" class="accion pd-buscar-btn" id="pdBuscA"><span data-i18n="pdBuscar">Search another picture</span></button>
+        <button type="button" class="accion pd-buscar-btn" id="pdBuscB"><span data-i18n="pdBuscar">Search another picture</span></button>
+      </div>
+      <button type="button" class="accion pd-volver" id="pdBuscarVolver" hidden><span data-i18n="pdBuscarVolver">Back to the pictures</span></button>
       <button type="button" class="accion pd-cerrar" id="pdCerrar"><span data-i18n="pdCerrar">Close</span></button>
     </div>
     <p class="sr-only" id="vivo" role="status" aria-live="polite" aria-atomic="true"></p>
@@ -516,6 +529,7 @@
   // Modo «Elegir»: los mismos dos dibujos como dos botones. Tocar uno lo marca y dice «Quiero X». Nada se guarda:
   // el modo y lo elegido viven solo mientras el diálogo está abierto y se reinician cada vez que se abre.
   let pdDos = []; // los dos pictos con los que se abrió el diálogo
+  let pdBuscando = -1; // dibujo (0 o 1) que se está buscando desde el diálogo, o -1
   function ponerModo(modo) {
     const elegir = modo === "elegir";
     $("pdPictos").hidden = elegir;
@@ -534,28 +548,36 @@
     const dos = frase.slice(0, 2).map(id => todos.get(id));
     if (dos.length < 2) return;
     pdDos = dos;
-    [["pdA", dos[0]], ["pdB", dos[1]]].forEach(([id, p]) => {
-      const panel = $(id);
-      panel.classList.remove("sin-img");
-      panel.querySelector(".pd-foto").innerHTML = `<img src="${T.url(p.id)}" alt="" width="300" height="300" draggable="false">`;
-      panel.querySelector("img").onerror = () => panel.classList.add("sin-img"); // sin conexión y sin caché: queda la palabra
-      panel.querySelector(".pd-palabra").textContent = texto(p);
-    });
-    [["pdOpA", dos[0]], ["pdOpB", dos[1]]].forEach(([id, p]) => {
-      const op = $(id);
-      op.classList.remove("sin-img");
-      op.querySelector(".pd-foto").innerHTML = `<img src="${T.url(p.id)}" alt="" width="300" height="300" draggable="false">`;
-      op.querySelector("img").onerror = () => op.classList.add("sin-img");
-      op.querySelector(".pd-palabra").textContent = texto(p);
-    });
+    pintarSlot(0); pintarSlot(1);
     ponerModo("primero"); // siempre se abre en Primero y después
     $("pd").hidden = false;
     $("pdPictos").focus();
   }
+  // Pinta un solo dibujo (panel de Primero y después, opción de Elegir y aria de su botón «Buscar otro dibujo»).
+  function pintarSlot(i) {
+    const p = pdDos[i];
+    [$(i ? "pdB" : "pdA"), $(i ? "pdOpB" : "pdOpA")].forEach(el => {
+      el.classList.remove("sin-img");
+      el.querySelector(".pd-foto").innerHTML = `<img src="${T.url(p.id)}" alt="" width="300" height="300" draggable="false">`;
+      el.querySelector("img").onerror = () => el.classList.add("sin-img"); // sin conexión y sin caché: queda la palabra
+      el.querySelector(".pd-palabra").textContent = texto(p);
+    });
+    $(i ? "pdBuscB" : "pdBuscA").setAttribute("aria-label", tr("pdBuscarAria", texto(p)));
+  }
+  // Reemplaza solo ese dibujo dentro del diálogo; la frase no cambia. Lo que estaba elegido en Elegir se desmarca.
+  function cambiarEnDialogo(i, p) {
+    pdDos[i] = p;
+    pintarSlot(i);
+    ["pdOpA", "pdOpB"].forEach(id => $(id).setAttribute("aria-pressed", "false"));
+  }
   function cerrarPrimero() {
+    cerrarBuscadorDialogo();
     $("pd").hidden = true;
     $("bPrimero").focus();
   }
+  $("pdBuscA").onclick = () => abrirBuscadorDialogo(0);
+  $("pdBuscB").onclick = () => abrirBuscadorDialogo(1);
+  $("pdBuscarVolver").onclick = () => { const i = pdBuscando; cerrarBuscadorDialogo(); $(i ? "pdBuscB" : "pdBuscA").focus(); };
   $("bPrimero").onclick = abrirPrimero;
   $("pdPictos").onclick = decirPrimero;
   $("pdCerrar").onclick = cerrarPrimero;
@@ -565,7 +587,11 @@
   $("pdOpB").onclick = () => elegirOpcion(1);
   document.addEventListener("keydown", e => {
     if ($("pd").hidden) return;
-    if (e.key === "Escape") { e.preventDefault(); cerrarPrimero(); return; }
+    if (e.key === "Escape") {
+      e.preventDefault();
+      if (pdBuscando >= 0) { const i = pdBuscando; cerrarBuscadorDialogo(); $(i ? "pdBuscB" : "pdBuscA").focus(); return; } // primero el buscador, después el diálogo
+      cerrarPrimero(); return;
+    }
     if (e.key !== "Tab") return;
     // El Tab da la vuelta dentro del diálogo (el resto de la página queda detrás), por los botones de la vista que se ve.
     const foco = [...$("pd").querySelectorAll("button")].filter(b => !b.closest("[hidden]")), i = foco.indexOf(document.activeElement);
@@ -715,7 +741,48 @@
     }));
     ajustarEtiquetas(g);
   }
+  // Buscar desde el diálogo de Primero y después: se muestra el mismo buscador (mismo formulario, misma búsqueda, mismos resultados)
+  // dentro del diálogo y, al terminar, vuelve a su lugar en la página. No hay otro pedido ni otra clave guardada.
+  let buscadorLugar = null;
+  function abrirBuscadorDialogo(i) {
+    const b = $("buscador");
+    if (pdBuscando < 0) buscadorLugar = { padre: b.parentNode, sig: b.nextSibling };
+    pdBuscando = i;
+    b.classList.remove("com-solo-normal"); // en pantalla completa ese estilo lo ocultaría
+    b.hidden = false;
+    $("pd").insertBefore(b, $("pdBuscarVolver"));
+    $("pdBuscarVolver").hidden = false;
+    avisoConexion();
+    b.scrollIntoView({ block: "nearest" });
+    $("buscarPalabra").focus();
+  }
+  function cerrarBuscadorDialogo() {
+    if (pdBuscando < 0) return;
+    const b = $("buscador");
+    pdBuscando = -1;
+    $("pdBuscarVolver").hidden = true;
+    b.classList.add("com-solo-normal");
+    b.hidden = !editando; // como estaba antes de abrirlo desde el diálogo
+    if (buscadorLugar) buscadorLugar.padre.insertBefore(b, buscadorLugar.sig);
+  }
+  // Mismo límite y mismo aviso de «lleno» que el buscador de Favoritos. Un resultado que ya está en el tablero usa el del tablero.
+  // Solo suma (nunca saca): reemplaza ese dibujo en el diálogo y la frase queda como estaba.
+  function elegirParaDialogo(r) {
+    let p = todos.get(r.id);
+    if (!p) {
+      if (aj.propios.length >= T.MAX_PROPIOS) { estadoBuscar(tr("propiosLleno"), true); anunciar(tr("propiosLleno")); return; }
+      aj.propios.push({ id: r.id, t: r.t }); cargarPropios(); p = todos.get(r.id);
+    }
+    if (!aj.favoritos.includes(r.id)) { aj.favoritos.push(r.id); avisarSW(); }
+    guardar(); pintarCats(); pintarGrilla(); pintarResultados();
+    const i = pdBuscando;
+    cerrarBuscadorDialogo();
+    cambiarEnDialogo(i, p);
+    anunciar(tr("pdCambiado", texto(p)));
+    $(i ? "pdBuscB" : "pdBuscA").focus();
+  }
   function elegirResultado(r) {
+    if (pdBuscando >= 0) { elegirParaDialogo(r); return; }
     const i = aj.favoritos.indexOf(r.id), p = todos.get(r.id);
     if (i >= 0) { // ya estaba: lo saca
       aj.favoritos.splice(i, 1);
