@@ -65,9 +65,9 @@ test("manifest: el alcance cubre la página en español y la de inglés, con id 
   assert.ok(leer("en/comunicador.html").includes('<link rel="manifest" href="/comunicador.webmanifest">'), "el inglés usa el mismo manifest");
 });
 
-test("el service worker (pictos-v38) cachea la página, el tablero, los textos y sus pictos, y sigue sin cachear /api ni /descargar", () => {
+test("el service worker (pictos-v39) cachea la página, el tablero, los textos y sus pictos, y sigue sin cachear /api ni /descargar", () => {
   const sw = leer("sw.js");
-  assert.ok(sw.includes("const C = 'pictos-v38'"));
+  assert.ok(sw.includes("const C = 'pictos-v39'"));
   assert.ok(sw.includes("'comunicador.html'") && sw.includes("'comunicador-tablero.js'") && sw.includes("'comunicador-textos.js'"));
   assert.ok(sw.includes("importScripts('comunicador-tablero.js')"));
   assert.ok(sw.includes("self.TABLERO.urls(extras)") && sw.includes("e.data.tipo === 'comunicador'") && sw.includes("guardarTablero(e.data.extras)"));
