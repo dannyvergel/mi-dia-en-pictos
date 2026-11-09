@@ -92,7 +92,7 @@ test("/api/dia: solo nombre de pila y relato con contactos tapados", async () =>
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.equal(enviados.length, 1);
   revisarEnvio(enviados[0]);
-  assert.match(enviados[0].messages[1].content, /Alumno: Juan\n/);
+  assert.match(enviados[0].messages[1].content, /Alumno: Alumno A\n/); // the name is aliased before the call (privacidad-ia)
 });
 
 test("/api/agente: la ficha manda, el perfil va sin salud ni contactos (aunque el navegador mande de más)", async () => {

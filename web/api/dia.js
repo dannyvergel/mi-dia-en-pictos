@@ -12,6 +12,7 @@ const { exigirDocente } = require("./_lib/auth");
 const { exigirVisiblePorNombre } = require("./_lib/alumnos");
 const { manejarError, hoyLocal } = require("./_lib/http");
 const { limpiarTexto } = require("./_lib/minimizar");
+const { protegerMensajes, restaurarSalida } = require("./_lib/privacidad-ia");
 // Minimización: solo el nombre de pila y el relato, con emails y teléfonos tapados.
 const mensajes = (nombre, fecha, texto) => [
   { role: "system", content: SISTEMA },
@@ -34,12 +35,16 @@ const handler = async (req, res) => {
   if (!require("./_lib/pin").iaActiva()) return res.status(503).json({ error: "sin key" });
   const fecha = b.fecha || hoyLocal();
   try {
-    const r = await modelos.pedirChat("dia", { temperature: 0.2, response_format: { type: "json_object" }, messages: mensajes(nombre, fecha, b.texto) });
+    // Privacy: the model sees an alias instead of the student name and tags instead of contact data; the real name is restored below.
+    const { mensajes: protegidos, mapa } = protegerMensajes(mensajes(nombre, fecha, b.texto), { alumno: [nombre, b.alumno] });
+    const r = await modelos.pedirChat("dia", { temperature: 0.2, response_format: { type: "json_object" }, messages: protegidos });
     if (!r.ok) throw new Error(modelos.nombreProveedor() + " " + r.status);
     const raw = (await r.json()).choices[0].message.content;
-    const d = extraerJson(raw);
-    d.alumno = b.alumno || d.alumno; d.fecha = fecha;
+    let d = extraerJson(raw);
+    // Pictogram lookups (third-party ARASAAC) run on the aliased data; names are restored afterwards.
     for (const a of d.actividades || []) Object.assign(a, await picto(a.palabra_clave || a.actividad));
+    d = restaurarSalida(d, mapa);
+    d.alumno = b.alumno || d.alumno; d.fecha = fecha;
     const al = (d.alertas || []).map(x => "⚠️ " + x.detalle).join("\n");
     d.mensaje_familia = `Hola! Así fue el día de ${d.alumno} 🌈\n\n${d.resumen_familia}` + (al ? "\n\n" + al : "") + (d.logros?.length ? "\n\n⭐ Logros: " + d.logros.join(", ") : "");
     res.status(200).json(d);

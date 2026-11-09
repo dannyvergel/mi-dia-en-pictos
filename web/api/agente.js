@@ -9,6 +9,7 @@ const { objetivosAPpi, apoyosAPerfil } = require("./_lib/fichas");
 const { perfilParaIA, ppiParaIA, limpiarTexto } = require("./_lib/minimizar");
 
 const modelos = require("./_lib/modelos");
+const { protegerMensajes, restaurarSalida } = require("./_lib/privacidad-ia");
 const MAX_PASOS = 8;
 
 const SISTEMA = `Sos el Agente de Progreso de "Puente", para docentes de educación especial en Argentina.
@@ -35,10 +36,12 @@ function aTools(h) {
 }
 const resumir = (r) => { const s = JSON.stringify(r); return s.length > 220 ? s.slice(0, 217) + "…" : s; };
 
-async function llm(messages, tools) {
-  const r = await modelos.pedirChat("agente", { temperature: 0.2, messages, ...(tools ? { tools, tool_choice: "auto" } : { response_format: { type: "json_object" } }) }, { timeout: true });
+// Privacy: every call sends an aliased copy of the conversation (student name, contact data); the answer is restored before it is used.
+async function llm(messages, tools, alumno) {
+  const { mensajes: protegidos, mapa } = protegerMensajes(messages, { alumno });
+  const r = await modelos.pedirChat("agente", { temperature: 0.2, messages: protegidos, ...(tools ? { tools, tool_choice: "auto" } : { response_format: { type: "json_object" } }) }, { timeout: true });
   if (!r.ok) throw new Error(modelos.nombreProveedor() + " " + r.status + ": " + (await r.text()).slice(0, 200));
-  return (await r.json()).choices[0].message;
+  return restaurarSalida((await r.json()).choices[0].message, mapa);
 }
 
 function parseJSON(s) {
@@ -55,7 +58,7 @@ async function correrAgente(ctx, h, traza) {
   const tools = aTools(h);
   const limite = Date.now() + modelos.timeoutAgenteMs(); // si se estira, cerramos con lo que haya
   for (let i = 0; i < MAX_PASOS && Date.now() < limite; i++) {
-    const msg = await llm(messages, tools);
+    const msg = await llm(messages, tools, ctx.alumno);
     messages.push(msg);
     if (!msg.tool_calls?.length) return parseJSON(msg.content);
     for (const tc of msg.tool_calls) {
@@ -67,7 +70,7 @@ async function correrAgente(ctx, h, traza) {
     }
   }
   messages.push({ role: "user", content: "Ya tenés suficiente. Respondé ahora SOLO el JSON final." });
-  return parseJSON((await llm(messages)).content);
+  return parseJSON((await llm(messages, undefined, ctx.alumno)).content);
 }
 
 // --- Plan fijo: mismas herramientas, orden predefinido ---
